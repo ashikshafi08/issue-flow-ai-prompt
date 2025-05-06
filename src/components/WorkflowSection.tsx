@@ -1,5 +1,6 @@
 
 import React, { useEffect, useRef, useState } from "react";
+import { useInView } from "react-intersection-observer";
 
 const steps = [
   {
@@ -168,44 +169,39 @@ const steps = [
 ];
 
 const WorkflowSection = () => {
-  const [activeIndex, setActiveIndex] = useState(-1);
-  const sectionRef = useRef<HTMLDivElement>(null);
-  
+  const [activeSteps, setActiveSteps] = useState([]);
+  const { ref, inView } = useInView({
+    threshold: 0.3,
+    triggerOnce: false,
+  });
+
   useEffect(() => {
-    const handleScroll = () => {
-      if (!sectionRef.current) return;
-      
-      const sectionTop = sectionRef.current.getBoundingClientRect().top;
-      const windowHeight = window.innerHeight;
-      
-      if (sectionTop < windowHeight * 0.75) {
-        // Start animating steps
-        const timer = setTimeout(() => {
-          setActiveIndex(0);
+    if (inView) {
+      const activateSteps = () => {
+        const timer = setInterval(() => {
+          setActiveSteps((prevActiveSteps) => {
+            if (prevActiveSteps.length < steps.length) {
+              return [...prevActiveSteps, prevActiveSteps.length];
+            } else {
+              clearInterval(timer);
+              return prevActiveSteps;
+            }
+          });
         }, 500);
         
-        return () => clearTimeout(timer);
-      }
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    handleScroll(); // Check initial position
-    
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-  
-  useEffect(() => {
-    if (activeIndex >= 0 && activeIndex < steps.length - 1) {
-      const timer = setTimeout(() => {
-        setActiveIndex(activeIndex + 1);
-      }, 1000);
+        return () => clearInterval(timer);
+      };
       
-      return () => clearTimeout(timer);
+      const cleanup = activateSteps();
+      return () => cleanup();
+    } else {
+      // Reset when out of view
+      setActiveSteps([]);
     }
-  }, [activeIndex]);
+  }, [inView]);
 
   return (
-    <section id="how-it-works" className="py-20" ref={sectionRef}>
+    <section id="how-it-works" className="py-20" ref={ref}>
       <div className="container px-4 md:px-6">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold tracking-tighter mb-2">How it Works</h2>
@@ -215,24 +211,44 @@ const WorkflowSection = () => {
         </div>
         
         <div className="relative max-w-3xl mx-auto">
-          <div className="absolute top-0 bottom-0 left-8 w-0.5 bg-muted"></div>
+          <div className="absolute top-0 bottom-0 left-8 w-0.5 bg-muted">
+            <div 
+              className="absolute top-0 bottom-0 left-0 w-full bg-brand-purple transition-all duration-1000 ease-out"
+              style={{ 
+                height: `${(activeSteps.length / steps.length) * 100}%`,
+              }}
+            ></div>
+          </div>
           
           {steps.map((step, index) => (
             <div 
               key={index} 
-              className={`workflow-item flex items-start mb-8 ${index <= activeIndex ? 'active' : ''}`}
+              className={`workflow-item flex items-start mb-8 ${
+                activeSteps.includes(index) ? 'active' : ''
+              }`}
               style={{ 
-                transitionDelay: `${index * 300}ms`,
+                transitionDelay: `${index * 150}ms`,
               }}
             >
-              <div className="relative z-10 flex items-center justify-center w-16 h-16 bg-background border rounded-full shadow-sm mr-4">
-                <div className={`${index <= activeIndex ? 'text-brand-purple' : 'text-muted-foreground'} transition-colors`}>
+              <div 
+                className={`relative z-10 flex items-center justify-center w-16 h-16 
+                  ${activeSteps.includes(index) 
+                    ? 'bg-accent border-brand-purple' 
+                    : 'bg-background border-muted'
+                  } 
+                  border-2 rounded-full shadow-sm mr-4 transition-all duration-500`}
+              >
+                <div className={`${activeSteps.includes(index) ? 'text-brand-purple scale-110' : 'text-muted-foreground'} transition-all duration-500`}>
                   {step.icon}
                 </div>
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-medium">{step.title}</h3>
-                <p className="text-muted-foreground">{step.description}</p>
+                <h3 className={`text-lg font-medium ${activeSteps.includes(index) ? 'text-foreground' : 'text-muted-foreground'} transition-colors duration-500`}>
+                  {step.title}
+                </h3>
+                <p className={`${activeSteps.includes(index) ? 'text-muted-foreground' : 'text-muted-foreground/70'} transition-colors duration-500`}>
+                  {step.description}
+                </p>
               </div>
             </div>
           ))}

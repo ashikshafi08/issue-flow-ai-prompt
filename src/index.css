@@ -95,27 +95,6 @@
   }
 }
 
-.code-typing {
-  display: inline-block;
-  overflow: hidden;
-  white-space: nowrap;
-  margin: 0 auto;
-  border-right: 0.15em solid hsl(var(--primary));
-  animation: typing 3.5s steps(40, end), blink 0.75s step-end infinite;
-}
-
-.path-animation {
-  stroke-dasharray: 6;
-  stroke-dashoffset: 6;
-  animation: draw 2s linear infinite;
-}
-
-@keyframes draw {
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
 .workflow-item {
   opacity: 0;
   transform: translateY(20px);
@@ -131,4 +110,13 @@
   background-clip: text;
   -webkit-text-fill-color: transparent;
   background-image: linear-gradient(90deg, #6e59a5, #3b82f6);
+}
+
+@keyframes typing {
+  from { width: 0 }
+  to { width: 100% }
+}
+
+@keyframes blink {
+  50% { opacity: 0 }
 }

@@ -5,10 +5,56 @@ import { Badge } from "@/components/ui/badge";
 
 const HeroSection = () => {
   const [isVisible, setIsVisible] = useState(false);
+  const [terminalStep, setTerminalStep] = useState(0);
+  const [cursorPosition, setCursorPosition] = useState(0);
+  
+  const terminalSteps = [
+    { text: "$ python examples/examples_complete_rag.py", type: "command" },
+    { text: "Fetching issue: https://github.com/huggingface/transformers/issues/12345", type: "output" },
+    { text: "Cloning repository: huggingface/transformers", type: "output" },
+    { text: "Analyzing code: 20 relevant files found", type: "output" },
+    { text: "Building vector index: FAISS + OpenAI embeddings", type: "output" },
+    { text: "Generating prompt...", type: "output" },
+    { text: "Prompt generated successfully! Ready for LLM response.", type: "success" }
+  ];
 
   useEffect(() => {
     setIsVisible(true);
+    
+    // Start terminal animation after hero section becomes visible
+    const terminalTimer = setTimeout(() => {
+      const intervalId = setInterval(() => {
+        setTerminalStep(prev => {
+          if (prev < terminalSteps.length - 1) {
+            return prev + 1;
+          } else {
+            clearInterval(intervalId);
+            return prev;
+          }
+        });
+      }, 1000);
+      
+      return () => clearInterval(intervalId);
+    }, 1200);
+    
+    return () => clearTimeout(terminalTimer);
   }, []);
+
+  // Typing effect for the last line
+  useEffect(() => {
+    if (terminalStep === terminalSteps.length - 1) {
+      const lastStep = terminalSteps[terminalSteps.length - 1];
+      const typingSpeed = 50; // milliseconds per character
+      
+      if (cursorPosition < lastStep.text.length) {
+        const typingTimer = setTimeout(() => {
+          setCursorPosition(prev => prev + 1);
+        }, typingSpeed);
+        
+        return () => clearTimeout(typingTimer);
+      }
+    }
+  }, [terminalStep, cursorPosition, terminalSteps]);
 
   return (
     <section className="pt-28 pb-20 overflow-hidden">
@@ -45,23 +91,37 @@ const HeroSection = () => {
               <span>Terminal</span>
             </div>
             <div className="font-code bg-card text-sm text-left overflow-x-auto p-4 rounded">
-              <div className="text-green-500">$ python examples/examples_complete_rag.py</div>
-              <div className="mt-2">
-                <span className="text-blue-400">Fetching issue</span>: https://github.com/huggingface/transformers/issues/12345
-              </div>
-              <div className="mt-1">
-                <span className="text-blue-400">Cloning repository</span>: huggingface/transformers
-              </div>
-              <div className="mt-1">
-                <span className="text-blue-400">Analyzing code</span>: 20 relevant files found
-              </div>
-              <div className="mt-1">
-                <span className="text-blue-400">Building vector index</span>: FAISS + OpenAI embeddings
-              </div>
-              <div className="mt-1">
-                <span className="text-blue-400">Generating prompt</span>...
-              </div>
-              <div className="mt-2 code-typing text-brand-purple">Prompt generated successfully! Ready for LLM response.</div>
+              {terminalSteps.slice(0, terminalStep + 1).map((step, index) => {
+                // For the last step (success message) with typing animation
+                if (index === terminalSteps.length - 1 && index === terminalStep) {
+                  return (
+                    <div key={index} className="mt-2">
+                      <span className="text-brand-purple">
+                        {step.text.substring(0, cursorPosition)}
+                        {cursorPosition < step.text.length && (
+                          <span className="animate-pulse">|</span>
+                        )}
+                      </span>
+                    </div>
+                  );
+                }
+                
+                // For other terminal outputs
+                return (
+                  <div key={index} className={index > 0 ? "mt-1" : ""}>
+                    {step.type === "command" ? (
+                      <span className="text-green-500">{step.text}</span>
+                    ) : step.type === "output" ? (
+                      <span>
+                        <span className="text-blue-400">{step.text.split(":")[0]}</span>
+                        {step.text.includes(":") && ": " + step.text.split(":").slice(1).join(":")}
+                      </span>
+                    ) : (
+                      <span className="text-brand-purple">{step.text}</span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
