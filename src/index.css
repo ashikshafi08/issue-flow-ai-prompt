@@ -120,6 +120,16 @@
   to { transform: scale(1); opacity: 1; }
 }
 
+@keyframes floatArrow {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(5px); }
+}
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(110, 89, 165, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(110, 89, 165, 0.6); }
+}
+
 /* Animation classes */
 .animate-fade-in {
   animation: fadeIn 0.5s ease-out forwards;
@@ -131,6 +141,14 @@
 
 .animate-scale-in {
   animation: scaleIn 0.5s ease-out forwards;
+}
+
+.animate-float-arrow {
+  animation: floatArrow 1.5s ease-in-out infinite;
+}
+
+.animate-glow-pulse {
+  animation: glowPulse 2s ease-in-out infinite;
 }
 
 .workflow-item {
@@ -148,6 +166,30 @@
   background-clip: text;
   -webkit-text-fill-color: transparent;
   background-image: linear-gradient(90deg, #6e59a5, #3b82f6);
+}
+
+/* Step indicator animations and styles */
+.step-indicator {
+  transition: all 0.3s ease;
+}
+
+.step-indicator.active {
+  transform: scale(1.05);
+  box-shadow: 0 4px 20px rgba(110, 89, 165, 0.4);
+}
+
+.step-indicator:hover:not(.active) {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(110, 89, 165, 0.2);
+}
+
+.step-indicator-icon {
+  transition: all 0.3s ease;
+}
+
+.step-indicator.active .step-indicator-icon {
+  background: linear-gradient(90deg, #6e59a5, #3b82f6);
+  color: white;
 }
 
 @keyframes typing {
@@ -211,6 +253,35 @@
   position: relative;
 }
 
+.z-5 {
+  z-index: 5;
+}
+
 .z-10 {
   z-index: 10;
+}
+
+/* Neumorphic effects */
+.neo-shadow {
+  box-shadow: 
+    8px 8px 16px rgba(0, 0, 0, 0.05), 
+    -8px -8px 16px rgba(255, 255, 255, 0.7);
+}
+
+.neo-shadow-inset {
+  box-shadow: 
+    inset 4px 4px 8px rgba(0, 0, 0, 0.05), 
+    inset -4px -4px 8px rgba(255, 255, 255, 0.7);
+}
+
+.dark .neo-shadow {
+  box-shadow: 
+    8px 8px 16px rgba(0, 0, 0, 0.25), 
+    -8px -8px 16px rgba(255, 255, 255, 0.05);
+}
+
+.dark .neo-shadow-inset {
+  box-shadow: 
+    inset 4px 4px 8px rgba(0, 0, 0, 0.25), 
+    inset -4px -4px 8px rgba(255, 255, 255, 0.05);
 }
