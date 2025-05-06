@@ -17,7 +17,7 @@ const ExampleOutputSection = () => {
   const [currentLine, setCurrentLine] = useState(0);
   
   const { ref: sectionRef, inView } = useInView({
-    triggerOnce: false,
+    triggerOnce: true,
     threshold: 0.3,
   });
 
