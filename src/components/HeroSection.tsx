@@ -2,11 +2,23 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { ChevronRight } from "lucide-react";
 
 const HeroSection = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [terminalStep, setTerminalStep] = useState(0);
   const [cursorPosition, setCursorPosition] = useState(0);
+  const [issueUrl, setIssueUrl] = useState("");
+  const [promptType, setPromptType] = useState("explain");
+  const [isAnimating, setIsAnimating] = useState(false);
   
   const terminalSteps = [
     { text: "$ python examples/examples_complete_rag.py", type: "command" },
@@ -20,8 +32,16 @@ const HeroSection = () => {
 
   useEffect(() => {
     setIsVisible(true);
+  }, []);
+
+  const startAnimation = () => {
+    if (isAnimating) return;
     
-    // Start terminal animation after hero section becomes visible
+    setIsAnimating(true);
+    setTerminalStep(0);
+    setCursorPosition(0);
+    
+    // Start terminal animation
     const terminalTimer = setTimeout(() => {
       const intervalId = setInterval(() => {
         setTerminalStep(prev => {
@@ -35,10 +55,10 @@ const HeroSection = () => {
       }, 1000);
       
       return () => clearInterval(intervalId);
-    }, 1200);
+    }, 500);
     
     return () => clearTimeout(terminalTimer);
-  }, []);
+  };
 
   // Typing effect for the last line
   useEffect(() => {
@@ -52,9 +72,24 @@ const HeroSection = () => {
         }, typingSpeed);
         
         return () => clearTimeout(typingTimer);
+      } else {
+        // Animation complete
+        setTimeout(() => setIsAnimating(false), 1000);
       }
     }
   }, [terminalStep, cursorPosition, terminalSteps]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!issueUrl.trim()) return;
+    
+    // Reset animation state
+    setTerminalStep(0);
+    setCursorPosition(0);
+    
+    // Start the animation
+    startAnimation();
+  };
 
   return (
     <section className="pt-28 pb-20 overflow-hidden">
@@ -72,13 +107,50 @@ const HeroSection = () => {
             </p>
           </div>
           
-          <div className={`flex flex-wrap justify-center gap-4 transition-all duration-700 delay-300 ${isVisible ? 'opacity-100' : 'opacity-0 translate-y-10'}`}>
-            <Button size="lg" className="bg-brand-purple hover:bg-brand-lightPurple">
-              Get Started
-            </Button>
-            <Button size="lg" variant="outline">
-              View on GitHub
-            </Button>
+          <div className={`w-full max-w-xl mx-auto transition-all duration-700 delay-200 ${isVisible ? 'opacity-100' : 'opacity-0 translate-y-10'}`}>
+            <form onSubmit={handleSubmit} className="bg-card border rounded-lg p-6 shadow-sm">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="issueUrl" className="text-sm font-medium text-left block">
+                    GitHub Issue URL
+                  </label>
+                  <Input
+                    id="issueUrl"
+                    type="url" 
+                    placeholder="https://github.com/org/repo/issues/123"
+                    value={issueUrl}
+                    onChange={(e) => setIssueUrl(e.target.value)}
+                    className="w-full"
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="promptType" className="text-sm font-medium text-left block">
+                    Prompt Type
+                  </label>
+                  <Select value={promptType} onValueChange={setPromptType}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select prompt type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="explain">Explain</SelectItem>
+                      <SelectItem value="fix">Fix</SelectItem>
+                      <SelectItem value="test">Test</SelectItem>
+                      <SelectItem value="summarize">Summarize</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <Button 
+                  type="submit" 
+                  className="w-full bg-brand-purple hover:bg-brand-lightPurple flex items-center justify-center gap-2"
+                  disabled={isAnimating}
+                >
+                  Generate Prompt <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </form>
           </div>
 
           <div className={`w-full max-w-4xl mx-auto rounded-xl border bg-card p-4 shadow-lg transition-all duration-700 delay-500 ${isVisible ? 'opacity-100' : 'opacity-0 translate-y-10'}`}>
