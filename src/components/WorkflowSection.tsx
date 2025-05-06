@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from "react";
 import { useInView } from "react-intersection-observer";
 
@@ -171,8 +170,8 @@ const steps = [
 const WorkflowSection = () => {
   const [activeSteps, setActiveSteps] = useState([]);
   const { ref, inView } = useInView({
-    threshold: 0.3,
-    triggerOnce: false,
+    threshold: 0.1, // Lower threshold to make sure it's detected earlier
+    triggerOnce: true, // Only trigger once so animations don't reset
   });
 
   useEffect(() => {
@@ -194,14 +193,11 @@ const WorkflowSection = () => {
       
       const cleanup = activateSteps();
       return () => cleanup();
-    } else {
-      // Reset when out of view
-      setActiveSteps([]);
     }
-  }, [inView]);
+  }, [inView]); // Only depend on inView, not activeSteps
 
   return (
-    <section id="how-it-works" className="py-20" ref={ref}>
+    <section id="how-it-works" className="py-20 relative z-10" ref={ref}>
       <div className="container px-4 md:px-6">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold tracking-tighter mb-2">How it Works</h2>

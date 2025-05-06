@@ -199,11 +199,11 @@ const ExampleOutputSection = () => {
                   variants={tabContentVariants}
                 >
                   <div className={`bg-card overflow-hidden transition-all duration-700 ${issueVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-                    <div className="flex items-center border-b bg-muted/40 p-3">
+                    <div className="flex items-center justify-center border-b bg-muted/40 p-3">
                       <img 
                         src="/lovable-uploads/2ff5738a-5cf2-46c0-a103-fb6ab072c055.png" 
                         alt="GitHub Issue Screenshot" 
-                        className="w-full h-auto rounded" 
+                        className="w-full h-auto rounded max-w-full object-contain max-h-[500px]" 
                       />
                     </div>
                   </div>

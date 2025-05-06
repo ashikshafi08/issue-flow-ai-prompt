@@ -91,7 +91,16 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground overflow-x-hidden;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  section {
+    position: relative;
+    z-index: 1;
   }
 }
 

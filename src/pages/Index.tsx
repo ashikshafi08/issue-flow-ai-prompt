@@ -11,12 +11,14 @@ import Footer from "@/components/Footer";
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col relative">
       <Navbar />
-      <main className="flex-grow">
+      <main className="flex-grow relative z-0">
         <HeroSection />
         <FeaturesSection />
-        <WorkflowSection />
+        <div className="relative z-10">
+          <WorkflowSection />
+        </div>
         <ExampleOutputSection />
         <CodeExampleSection />
         <CTASection />
