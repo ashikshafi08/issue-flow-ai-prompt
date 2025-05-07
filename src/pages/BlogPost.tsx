@@ -1,4 +1,3 @@
-
 import React from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -211,6 +210,7 @@ def get_language_metadata(filename: str) -> dict:
     title: "Dynamic Prompt Engineering: Adapting to Different Analysis Needs",
     date: "Apr 14, 2025",
     category: "AI",
+    image: "/lovable-uploads/165ce146-5630-4e6f-963b-57a129e138cf.png",
     content: `
       <h2 class="text-xl font-semibold mb-3 mt-6">Introduction</h2>
       <p class="mb-4">If you've ever worked with large language models, you know that the difference between a mediocre answer and a brilliant one often comes down to the prompt. Early in our journey building the GitHub Issue Analysis tool, we learned this lesson the hard way. A single misplaced instruction or a poorly formatted context block could send even the smartest model off the rails. We realized that prompt engineering wasn't just a technical detail—it was the art and science at the heart of our product.</p>
@@ -285,6 +285,7 @@ def generate_prompt(self, request, issue):
     title: "Efficient Vector Search with FAISS: Powering Smart Code Analysis",
     date: "Apr 7, 2025",
     category: "Performance",
+    image: "/lovable-uploads/2ff5738a-5cf2-46c0-a103-fb6ab072c055.png",
     content: `
       <h2 class="text-xl font-semibold mb-3 mt-6">Introduction</h2>
       <p class="mb-4">Every developer has faced the frustration of searching for that one elusive code snippet or documentation buried deep within a sprawling codebase. As our team built the GitHub Issue Analysis tool, we knew that fast, accurate search wasn't just a nice-to-have—it was the backbone of any meaningful code analysis. But traditional search tools fell short, especially as our repositories grew in size and complexity. We needed something smarter, faster, and more context-aware. That's when we discovered the power of vector search with FAISS.</p>
