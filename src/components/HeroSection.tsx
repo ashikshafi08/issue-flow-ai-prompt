@@ -51,7 +51,7 @@ const HeroSection = () => {
               AI-powered GitHub Issue Context & Prompt Generator with RAG
             </Badge>
             <h1 className="text-4xl md:text-6xl font-bold tracking-tighter">
-              Transform <span className="text-gradient">GitHub Issues</span> into AI-ready Prompts
+              Turn <span className="text-gradient">GitHub Issues</span> into AI-ready Prompts
             </h1>
             <p className="max-w-[700px] text-muted-foreground mx-auto text-lg">
               Instantly understand and triage GitHub issues with deep, code-aware context for 20+ programming languages.

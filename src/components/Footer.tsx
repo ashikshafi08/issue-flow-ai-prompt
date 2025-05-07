@@ -28,7 +28,7 @@ const Footer = () => {
               <span className="text-lg font-bold text-gradient">triage.flow</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              AI-powered GitHub Issue Context & Prompt Generator with RAG
+              Turn GitHub issues into LLM-ready prompts with deep repo context
             </p>
             <div className="flex space-x-3">
               <a 
@@ -65,21 +65,21 @@ const Footer = () => {
           </div>
           
           <div>
-            <h3 className="font-medium mb-4 text-blue-300">Resources</h3>
+            <h3 className="font-medium mb-4 text-blue-300">Features</h3>
             <ul className="space-y-2">
               <li>
-                <a href="#examples" className="text-sm text-muted-foreground hover:text-blue-400 transition-colors">
-                  Examples
+                <a href="#features" className="text-sm text-muted-foreground hover:text-blue-400 transition-colors">
+                  Multi-Language Support
                 </a>
               </li>
               <li>
-                <a href="#" className="text-sm text-muted-foreground hover:text-blue-400 transition-colors">
-                  API Reference
+                <a href="#features" className="text-sm text-muted-foreground hover:text-blue-400 transition-colors">
+                  FAISS Vector Store
                 </a>
               </li>
               <li>
-                <a href="#" className="text-sm text-muted-foreground hover:text-blue-400 transition-colors">
-                  Contributing
+                <a href="#features" className="text-sm text-muted-foreground hover:text-blue-400 transition-colors">
+                  Multi-Provider LLM
                 </a>
               </li>
             </ul>
