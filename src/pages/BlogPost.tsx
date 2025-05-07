@@ -6,14 +6,14 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Calendar, Tag } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
-// Updated blog data with full content
+// Updated blog data with full content and unique images
 const blogPosts = {
   "multi-model-llm-orchestration": {
     id: "1",
     title: "Multi-Model LLM Orchestration: A Flexible Approach to AI-Powered Issue Analysis",
     date: "May 5, 2025",
     category: "Architecture",
-    image: "/lovable-uploads/2ff5738a-5cf2-46c0-a103-fb6ab072c055.png",
+    image: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&q=80&w=1000",
     content: `
       <h2 class="text-xl font-semibold mb-3 mt-6">Introduction</h2>
       <p class="mb-4">In the ever-evolving world of artificial intelligence, flexibility is more than a feature—it's a necessity. When we began building our GitHub Issue Analysis tool, we quickly realized that no single large language model (LLM) could meet all our needs. The landscape was shifting, new models were emerging, and each brought its own strengths and quirks. Our challenge was clear: how could we design a system that not only kept up with this rapid innovation, but actually thrived on it?</p>
@@ -55,7 +55,7 @@ async def process_prompt(self, prompt, model):
     title: "Intelligent Repository Context Extraction: Beyond Simple Code Search",
     date: "Apr 28, 2025",
     category: "Technical",
-    image: "/lovable-uploads/165ce146-5630-4e6f-963b-57a129e138cf.png",
+    image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?auto=format&fit=crop&q=80&w=1000",
     content: `
       <h2 class="text-xl font-semibold mb-3 mt-6">Introduction</h2>
       <p class="mb-4">When we set out to build our GitHub Issue Analysis tool, we quickly realized that the real challenge wasn't just about parsing issues or searching for keywords. The true value—and the hardest problem—was understanding the full story behind every issue: how code, documentation, tests, and architecture all come together to shape the context of a problem. This realization led us to develop an intelligent repository context extraction system, one that goes far beyond simple code search and instead strives to capture the living, breathing ecosystem of a codebase.</p>
@@ -102,7 +102,7 @@ async def extract_issue_context(issue_id, repo):
     title: "Language-Aware Code Analysis: Understanding Code Across Multiple Languages",
     date: "Apr 21, 2025",
     category: "Development",
-    image: "/lovable-uploads/2ff5738a-5cf2-46c0-a103-fb6ab072c055.png",
+    image: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&q=80&w=1000",
     content: `
       <h2 class="text-xl font-semibold mb-3 mt-6">Introduction</h2>
       <p class="mb-4">In the world of modern software, diversity is the norm. Rarely does a project stick to a single language—most real-world codebases are a tapestry of Python, JavaScript, TypeScript, Go, Rust, and more. When we set out to build our GitHub Issue Analyzer, we knew that understanding this polyglot reality was non-negotiable. The real challenge wasn't just reading code, but truly understanding it—no matter what language it was written in.</p>
@@ -199,7 +199,7 @@ def get_language_metadata(filename: str) -> dict:
       <p class="mb-4">By treating every language as a first-class citizen, we've created a system that empowers developers to work across boundaries. No more guessing at what a cryptic import means, or missing crucial documentation because it's in a different format. Our users tell us that they feel more confident making changes, more connected to the codebase, and more productive as a team.</p>
       
       <h2 class="text-xl font-semibold mb-3 mt-6">Looking Ahead</h2>
-      <p class="mb-4">We're not stopping here. Our roadmap includes deeper support for emerging languages, smarter pattern recognition, and even more seamless integration with the rest of the developer workflow. Imagine a future where your tools not only understand your code, but anticipate your questions—surfacing the right context, in the right language, at exactly the right moment.</p>
+      <p class="mb-4">We're not stopping here. Our roadmap includes deeper support for emerging languages, smarter pattern recognition, and even more seamless integration with the rest of the developer workflow. Imagine a future where, with a single click, you can see not just what changed, but why it matters—across your entire organization.</p>
       
       <h2 class="text-xl font-semibold mb-3 mt-6">Conclusion</h2>
       <p class="mb-4">Language-aware code analysis isn't just a technical achievement—it's a new way of thinking about software. By embracing the diversity of modern codebases, we're helping teams move faster, collaborate better, and build with confidence. As our system continues to evolve, we're excited to see what new connections, insights, and breakthroughs it will unlock for developers everywhere.</p>
@@ -210,7 +210,7 @@ def get_language_metadata(filename: str) -> dict:
     title: "Dynamic Prompt Engineering: Adapting to Different Analysis Needs",
     date: "Apr 14, 2025",
     category: "AI",
-    image: "/lovable-uploads/165ce146-5630-4e6f-963b-57a129e138cf.png",
+    image: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&q=80&w=1000",
     content: `
       <h2 class="text-xl font-semibold mb-3 mt-6">Introduction</h2>
       <p class="mb-4">If you've ever worked with large language models, you know that the difference between a mediocre answer and a brilliant one often comes down to the prompt. Early in our journey building the GitHub Issue Analysis tool, we learned this lesson the hard way. A single misplaced instruction or a poorly formatted context block could send even the smartest model off the rails. We realized that prompt engineering wasn't just a technical detail—it was the art and science at the heart of our product.</p>
@@ -285,7 +285,7 @@ def generate_prompt(self, request, issue):
     title: "Efficient Vector Search with FAISS: Powering Smart Code Analysis",
     date: "Apr 7, 2025",
     category: "Performance",
-    image: "/lovable-uploads/2ff5738a-5cf2-46c0-a103-fb6ab072c055.png",
+    image: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=1000",
     content: `
       <h2 class="text-xl font-semibold mb-3 mt-6">Introduction</h2>
       <p class="mb-4">Every developer has faced the frustration of searching for that one elusive code snippet or documentation buried deep within a sprawling codebase. As our team built the GitHub Issue Analysis tool, we knew that fast, accurate search wasn't just a nice-to-have—it was the backbone of any meaningful code analysis. But traditional search tools fell short, especially as our repositories grew in size and complexity. We needed something smarter, faster, and more context-aware. That's when we discovered the power of vector search with FAISS.</p>

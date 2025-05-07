@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Calendar, Tag } from "lucide-react";
 import { Link } from "react-router-dom";
 
-// Updated blog data
+// Updated blog data with unique images
 const blogPosts = [
   {
     id: "1",
@@ -13,7 +13,7 @@ const blogPosts = [
     excerpt: "Learn how our flexible multi-model orchestration system allows teams to choose the right LLM for every task and ensures uninterrupted service.",
     date: "May 5, 2025",
     category: "Architecture",
-    image: "/lovable-uploads/2ff5738a-5cf2-46c0-a103-fb6ab072c055.png",
+    image: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&q=80&w=1000",
     slug: "multi-model-llm-orchestration"
   },
   {
@@ -22,7 +22,7 @@ const blogPosts = [
     excerpt: "Discover how our context extraction engine pulls together relevant code, documentation, and tests to provide a complete picture of every issue.",
     date: "Apr 28, 2025",
     category: "Technical",
-    image: "/lovable-uploads/165ce146-5630-4e6f-963b-57a129e138cf.png",
+    image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?auto=format&fit=crop&q=80&w=1000",
     slug: "intelligent-repository-context-extraction"
   },
   {
@@ -31,7 +31,7 @@ const blogPosts = [
     excerpt: "How our system recognizes and processes code in Python, JavaScript, TypeScript, Go, Rust, and more to provide unified insights.",
     date: "Apr 21, 2025",
     category: "Development",
-    image: "/lovable-uploads/2ff5738a-5cf2-46c0-a103-fb6ab072c055.png",
+    image: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&q=80&w=1000",
     slug: "language-aware-code-analysis"
   },
   {
@@ -40,6 +40,7 @@ const blogPosts = [
     excerpt: "Explore how our prompt engineering system adapts to different analysis needs, ensuring clear and useful responses from language models.",
     date: "Apr 14, 2025",
     category: "AI",
+    image: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&q=80&w=1000",
     slug: "dynamic-prompt-engineering"
   },
   {
@@ -48,6 +49,7 @@ const blogPosts = [
     excerpt: "How we use FAISS to represent code, documentation, and architecture as vectors for lightning-fast, context-rich search.",
     date: "Apr 7, 2025",
     category: "Performance",
+    image: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=1000",
     slug: "efficient-vector-search-with-faiss"
   }
 ];
