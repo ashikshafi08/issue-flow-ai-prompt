@@ -4,12 +4,15 @@ import { Button } from "@/components/ui/button";
 import GithubIcon from "./GithubIcon";
 import { Menu, X } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 const Navbar = () => {
   const [scroll, setScroll] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isMobile = useIsMobile();
+  const location = useLocation();
+  
+  const isHomePage = location.pathname === "/";
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
@@ -40,21 +43,45 @@ const Navbar = () => {
         
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-8">
-          <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-blue-400 transition-colors relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-blue-500 after:scale-x-0 hover:after:scale-x-100 after:origin-bottom-left after:transition-transform">
-            Features
-          </a>
-          <a href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-blue-400 transition-colors relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-blue-500 after:scale-x-0 hover:after:scale-x-100 after:origin-bottom-left after:transition-transform">
-            How It Works
-          </a>
-          <a href="#examples" className="text-sm font-medium text-muted-foreground hover:text-blue-400 transition-colors relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-blue-500 after:scale-x-0 hover:after:scale-x-100 after:origin-bottom-left after:transition-transform">
-            Examples
-          </a>
+          {isHomePage ? (
+            // Navigation links for home page using hash links
+            <>
+              <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-blue-400 transition-colors relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-blue-500 after:scale-x-0 hover:after:scale-x-100 after:origin-bottom-left after:transition-transform">
+                Features
+              </a>
+              <a href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-blue-400 transition-colors relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-blue-500 after:scale-x-0 hover:after:scale-x-100 after:origin-bottom-left after:transition-transform">
+                How It Works
+              </a>
+              <a href="#examples" className="text-sm font-medium text-muted-foreground hover:text-blue-400 transition-colors relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-blue-500 after:scale-x-0 hover:after:scale-x-100 after:origin-bottom-left after:transition-transform">
+                Examples
+              </a>
+            </>
+          ) : (
+            // Navigation links for other pages linking back to home with hash
+            <>
+              <Link to="/#features" className="text-sm font-medium text-muted-foreground hover:text-blue-400 transition-colors relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-blue-500 after:scale-x-0 hover:after:scale-x-100 after:origin-bottom-left after:transition-transform">
+                Features
+              </Link>
+              <Link to="/#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-blue-400 transition-colors relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-blue-500 after:scale-x-0 hover:after:scale-x-100 after:origin-bottom-left after:transition-transform">
+                How It Works
+              </Link>
+              <Link to="/#examples" className="text-sm font-medium text-muted-foreground hover:text-blue-400 transition-colors relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-blue-500 after:scale-x-0 hover:after:scale-x-100 after:origin-bottom-left after:transition-transform">
+                Examples
+              </Link>
+            </>
+          )}
           <Link to="/blog" className="text-sm font-medium text-muted-foreground hover:text-blue-400 transition-colors relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-blue-500 after:scale-x-0 hover:after:scale-x-100 after:origin-bottom-left after:transition-transform">
             Blog
           </Link>
-          <a href="#docs" className="text-sm font-medium text-muted-foreground hover:text-blue-400 transition-colors relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-blue-500 after:scale-x-0 hover:after:scale-x-100 after:origin-bottom-left after:transition-transform">
-            Docs
-          </a>
+          {isHomePage ? (
+            <a href="#docs" className="text-sm font-medium text-muted-foreground hover:text-blue-400 transition-colors relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-blue-500 after:scale-x-0 hover:after:scale-x-100 after:origin-bottom-left after:transition-transform">
+              Docs
+            </a>
+          ) : (
+            <Link to="/#docs" className="text-sm font-medium text-muted-foreground hover:text-blue-400 transition-colors relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-blue-500 after:scale-x-0 hover:after:scale-x-100 after:origin-bottom-left after:transition-transform">
+              Docs
+            </Link>
+          )}
         </nav>
         
         <div className="flex items-center gap-2 md:gap-4">
@@ -81,27 +108,55 @@ const Navbar = () => {
       {isMenuOpen && (
         <div className="md:hidden absolute w-full bg-[rgba(15,23,42,0.95)] backdrop-blur-lg border-t border-blue-500/10 shadow-lg animate-fade-in">
           <nav className="container py-4 flex flex-col gap-2">
-            <a 
-              href="#features" 
-              className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-blue-400 hover:bg-blue-500/10 rounded-md transition-colors"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Features
-            </a>
-            <a 
-              href="#how-it-works" 
-              className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-blue-400 hover:bg-blue-500/10 rounded-md transition-colors"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              How It Works
-            </a>
-            <a 
-              href="#examples" 
-              className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-blue-400 hover:bg-blue-500/10 rounded-md transition-colors"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Examples
-            </a>
+            {isHomePage ? (
+              <>
+                <a 
+                  href="#features" 
+                  className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-blue-400 hover:bg-blue-500/10 rounded-md transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Features
+                </a>
+                <a 
+                  href="#how-it-works" 
+                  className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-blue-400 hover:bg-blue-500/10 rounded-md transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  How It Works
+                </a>
+                <a 
+                  href="#examples" 
+                  className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-blue-400 hover:bg-blue-500/10 rounded-md transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Examples
+                </a>
+              </>
+            ) : (
+              <>
+                <Link 
+                  to="/#features" 
+                  className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-blue-400 hover:bg-blue-500/10 rounded-md transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Features
+                </Link>
+                <Link 
+                  to="/#how-it-works" 
+                  className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-blue-400 hover:bg-blue-500/10 rounded-md transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  How It Works
+                </Link>
+                <Link 
+                  to="/#examples" 
+                  className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-blue-400 hover:bg-blue-500/10 rounded-md transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Examples
+                </Link>
+              </>
+            )}
             <Link 
               to="/blog" 
               className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-blue-400 hover:bg-blue-500/10 rounded-md transition-colors"
@@ -109,13 +164,23 @@ const Navbar = () => {
             >
               Blog
             </Link>
-            <a 
-              href="#docs" 
-              className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-blue-400 hover:bg-blue-500/10 rounded-md transition-colors"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Docs
-            </a>
+            {isHomePage ? (
+              <a 
+                href="#docs" 
+                className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-blue-400 hover:bg-blue-500/10 rounded-md transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Docs
+              </a>
+            ) : (
+              <Link 
+                to="/#docs" 
+                className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-blue-400 hover:bg-blue-500/10 rounded-md transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Docs
+              </Link>
+            )}
           </nav>
         </div>
       )}
