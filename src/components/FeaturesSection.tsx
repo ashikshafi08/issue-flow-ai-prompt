@@ -1,158 +1,121 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { 
+  Code, 
+  Database, 
+  FileSearch, 
+  Globe, 
+  MessageSquare, 
+  Terminal 
+} from "lucide-react";
 
 const features = [
   {
     title: "Multi-Language Support",
-    description: "Automatically detect and analyze 20+ programming languages from any repository.",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="text-brand-purple"
-      >
-        <path d="m18 16 4-4-4-4" />
-        <path d="m6 8-4 4 4 4" />
-        <path d="m14.5 4-5 16" />
-      </svg>
-    ),
+    description: "Auto-detect and analyze 20+ programming languages from any repository.",
+    icon: <Globe className="h-10 w-10 text-brand-purple" />,
+    highlight: "20+ languages, auto-detected"
   },
   {
     title: "Local Repo Analysis",
     description: "Fast, privacy-friendly code analysis without API rate limits.",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="text-brand-purple"
-      >
-        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-        <polyline points="14 2 14 8 20 8" />
-      </svg>
-    ),
+    icon: <FileSearch className="h-10 w-10 text-brand-purple" />,
+    highlight: "No API rate limits"
   },
   {
     title: "FAISS Vector Store",
     description: "Efficient, scalable code and document search using advanced vector embeddings.",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="text-brand-purple"
-      >
-        <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
-      </svg>
-    ),
+    icon: <Database className="h-10 w-10 text-brand-purple" />,
+    highlight: "Efficient semantic search"
   },
   {
-    title: "OpenAI Embeddings",
-    description: "High-quality semantic understanding of code and documentation.",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="text-brand-purple"
-      >
-        <circle cx="12" cy="12" r="10" />
-        <path d="M12 16v-4" />
-        <path d="M8 12h8" />
-      </svg>
-    ),
+    title: "Multi-Provider LLM Support",
+    description: "Use OpenAI, OpenRouter, Claude, Mistral, and more for your AI responses.",
+    icon: <Terminal className="h-10 w-10 text-brand-purple" />,
+    highlight: "Multiple AI providers"
   },
   {
     title: "Issue + Comments Extraction",
     description: "Full context from GitHub issues and all related discussions.",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="text-brand-purple"
-      >
-        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-      </svg>
-    ),
+    icon: <MessageSquare className="h-10 w-10 text-brand-purple" />,
+    highlight: "Complete discussion context"
   },
   {
     title: "Contextual Prompt Generation",
     description: "Explain, fix, test, summarize, or customize your prompts based on real code.",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="text-brand-purple"
-      >
-        <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
-        <path d="m9 12 2 2 4-4" />
-      </svg>
-    ),
+    icon: <Code className="h-10 w-10 text-brand-purple" />,
+    highlight: "Customizable prompts"
   },
 ];
 
 const FeaturesSection = () => {
   return (
-    <section id="features" className="py-20 bg-accent">
-      <div className="container px-4 md:px-6">
-        <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold tracking-tighter mb-2">Features at a Glance</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Powerful tools to help you understand, triage, and respond to GitHub issues with AI-powered context.
+    <section id="features" className="py-20 bg-accent relative overflow-hidden">
+      {/* Background elements */}
+      <div className="absolute inset-0 opacity-5">
+        <div className="absolute top-20 left-10 w-40 h-40 rounded-full bg-brand-purple"></div>
+        <div className="absolute bottom-10 right-10 w-60 h-60 rounded-full bg-brand-blue"></div>
+      </div>
+
+      <div className="container px-4 md:px-6 relative z-10">
+        <div className="text-center mb-16">
+          <span className="bg-brand-purple/10 text-brand-purple px-4 py-1.5 rounded-full text-sm font-medium mb-4 inline-block">
+            Features
+          </span>
+          <h2 className="text-4xl font-bold tracking-tighter mb-4">Powerful GitHub Issue Analysis</h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+            Save time on issue triage with powerful tools for understanding, analyzing, and responding to GitHub issues with AI-powered context.
           </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature, index) => (
-            <Card key={index} className="bg-card border hover:shadow-lg transition-all">
-              <CardHeader className="pb-2">
-                <div className="mb-2">{feature.icon}</div>
-                <CardTitle>{feature.title}</CardTitle>
+            <Card 
+              key={index} 
+              className="bg-card border hover:shadow-lg transition-all hover:border-brand-purple/40 group overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-brand-purple/5 -translate-y-1/2 translate-x-1/2 group-hover:bg-brand-purple/10 transition-colors"></div>
+              
+              <CardHeader className="pb-2 relative z-10">
+                <div className="mb-6 p-2 rounded-lg bg-brand-purple/5 w-fit group-hover:bg-brand-purple/10 transition-colors">
+                  {feature.icon}
+                </div>
+                <CardTitle className="text-xl">{feature.title}</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">{feature.description}</p>
+              
+              <CardContent className="relative z-10">
+                <p className="text-muted-foreground mb-4">{feature.description}</p>
+                <div className="bg-muted text-muted-foreground text-sm px-3 py-1 rounded-full inline-block">
+                  {feature.highlight}
+                </div>
               </CardContent>
             </Card>
           ))}
+        </div>
+
+        <div className="mt-16 text-center">
+          <div className="max-w-2xl mx-auto p-6 border border-dashed border-brand-purple/30 rounded-lg bg-card">
+            <h3 className="text-xl font-semibold mb-3">Who is triage.flow for?</h3>
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-left">
+              <li className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-brand-purple"></span>
+                <span>Open source maintainers</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-brand-purple"></span>
+                <span>Contributors to unfamiliar codebases</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-brand-purple"></span>
+                <span>AI agents & automation bots</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-brand-purple"></span>
+                <span>GitHub issue workflow optimization</span>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </section>
