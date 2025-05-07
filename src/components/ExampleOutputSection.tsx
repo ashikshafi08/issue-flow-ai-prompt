@@ -1,19 +1,16 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { ArrowRight, Terminal, Code, MessageSquare } from "lucide-react";
+import { ArrowRight, Code, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useInView } from "react-intersection-observer";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, CardContent } from "@/components/ui/card";
 
 const ExampleOutputSection = () => {
   const [activeTab, setActiveTab] = useState("issue");
   const [animationComplete, setAnimationComplete] = useState(false);
   const [issueVisible, setIssueVisible] = useState(false);
-  const [promptVisible, setPromptVisible] = useState(false);
   const [responseVisible, setResponseVisible] = useState(false);
-  const [currentLine, setCurrentLine] = useState(0);
   
   const { ref: sectionRef, inView } = useInView({
     triggerOnce: true,
@@ -29,55 +26,13 @@ const ExampleOutputSection = () => {
     }
   }, [inView, issueVisible]);
 
-  // Trigger prompt animation after issue is visible
+  // Trigger response animation after issue is visible
   useEffect(() => {
-    if (issueVisible && !promptVisible) {
-      setTimeout(() => setPromptVisible(true), 1000);
-    }
-  }, [issueVisible, promptVisible]);
-
-  // Trigger response animation after prompt is visible
-  useEffect(() => {
-    if (promptVisible && !responseVisible) {
+    if (issueVisible && !responseVisible) {
       setTimeout(() => setResponseVisible(true), 1500);
       setTimeout(() => setAnimationComplete(true), 2000);
     }
-  }, [promptVisible, responseVisible]);
-
-  // Lines of terminal output
-  const terminalLines = [
-    "$ python examples/examples_complete_rag.py",
-    "Running example for explain prompt type with Local RAG...",
-    "Issue URL: https://github.com/huggingface/smolagents/issues/1295",
-    "Model: o4-mini",
-    "Error fetching comments: 'GitHubIssuesClient' object has no attribute 'get_issue_comments'",
-    "Extracting context from repository: huggingface/smolagents (via local clone)...",
-    "Cloned repository to: /var/folders/r1/1_x09nv93xl5cr0f9p5t4x_h0000gn/T/tmp9ihe8e2i",
-    "Loaded 65 documents from repository",
-    "Found 10 relevant files in the repository",
-    "Generated Prompt with RAG context:",
-    "================================================================================",
-    "LLM Response:",
-    "status='success' prompt='1. What the issue is about..."
-  ];
-
-  // Animate terminal output
-  useEffect(() => {
-    if (activeTab === 'terminal' && animationComplete) {
-      const timer = setInterval(() => {
-        setCurrentLine((prev) => {
-          if (prev < terminalLines.length - 1) {
-            return prev + 1;
-          } else {
-            clearInterval(timer);
-            return prev;
-          }
-        });
-      }, 200);
-      
-      return () => clearInterval(timer);
-    }
-  }, [activeTab, animationComplete, terminalLines.length]);
+  }, [issueVisible, responseVisible]);
 
   // Auto-scroll the response section
   useEffect(() => {
@@ -152,14 +107,32 @@ const ExampleOutputSection = () => {
   };
 
   return (
-    <section id="example-output" className="py-20 bg-accent/30" ref={sectionRef}>
-      <div className="container px-4 md:px-6">
+    <section id="example-output" className="py-20 relative" ref={sectionRef}>
+      {/* Background elements */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        {/* Blue gradient orb left */}
+        <div className="absolute top-1/3 left-[5%] w-80 h-80 rounded-full bg-blue-500/5 blur-3xl"></div>
+        
+        {/* Purple gradient orb right */}
+        <div className="absolute bottom-1/3 right-[5%] w-96 h-96 rounded-full bg-indigo-500/5 blur-3xl"></div>
+        
+        {/* Grid pattern overlay */}
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGZpbGw9IiMzQjgyRjYiIGZpbGwtb3BhY2l0eT0iLjAzIiBkPSJNMzYgMzBoLTJ2LTJoMnYyem0wLTJoLTJ2LTJoMnYyem0tMi0yaC0ydjJoMnYtMnptMi0yaC0ydjJoMnYtMnoiLz48L2c+PC9zdmc+')] opacity-40"></div>
+      </div>
+      
+      <div className="container px-4 md:px-6 relative z-10">
         <motion.div 
           className="text-center mb-12"
           initial="hidden"
           animate={inView ? "visible" : "hidden"}
           variants={containerVariants}
         >
+          <motion.span
+            variants={itemVariants}
+            className="bg-blue-500/10 text-blue-400 px-4 py-1.5 rounded-full text-sm font-medium mb-4 inline-block border border-blue-500/20"
+          >
+            Examples
+          </motion.span>
           <motion.h2 
             className="text-3xl font-bold tracking-tighter mb-2"
             variants={itemVariants}
@@ -190,7 +163,7 @@ const ExampleOutputSection = () => {
                 <div className="w-full">
                   <div className="flex items-center justify-between gap-1 relative">
                     {/* Line connector for step indicator */}
-                    <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-accent/70 -translate-y-1/2 z-0"></div>
+                    <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-blue-900/50 -translate-y-1/2 z-0"></div>
                     
                     {/* Step 1 */}
                     <div className="relative z-10 flex-1">
@@ -200,22 +173,22 @@ const ExampleOutputSection = () => {
                         whileHover={{ scale: activeTab !== "issue" ? 1.02 : 1 }}
                       >
                         <div 
-                          className={`h-14 w-14 rounded-full flex items-center justify-center shadow-sm transition-all duration-300
+                          className={`h-16 w-16 rounded-full flex items-center justify-center shadow-sm transition-all duration-300
                             ${activeTab === "issue" 
-                              ? "bg-gradient-to-r from-brand-purple to-brand-blue text-white shadow-[0_0_12px_rgba(110,89,165,0.5)]" 
-                              : "bg-card border border-border hover:border-brand-purple/30 hover:bg-accent/50"
+                              ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white animate-glow-pulse" 
+                              : "glass-card border-blue-500/20 hover:border-blue-500/40"
                             }`}
                         >
-                          <Code size={22} className={`${activeTab === "issue" ? "text-white" : "text-brand-purple"}`} />
+                          <Code size={24} className={`${activeTab === "issue" ? "text-white" : "text-blue-400"}`} />
                         </div>
                         <span className={`text-sm font-medium mt-2 transition-colors duration-300 
-                          ${activeTab === "issue" ? "text-brand-purple" : "text-muted-foreground"}`}
+                          ${activeTab === "issue" ? "text-blue-400" : "text-muted-foreground"}`}
                         >
                           What the agent sees
                         </span>
                         {activeTab === "issue" && (
                           <motion.div 
-                            className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-brand-purple to-brand-blue"
+                            className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-indigo-600"
                             layoutId="activeIndicator"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -225,58 +198,16 @@ const ExampleOutputSection = () => {
                       </motion.button>
                     </div>
 
-                    {/* Arrow 1 */}
+                    {/* Arrow */}
                     <motion.div 
-                      className="z-10 flex items-center justify-center w-8 h-8 bg-card rounded-full border border-border shadow-sm"
+                      className="z-10 flex items-center justify-center w-10 h-10 glass-card rounded-full border border-blue-500/20 shadow-sm"
                       animate={activeTab === "issue" ? "animate" : "initial"}
                       variants={arrowVariants}
                     >
-                      <ArrowRight className={`w-4 h-4 ${activeTab === "issue" ? "text-brand-purple" : "text-muted-foreground"}`} />
+                      <ArrowRight className={`w-5 h-5 ${activeTab === "issue" ? "text-blue-400" : "text-muted-foreground"}`} />
                     </motion.div>
 
                     {/* Step 2 */}
-                    <div className="relative z-10 flex-1">
-                      <motion.button
-                        onClick={() => setActiveTab("terminal")}
-                        className={`w-full relative flex flex-col items-center gap-3 group transition-all duration-300`}
-                        whileHover={{ scale: activeTab !== "terminal" ? 1.02 : 1 }}
-                      >
-                        <div 
-                          className={`h-14 w-14 rounded-full flex items-center justify-center shadow-sm transition-all duration-300
-                            ${activeTab === "terminal" 
-                              ? "bg-gradient-to-r from-brand-purple to-brand-blue text-white shadow-[0_0_12px_rgba(110,89,165,0.5)]" 
-                              : "bg-card border border-border hover:border-brand-purple/30 hover:bg-accent/50"
-                            }`}
-                        >
-                          <Terminal size={22} className={`${activeTab === "terminal" ? "text-white" : "text-brand-purple"}`} />
-                        </div>
-                        <span className={`text-sm font-medium mt-2 transition-colors duration-300 
-                          ${activeTab === "terminal" ? "text-brand-purple" : "text-muted-foreground"}`}
-                        >
-                          What the prompt looks like
-                        </span>
-                        {activeTab === "terminal" && (
-                          <motion.div 
-                            className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-brand-purple to-brand-blue"
-                            layoutId="activeIndicator"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ duration: 0.3 }}
-                          />
-                        )}
-                      </motion.button>
-                    </div>
-
-                    {/* Arrow 2 */}
-                    <motion.div 
-                      className="z-10 flex items-center justify-center w-8 h-8 bg-card rounded-full border border-border shadow-sm"
-                      animate={activeTab === "terminal" ? "animate" : "initial"}
-                      variants={arrowVariants}
-                    >
-                      <ArrowRight className={`w-4 h-4 ${activeTab === "terminal" ? "text-brand-purple" : "text-muted-foreground"}`} />
-                    </motion.div>
-
-                    {/* Step 3 */}
                     <div className="relative z-10 flex-1">
                       <motion.button
                         onClick={() => setActiveTab("prompt")}
@@ -284,22 +215,22 @@ const ExampleOutputSection = () => {
                         whileHover={{ scale: activeTab !== "prompt" ? 1.02 : 1 }}
                       >
                         <div 
-                          className={`h-14 w-14 rounded-full flex items-center justify-center shadow-sm transition-all duration-300
+                          className={`h-16 w-16 rounded-full flex items-center justify-center shadow-sm transition-all duration-300
                             ${activeTab === "prompt" 
-                              ? "bg-gradient-to-r from-brand-purple to-brand-blue text-white shadow-[0_0_12px_rgba(110,89,165,0.5)]" 
-                              : "bg-card border border-border hover:border-brand-purple/30 hover:bg-accent/50"
+                              ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white animate-glow-pulse" 
+                              : "glass-card border-blue-500/20 hover:border-blue-500/40"
                             }`}
                         >
-                          <MessageSquare size={22} className={`${activeTab === "prompt" ? "text-white" : "text-brand-purple"}`} />
+                          <MessageSquare size={24} className={`${activeTab === "prompt" ? "text-white" : "text-blue-400"}`} />
                         </div>
                         <span className={`text-sm font-medium mt-2 transition-colors duration-300
-                          ${activeTab === "prompt" ? "text-brand-purple" : "text-muted-foreground"}`}
+                          ${activeTab === "prompt" ? "text-blue-400" : "text-muted-foreground"}`}
                         >
                           What your LLM can do with it
                         </span>
                         {activeTab === "prompt" && (
                           <motion.div 
-                            className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-brand-purple to-brand-blue"
+                            className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-indigo-600"
                             layoutId="activeIndicator"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -315,14 +246,14 @@ const ExampleOutputSection = () => {
               <AnimatePresence mode="wait">
                 <TabsContent value="issue" key="issue">
                   <motion.div
-                    className="border rounded-lg shadow-sm overflow-hidden"
+                    className="border border-blue-500/20 rounded-lg shadow-lg overflow-hidden glass-card"
                     initial="hidden"
                     animate="visible"
                     exit="exit"
                     variants={tabContentVariants}
                   >
-                    <div className={`bg-card transition-all duration-700 ${issueVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-                      <div className="flex items-center justify-center border-b bg-muted/40 p-3">
+                    <div className={`transition-all duration-700 ${issueVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+                      <div className="flex items-center justify-center border-b border-blue-500/20 bg-blue-900/10 p-3">
                         <img 
                           src="/lovable-uploads/2ff5738a-5cf2-46c0-a103-fb6ab072c055.png" 
                           alt="GitHub Issue Screenshot" 
@@ -333,86 +264,49 @@ const ExampleOutputSection = () => {
                   </motion.div>
                 </TabsContent>
 
-                <TabsContent value="terminal" key="terminal">
-                  <motion.div
-                    className="min-h-[500px] border rounded-lg shadow-sm bg-card p-4"
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                    variants={tabContentVariants}
-                  >
-                    <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
-                      <div className="flex gap-1">
-                        <div className="h-3 w-3 rounded-full bg-red-500"></div>
-                        <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
-                        <div className="h-3 w-3 rounded-full bg-green-500"></div>
-                      </div>
-                      <span>Terminal</span>
-                    </div>
-                    <div className="font-code bg-card text-sm text-left overflow-x-auto p-4 rounded min-h-[460px]">
-                      {terminalLines.slice(0, currentLine + 1).map((line, index) => (
-                        <div key={index} className={`${index > 0 ? "mt-1" : ""}`}>
-                          {line.includes("LLM Response:") || line.includes("Generated Prompt") || line.includes("==========") ? (
-                            <span className="text-brand-purple font-bold">{line}</span>
-                          ) : line.startsWith("$") ? (
-                            <span className="text-green-500">{line}</span>
-                          ) : line.includes("Error") ? (
-                            <span className="text-yellow-500">{line}</span>
-                          ) : line.startsWith("status=") ? (
-                            <span className="text-blue-400">{line.substring(0, 50)}...</span>
-                          ) : (
-                            <span>{line}</span>
-                          )}
-                          {index === currentLine && <span className="animate-pulse">|</span>}
-                        </div>
-                      ))}
-                    </div>
-                  </motion.div>
-                </TabsContent>
-
                 <TabsContent value="prompt" key="prompt">
                   <motion.div
-                    className="min-h-[500px] border rounded-lg shadow-sm bg-card"
+                    className="min-h-[500px] border border-blue-500/20 rounded-lg shadow-lg glass-card"
                     initial="hidden"
                     animate="visible"
                     exit="exit"
                     variants={tabContentVariants}
                   >
                     <div className="flex flex-col h-full">
-                      <div className="flex items-center justify-between border-b p-3 bg-muted/40">
+                      <div className="flex items-center justify-between border-b border-blue-500/20 p-3 bg-blue-900/10">
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30">Success</Badge>
-                          <span className="text-sm font-medium">LLM Response</span>
+                          <Badge variant="outline" className="bg-green-500/10 text-green-400 border-green-500/30">Success</Badge>
+                          <span className="text-sm font-medium text-blue-300">LLM Response</span>
                         </div>
                       </div>
                       <div 
                         ref={responseRef}
-                        className={`flex-1 p-4 overflow-auto text-left max-h-[460px] transition-all duration-1000 ${
+                        className={`flex-1 p-6 overflow-auto text-left max-h-[460px] transition-all duration-1000 ${
                           responseVisible ? 'opacity-100' : 'opacity-0'
                         }`}
                       >
-                        <h3 className="font-bold mb-2">1. What the issue is about</h3>
-                        <p className="mb-4">
+                        <h3 className="font-bold mb-2 text-blue-300">1. What the issue is about</h3>
+                        <p className="mb-4 text-gray-300">
                           The discussion stems from PR #1271 in the smolagents repo, which removed the third-party
-                          <code className="bg-muted px-1 rounded text-sm mx-1">duckduckgo-search</code> 
+                          <code className="bg-blue-900/30 px-1.5 py-0.5 rounded text-sm mx-1 border border-blue-500/20">duckduckgo-search</code> 
                           package from the base installation. As a result, any example or built-in "duckduckgo" search 
                           tool now silently fails (or can't even be imported) unless users manually install exactly 
-                          the right version of <code className="bg-muted px-1 rounded text-sm">duckduckgo-search</code>. 
+                          the right version of <code className="bg-blue-900/30 px-1.5 py-0.5 rounded text-sm border border-blue-500/20">duckduckgo-search</code>. 
                           That extra step (and the attendant version-pinning) is friction for anyone who just wants to clone 
                           the repo, run the examples, and play with the agents.
                         </p>
                         
-                        <h3 className="font-bold mb-2">2. Root cause</h3>
-                        <ul className="list-disc pl-6 mb-4 space-y-1">
-                          <li>In an effort to trim down dependencies, the maintainers removed <code className="bg-muted px-1 rounded text-sm">duckduckgo-search</code> from <code className="bg-muted px-1 rounded text-sm">install_requires</code>.</li>
+                        <h3 className="font-bold mb-2 text-blue-300">2. Root cause</h3>
+                        <ul className="list-disc pl-6 mb-4 space-y-1 text-gray-300">
+                          <li>In an effort to trim down dependencies, the maintainers removed <code className="bg-blue-900/30 px-1.5 py-0.5 rounded text-sm border border-blue-500/20">duckduckgo-search</code> from <code className="bg-blue-900/30 px-1.5 py-0.5 rounded text-sm border border-blue-500/20">install_requires</code>.</li>
                           <li>However, parts of the codebase (notably the DuckDuckGoSearchTool) still assume that package is available, and there was no fallback or "vendorized" implementation embedded in the repo itself.</li>
-                          <li>Consequently, default examples that spin up a DDG search tool instantly break unless you pip-install the exact same <code className="bg-muted px-1 rounded text-sm">duckduckgo-search</code> version the tests were written against.</li>
+                          <li>Consequently, default examples that spin up a DDG search tool instantly break unless you pip-install the exact same <code className="bg-blue-900/30 px-1.5 py-0.5 rounded text-sm border border-blue-500/20">duckduckgo-search</code> version the tests were written against.</li>
                         </ul>
 
-                        <h3 className="font-bold mb-2">3. Relevant technical details</h3>
-                        <p className="mb-2">In <code className="bg-muted px-1 rounded text-sm">default_tools.py</code> there is a class like:</p>
-                        <pre className="bg-muted p-3 rounded-md mb-4 overflow-x-auto">
-                          <code>{`class DuckDuckGoSearchTool(Tool):
+                        <h3 className="font-bold mb-2 text-blue-300">3. Relevant technical details</h3>
+                        <p className="mb-2 text-gray-300">In <code className="bg-blue-900/30 px-1.5 py-0.5 rounded text-sm border border-blue-500/20">default_tools.py</code> there is a class like:</p>
+                        <pre className="bg-blue-900/20 p-4 rounded-md mb-4 overflow-x-auto border border-blue-500/20">
+                          <code className="text-gray-300">{`class DuckDuckGoSearchTool(Tool):
     name = "duckduckgo_search"
     inputs = {"query": {"type": "string"}}
     output_type = "string"
@@ -423,14 +317,14 @@ const ExampleOutputSection = () => {
         return format_results(results)`}</code>
                         </pre>
 
-                        <p className="mb-4">
-                          The removed dependency provided that <code className="bg-muted px-1 rounded text-sm">ddg()</code> helper; without it the above import fails.
+                        <p className="mb-4 text-gray-300">
+                          The removed dependency provided that <code className="bg-blue-900/30 px-1.5 py-0.5 rounded text-sm border border-blue-500/20">ddg()</code> helper; without it the above import fails.
                           An alternative (illustrated in deedy5's upstream code) is to re-implement the HTTP handshake yourself:
                         </p>
 
-                        <ol className="list-decimal pl-6 mb-4 space-y-1">
-                          <li>Request a DuckDuckGo "token" (<code className="bg-muted px-1 rounded text-sm">vqd</code>) by scraping the HTML.</li>
-                          <li>Call the JSON API endpoint <code className="bg-muted px-1 rounded text-sm">https://duckduckgo.com/d.js?l=wt-wt&o=json&q=…&vqd=…</code>.</li>
+                        <ol className="list-decimal pl-6 mb-4 space-y-1 text-gray-300">
+                          <li>Request a DuckDuckGo "token" (<code className="bg-blue-900/30 px-1.5 py-0.5 rounded text-sm border border-blue-500/20">vqd</code>) by scraping the HTML.</li>
+                          <li>Call the JSON API endpoint <code className="bg-blue-900/30 px-1.5 py-0.5 rounded text-sm border border-blue-500/20">https://duckduckgo.com/d.js?l=wt-wt&o=json&q=…&vqd=…</code>.</li>
                           <li>Parse and return the snippet/title/URL fields.</li>
                         </ol>
                       </div>

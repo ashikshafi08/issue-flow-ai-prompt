@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+
+import React, { useEffect, useState } from "react";
 import { useInView } from "react-intersection-observer";
 
 const steps = [
@@ -170,8 +171,8 @@ const steps = [
 const WorkflowSection = () => {
   const [activeSteps, setActiveSteps] = useState([]);
   const { ref, inView } = useInView({
-    threshold: 0.1, // Lower threshold to make sure it's detected earlier
-    triggerOnce: true, // Only trigger once so animations don't reset
+    threshold: 0.1,
+    triggerOnce: true,
   });
 
   useEffect(() => {
@@ -194,12 +195,27 @@ const WorkflowSection = () => {
       const cleanup = activateSteps();
       return () => cleanup();
     }
-  }, [inView]); // Only depend on inView, not activeSteps
+  }, [inView]); 
 
   return (
     <section id="how-it-works" className="py-20 relative z-10" ref={ref}>
-      <div className="container px-4 md:px-6">
+      {/* Background elements */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        {/* Blue gradient orb center */}
+        <div className="absolute top-1/2 left-1/4 -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full bg-blue-500/5 blur-3xl"></div>
+        
+        {/* Purple gradient orb right */}
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full bg-indigo-500/5 blur-3xl"></div>
+        
+        {/* Grid pattern overlay */}
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGZpbGw9IiMzQjgyRjYiIGZpbGwtb3BhY2l0eT0iLjAzIiBkPSJNMzYgMzBoLTJ2LTJoMnYyem0wLTJoLTJ2LTJoMnYyem0tMi0yaC0ydjJoMnYtMnptMi0yaC0ydjJoMnYtMnoiLz48L2c+PC9zdmc+')] opacity-40"></div>
+      </div>
+      
+      <div className="container px-4 md:px-6 relative z-10">
         <div className="text-center mb-12">
+          <span className="bg-blue-500/10 text-blue-400 px-4 py-1.5 rounded-full text-sm font-medium mb-4 inline-block border border-blue-500/20">
+            Workflow
+          </span>
           <h2 className="text-3xl font-bold tracking-tighter mb-2">How it Works</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
             From GitHub issue to detailed AI prompt in seconds.
@@ -207,9 +223,9 @@ const WorkflowSection = () => {
         </div>
         
         <div className="relative max-w-3xl mx-auto">
-          <div className="absolute top-0 bottom-0 left-8 w-0.5 bg-muted">
+          <div className="absolute top-0 bottom-0 left-8 w-0.5 neo-shadow-inset">
             <div 
-              className="absolute top-0 bottom-0 left-0 w-full bg-brand-purple transition-all duration-1000 ease-out"
+              className="absolute top-0 bottom-0 left-0 w-full bg-gradient-to-b from-blue-500 to-indigo-600 transition-all duration-1000 ease-out"
               style={{ 
                 height: `${(activeSteps.length / steps.length) * 100}%`,
               }}
@@ -229,17 +245,17 @@ const WorkflowSection = () => {
               <div 
                 className={`relative z-10 flex items-center justify-center w-16 h-16 
                   ${activeSteps.includes(index) 
-                    ? 'bg-accent border-brand-purple' 
-                    : 'bg-background border-muted'
+                    ? 'glass-card border-blue-500/40' 
+                    : 'bg-transparent border-blue-500/10'
                   } 
                   border-2 rounded-full shadow-sm mr-4 transition-all duration-500`}
               >
-                <div className={`${activeSteps.includes(index) ? 'text-brand-purple scale-110' : 'text-muted-foreground'} transition-all duration-500`}>
+                <div className={`${activeSteps.includes(index) ? 'text-blue-400 scale-110' : 'text-muted-foreground'} transition-all duration-500`}>
                   {step.icon}
                 </div>
               </div>
               <div className="flex-1">
-                <h3 className={`text-lg font-medium ${activeSteps.includes(index) ? 'text-foreground' : 'text-muted-foreground'} transition-colors duration-500`}>
+                <h3 className={`text-lg font-medium ${activeSteps.includes(index) ? 'text-blue-300' : 'text-muted-foreground'} transition-colors duration-500`}>
                   {step.title}
                 </h3>
                 <p className={`${activeSteps.includes(index) ? 'text-muted-foreground' : 'text-muted-foreground/70'} transition-colors duration-500`}>
