@@ -14,7 +14,7 @@ const Blog = () => {
             <div className="max-w-3xl mx-auto mb-10 md:mb-16 text-center">
               <h1 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight text-gradient">The triage.flow Blog</h1>
               <p className="text-muted-foreground text-sm md:text-base max-w-2xl mx-auto">
-                Tutorials, insights, and updates about GitHub issue management, LLM prompting, and AI-powered development workflows
+                Exploring the technical challenges and solutions behind building AI-powered GitHub issue analysis
               </p>
             </div>
             

@@ -2,36 +2,53 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, FileText, Calendar } from "lucide-react";
+import { ArrowRight, Calendar, Tag } from "lucide-react";
 import { Link } from "react-router-dom";
 
-// Sample blog data - in a real app, this would come from an API or CMS
+// Updated blog data
 const blogPosts = [
   {
     id: "1",
-    title: "Optimizing GitHub Issue Context for AI Prompting",
-    excerpt: "Learn how to structure your GitHub issues to get the most effective AI responses with triage.flow.",
+    title: "Multi-Model LLM Orchestration: A Flexible Approach to AI-Powered Issue Analysis",
+    excerpt: "Learn how our flexible multi-model orchestration system allows teams to choose the right LLM for every task and ensures uninterrupted service.",
     date: "May 5, 2025",
-    category: "Tutorials",
+    category: "Architecture",
     image: "/lovable-uploads/2ff5738a-5cf2-46c0-a103-fb6ab072c055.png",
-    slug: "optimizing-github-issue-context"
+    slug: "multi-model-llm-orchestration"
   },
   {
     id: "2",
-    title: "Building RAG Systems for Code Repositories",
-    excerpt: "Deep dive into building Retrieval Augmented Generation systems specifically for code repositories.",
+    title: "Intelligent Repository Context Extraction: Beyond Simple Code Search",
+    excerpt: "Discover how our context extraction engine pulls together relevant code, documentation, and tests to provide a complete picture of every issue.",
     date: "Apr 28, 2025",
     category: "Technical",
     image: "/lovable-uploads/165ce146-5630-4e6f-963b-57a129e138cf.png",
-    slug: "building-rag-systems-for-code"
+    slug: "intelligent-repository-context-extraction"
   },
   {
     id: "3",
-    title: "The Future of AI-Assisted Software Development",
-    excerpt: "Our predictions for how AI will transform software development workflows over the next five years.",
+    title: "Language-Aware Code Analysis: Understanding Code Across Multiple Languages",
+    excerpt: "How our system recognizes and processes code in Python, JavaScript, TypeScript, Go, Rust, and more to provide unified insights.",
     date: "Apr 21, 2025",
-    category: "Insights",
-    slug: "future-of-ai-assisted-development"
+    category: "Development",
+    image: "/lovable-uploads/2ff5738a-5cf2-46c0-a103-fb6ab072c055.png",
+    slug: "language-aware-code-analysis"
+  },
+  {
+    id: "4",
+    title: "Dynamic Prompt Engineering: Adapting to Different Analysis Needs",
+    excerpt: "Explore how our prompt engineering system adapts to different analysis needs, ensuring clear and useful responses from language models.",
+    date: "Apr 14, 2025",
+    category: "AI",
+    slug: "dynamic-prompt-engineering"
+  },
+  {
+    id: "5",
+    title: "Efficient Vector Search with FAISS: Powering Smart Code Analysis",
+    excerpt: "How we use FAISS to represent code, documentation, and architecture as vectors for lightning-fast, context-rich search.",
+    date: "Apr 7, 2025",
+    category: "Performance",
+    slug: "efficient-vector-search-with-faiss"
   }
 ];
 
