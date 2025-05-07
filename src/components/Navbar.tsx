@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import GithubIcon from "./GithubIcon";
 import { Menu, X } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Link } from "react-router-dom";
 
 const Navbar = () => {
   const [scroll, setScroll] = useState(false);
@@ -26,7 +27,7 @@ const Navbar = () => {
       scroll || isMenuOpen ? "header-blur py-3" : "py-3 md:py-5 bg-transparent"
     }`}>
       <div className="container flex items-center justify-between">
-        <div className="flex items-center gap-2 md:gap-3">
+        <Link to="/" className="flex items-center gap-2 md:gap-3">
           <div className="relative w-7 h-7 md:w-8 md:h-8 rounded-full overflow-hidden blue-glow">
             <img 
               src="/lovable-uploads/165ce146-5630-4e6f-963b-57a129e138cf.png" 
@@ -35,7 +36,7 @@ const Navbar = () => {
             />
           </div>
           <span className="text-lg md:text-xl font-semibold text-gradient">triage.flow</span>
-        </div>
+        </Link>
         
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-8">
@@ -48,6 +49,9 @@ const Navbar = () => {
           <a href="#examples" className="text-sm font-medium text-muted-foreground hover:text-blue-400 transition-colors relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-blue-500 after:scale-x-0 hover:after:scale-x-100 after:origin-bottom-left after:transition-transform">
             Examples
           </a>
+          <Link to="/blog" className="text-sm font-medium text-muted-foreground hover:text-blue-400 transition-colors relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-blue-500 after:scale-x-0 hover:after:scale-x-100 after:origin-bottom-left after:transition-transform">
+            Blog
+          </Link>
           <a href="#docs" className="text-sm font-medium text-muted-foreground hover:text-blue-400 transition-colors relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-blue-500 after:scale-x-0 hover:after:scale-x-100 after:origin-bottom-left after:transition-transform">
             Docs
           </a>
@@ -98,6 +102,13 @@ const Navbar = () => {
             >
               Examples
             </a>
+            <Link 
+              to="/blog" 
+              className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-blue-400 hover:bg-blue-500/10 rounded-md transition-colors"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Blog
+            </Link>
             <a 
               href="#docs" 
               className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-blue-400 hover:bg-blue-500/10 rounded-md transition-colors"
