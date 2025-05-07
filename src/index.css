@@ -126,8 +126,13 @@
 }
 
 @keyframes glowPulse {
-  0%, 100% { box-shadow: 0 0 10px rgba(110, 89, 165, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(110, 89, 165, 0.6); }
+  0%, 100% { box-shadow: 0 0 8px rgba(110, 89, 165, 0.2); }
+  50% { box-shadow: 0 0 16px rgba(110, 89, 165, 0.4); }
+}
+
+@keyframes subtleFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
 }
 
 /* Animation classes */
@@ -175,30 +180,42 @@
 
 .step-indicator.active {
   transform: scale(1.05);
-  box-shadow: 0 4px 20px rgba(110, 89, 165, 0.4);
 }
 
 .step-indicator:hover:not(.active) {
   transform: scale(1.02);
-  box-shadow: 0 4px 12px rgba(110, 89, 165, 0.2);
 }
 
 .step-indicator-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.3s ease;
 }
 
 .step-indicator.active .step-indicator-icon {
-  background: linear-gradient(90deg, #6e59a5, #3b82f6);
-  color: white;
+  box-shadow: 0 0 15px rgba(110, 89, 165, 0.4);
 }
 
-@keyframes typing {
-  from { width: 0 }
-  to { width: 100% }
+.step-indicator.active .step-text {
+  color: hsl(var(--primary));
+  font-weight: 500;
 }
 
-@keyframes blink {
-  50% { opacity: 0 }
+.step-line {
+  height: 1px;
+  background: linear-gradient(to right, rgba(110, 89, 165, 0.2), rgba(110, 89, 165, 0.4), rgba(110, 89, 165, 0.2));
+}
+
+.step-connector {
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.step-connector.active svg {
+  color: hsl(var(--primary));
 }
 
 /* Font for code examples */

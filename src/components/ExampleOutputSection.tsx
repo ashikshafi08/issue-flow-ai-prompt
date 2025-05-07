@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -152,25 +151,6 @@ const ExampleOutputSection = () => {
     }
   };
 
-  // Step indicator item variants
-  const stepItemVariants = {
-    inactive: { 
-      scale: 1,
-      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)", 
-      transition: { duration: 0.3 }
-    },
-    active: { 
-      scale: 1.05,
-      boxShadow: "0 4px 15px rgba(110, 89, 165, 0.35)",
-      transition: { duration: 0.3 }
-    },
-    hover: { 
-      scale: 1.03,
-      boxShadow: "0 4px 12px rgba(110, 89, 165, 0.25)",
-      transition: { duration: 0.2 }
-    }
-  };
-
   return (
     <section id="example-output" className="py-20 bg-accent/30" ref={sectionRef}>
       <div className="container px-4 md:px-6">
@@ -206,125 +186,128 @@ const ExampleOutputSection = () => {
           >
             <Tabs defaultValue="issue" value={activeTab} onValueChange={setActiveTab} className="w-full">
               <div className="flex justify-between items-center mb-8">
-                {/* New Step Indicator */}
+                {/* Improved Step Indicator */}
                 <div className="w-full">
-                  <div className="flex items-center justify-between gap-2 relative">
+                  <div className="flex items-center justify-between gap-1 relative">
+                    {/* Line connector for step indicator */}
+                    <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-accent/70 -translate-y-1/2 z-0"></div>
+                    
                     {/* Step 1 */}
-                    <motion.div 
-                      className={`flex-1 z-10`}
-                      initial="inactive"
-                      animate={activeTab === "issue" ? "active" : "inactive"}
-                      whileHover={activeTab !== "issue" ? "hover" : "active"}
-                      variants={stepItemVariants}
-                    >
-                      <Button 
+                    <div className="relative z-10 flex-1">
+                      <motion.button
                         onClick={() => setActiveTab("issue")}
-                        className={`w-full relative bg-accent border-0 dark:bg-accent/60 rounded-xl flex flex-col items-center py-4 gap-3 group transition-all duration-300 
-                          ${activeTab === "issue" ? 
-                            "shadow-[0_0_15px_rgba(110,89,165,0.5)] dark:shadow-[0_0_15px_rgba(155,135,245,0.3)] bg-gradient-to-r from-accent to-accent/80 text-brand-purple" : 
-                            "hover:bg-gradient-to-r hover:from-accent hover:to-accent/70"
-                          }`}
+                        className={`w-full relative flex flex-col items-center gap-3 group transition-all duration-300`}
+                        whileHover={{ scale: activeTab !== "issue" ? 1.02 : 1 }}
                       >
-                        <div className={`h-12 w-12 rounded-full flex items-center justify-center 
-                          ${activeTab === "issue" ? 
-                            "bg-gradient-to-r from-brand-purple to-brand-blue text-white" : 
-                            "bg-background/70 group-hover:bg-brand-purple/10"}`}
+                        <div 
+                          className={`h-14 w-14 rounded-full flex items-center justify-center shadow-sm transition-all duration-300
+                            ${activeTab === "issue" 
+                              ? "bg-gradient-to-r from-brand-purple to-brand-blue text-white shadow-[0_0_12px_rgba(110,89,165,0.5)]" 
+                              : "bg-card border border-border hover:border-brand-purple/30 hover:bg-accent/50"
+                            }`}
                         >
-                          <Code size={22} className={activeTab === "issue" ? "text-white" : "text-brand-purple"} />
+                          <Code size={22} className={`${activeTab === "issue" ? "text-white" : "text-brand-purple"}`} />
                         </div>
-                        <span className="text-sm font-medium">What the agent sees</span>
+                        <span className={`text-sm font-medium mt-2 transition-colors duration-300 
+                          ${activeTab === "issue" ? "text-brand-purple" : "text-muted-foreground"}`}
+                        >
+                          What the agent sees
+                        </span>
                         {activeTab === "issue" && (
                           <motion.div 
-                            className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-purple to-brand-blue rounded-full"
+                            className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-brand-purple to-brand-blue"
                             layoutId="activeIndicator"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.3 }}
                           />
                         )}
-                      </Button>
-                    </motion.div>
+                      </motion.button>
+                    </div>
 
                     {/* Arrow 1 */}
                     <motion.div 
-                      className="hidden md:flex items-center mx-1"
+                      className="z-10 flex items-center justify-center w-8 h-8 bg-card rounded-full border border-border shadow-sm"
                       animate={activeTab === "issue" ? "animate" : "initial"}
                       variants={arrowVariants}
                     >
-                      <ArrowRight className={`text-muted-foreground ${activeTab === "issue" ? "text-brand-purple" : ""}`} />
+                      <ArrowRight className={`w-4 h-4 ${activeTab === "issue" ? "text-brand-purple" : "text-muted-foreground"}`} />
                     </motion.div>
 
                     {/* Step 2 */}
-                    <motion.div 
-                      className={`flex-1 z-10`}
-                      initial="inactive"
-                      animate={activeTab === "terminal" ? "active" : "inactive"}
-                      whileHover={activeTab !== "terminal" ? "hover" : "active"}
-                      variants={stepItemVariants}
-                    >
-                      <Button 
+                    <div className="relative z-10 flex-1">
+                      <motion.button
                         onClick={() => setActiveTab("terminal")}
-                        className={`w-full relative bg-accent border-0 dark:bg-accent/60 rounded-xl flex flex-col items-center py-4 gap-3 group transition-all duration-300
-                          ${activeTab === "terminal" ? 
-                            "shadow-[0_0_15px_rgba(110,89,165,0.5)] dark:shadow-[0_0_15px_rgba(155,135,245,0.3)] bg-gradient-to-r from-accent to-accent/80 text-brand-purple" : 
-                            "hover:bg-gradient-to-r hover:from-accent hover:to-accent/70"
-                          }`}
+                        className={`w-full relative flex flex-col items-center gap-3 group transition-all duration-300`}
+                        whileHover={{ scale: activeTab !== "terminal" ? 1.02 : 1 }}
                       >
-                        <div className={`h-12 w-12 rounded-full flex items-center justify-center 
-                          ${activeTab === "terminal" ? 
-                            "bg-gradient-to-r from-brand-purple to-brand-blue text-white" : 
-                            "bg-background/70 group-hover:bg-brand-purple/10"}`}
+                        <div 
+                          className={`h-14 w-14 rounded-full flex items-center justify-center shadow-sm transition-all duration-300
+                            ${activeTab === "terminal" 
+                              ? "bg-gradient-to-r from-brand-purple to-brand-blue text-white shadow-[0_0_12px_rgba(110,89,165,0.5)]" 
+                              : "bg-card border border-border hover:border-brand-purple/30 hover:bg-accent/50"
+                            }`}
                         >
-                          <Terminal size={22} className={activeTab === "terminal" ? "text-white" : "text-brand-purple"} />
+                          <Terminal size={22} className={`${activeTab === "terminal" ? "text-white" : "text-brand-purple"}`} />
                         </div>
-                        <span className="text-sm font-medium">What the prompt looks like</span>
+                        <span className={`text-sm font-medium mt-2 transition-colors duration-300 
+                          ${activeTab === "terminal" ? "text-brand-purple" : "text-muted-foreground"}`}
+                        >
+                          What the prompt looks like
+                        </span>
                         {activeTab === "terminal" && (
                           <motion.div 
-                            className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-purple to-brand-blue rounded-full"
+                            className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-brand-purple to-brand-blue"
                             layoutId="activeIndicator"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.3 }}
                           />
                         )}
-                      </Button>
-                    </motion.div>
+                      </motion.button>
+                    </div>
 
                     {/* Arrow 2 */}
                     <motion.div 
-                      className="hidden md:flex items-center mx-1"
+                      className="z-10 flex items-center justify-center w-8 h-8 bg-card rounded-full border border-border shadow-sm"
                       animate={activeTab === "terminal" ? "animate" : "initial"}
                       variants={arrowVariants}
                     >
-                      <ArrowRight className={`text-muted-foreground ${activeTab === "terminal" ? "text-brand-purple" : ""}`} />
+                      <ArrowRight className={`w-4 h-4 ${activeTab === "terminal" ? "text-brand-purple" : "text-muted-foreground"}`} />
                     </motion.div>
 
                     {/* Step 3 */}
-                    <motion.div 
-                      className={`flex-1 z-10`}
-                      initial="inactive"
-                      animate={activeTab === "prompt" ? "active" : "inactive"}
-                      whileHover={activeTab !== "prompt" ? "hover" : "active"}
-                      variants={stepItemVariants}
-                    >
-                      <Button 
+                    <div className="relative z-10 flex-1">
+                      <motion.button
                         onClick={() => setActiveTab("prompt")}
-                        className={`w-full relative bg-accent border-0 dark:bg-accent/60 rounded-xl flex flex-col items-center py-4 gap-3 group transition-all duration-300
-                          ${activeTab === "prompt" ? 
-                            "shadow-[0_0_15px_rgba(110,89,165,0.5)] dark:shadow-[0_0_15px_rgba(155,135,245,0.3)] bg-gradient-to-r from-accent to-accent/80 text-brand-purple" : 
-                            "hover:bg-gradient-to-r hover:from-accent hover:to-accent/70"
-                          }`}
+                        className={`w-full relative flex flex-col items-center gap-3 group transition-all duration-300`}
+                        whileHover={{ scale: activeTab !== "prompt" ? 1.02 : 1 }}
                       >
-                        <div className={`h-12 w-12 rounded-full flex items-center justify-center 
-                          ${activeTab === "prompt" ? 
-                            "bg-gradient-to-r from-brand-purple to-brand-blue text-white" : 
-                            "bg-background/70 group-hover:bg-brand-purple/10"}`}
+                        <div 
+                          className={`h-14 w-14 rounded-full flex items-center justify-center shadow-sm transition-all duration-300
+                            ${activeTab === "prompt" 
+                              ? "bg-gradient-to-r from-brand-purple to-brand-blue text-white shadow-[0_0_12px_rgba(110,89,165,0.5)]" 
+                              : "bg-card border border-border hover:border-brand-purple/30 hover:bg-accent/50"
+                            }`}
                         >
-                          <MessageSquare size={22} className={activeTab === "prompt" ? "text-white" : "text-brand-purple"} />
+                          <MessageSquare size={22} className={`${activeTab === "prompt" ? "text-white" : "text-brand-purple"}`} />
                         </div>
-                        <span className="text-sm font-medium">What your LLM can do with it</span>
+                        <span className={`text-sm font-medium mt-2 transition-colors duration-300
+                          ${activeTab === "prompt" ? "text-brand-purple" : "text-muted-foreground"}`}
+                        >
+                          What your LLM can do with it
+                        </span>
                         {activeTab === "prompt" && (
                           <motion.div 
-                            className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-purple to-brand-blue rounded-full"
+                            className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-brand-purple to-brand-blue"
                             layoutId="activeIndicator"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.3 }}
                           />
                         )}
-                      </Button>
-                    </motion.div>
+                      </motion.button>
+                    </div>
                   </div>
                 </div>
               </div>
