@@ -15,7 +15,7 @@ const CTASection = () => {
         <div className="flex flex-col items-center text-center space-y-6">
           <h2 className="text-3xl font-bold tracking-tighter">Ready to supercharge your GitHub workflow?</h2>
           <p className="max-w-[600px] mx-auto">
-            Save time on issue triage and get deep, context-aware prompts for 20+ programming languages.
+            Save time on issue triage and get deep, context-aware prompts for 20+ programming languages with triage.flow
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Button size="lg" className="bg-white text-brand-purple hover:bg-gray-100">
