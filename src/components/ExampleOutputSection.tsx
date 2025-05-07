@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Code, MessageSquare } from "lucide-react";
+import { ArrowRight, Terminal, Code, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useInView } from "react-intersection-observer";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,6 +13,7 @@ const ExampleOutputSection = () => {
   const [issueVisible, setIssueVisible] = useState(false);
   const [promptVisible, setPromptVisible] = useState(false);
   const [responseVisible, setResponseVisible] = useState(false);
+  const [currentLine, setCurrentLine] = useState(0);
   
   const { ref: sectionRef, inView } = useInView({
     triggerOnce: true,
@@ -43,6 +43,41 @@ const ExampleOutputSection = () => {
       setTimeout(() => setAnimationComplete(true), 2000);
     }
   }, [promptVisible, responseVisible]);
+
+  // Lines of terminal output
+  const terminalLines = [
+    "$ python examples/examples_complete_rag.py",
+    "Running example for explain prompt type with Local RAG...",
+    "Issue URL: https://github.com/huggingface/smolagents/issues/1295",
+    "Model: o4-mini",
+    "Error fetching comments: 'GitHubIssuesClient' object has no attribute 'get_issue_comments'",
+    "Extracting context from repository: huggingface/smolagents (via local clone)...",
+    "Cloned repository to: /var/folders/r1/1_x09nv93xl5cr0f9p5t4x_h0000gn/T/tmp9ihe8e2i",
+    "Loaded 65 documents from repository",
+    "Found 10 relevant files in the repository",
+    "Generated Prompt with RAG context:",
+    "================================================================================",
+    "LLM Response:",
+    "status='success' prompt='1. What the issue is about..."
+  ];
+
+  // Animate terminal output
+  useEffect(() => {
+    if (activeTab === 'terminal' && animationComplete) {
+      const timer = setInterval(() => {
+        setCurrentLine((prev) => {
+          if (prev < terminalLines.length - 1) {
+            return prev + 1;
+          } else {
+            clearInterval(timer);
+            return prev;
+          }
+        });
+      }, 200);
+      
+      return () => clearInterval(timer);
+    }
+  }, [activeTab, animationComplete, terminalLines.length]);
 
   // Auto-scroll the response section
   useEffect(() => {
@@ -199,7 +234,49 @@ const ExampleOutputSection = () => {
                       <ArrowRight className={`w-4 h-4 ${activeTab === "issue" ? "text-brand-purple" : "text-muted-foreground"}`} />
                     </motion.div>
 
-                    {/* Step 2 - We're directly going to step 2 as prompt now (skip terminal) */}
+                    {/* Step 2 */}
+                    <div className="relative z-10 flex-1">
+                      <motion.button
+                        onClick={() => setActiveTab("terminal")}
+                        className={`w-full relative flex flex-col items-center gap-3 group transition-all duration-300`}
+                        whileHover={{ scale: activeTab !== "terminal" ? 1.02 : 1 }}
+                      >
+                        <div 
+                          className={`h-14 w-14 rounded-full flex items-center justify-center shadow-sm transition-all duration-300
+                            ${activeTab === "terminal" 
+                              ? "bg-gradient-to-r from-brand-purple to-brand-blue text-white shadow-[0_0_12px_rgba(110,89,165,0.5)]" 
+                              : "bg-card border border-border hover:border-brand-purple/30 hover:bg-accent/50"
+                            }`}
+                        >
+                          <Terminal size={22} className={`${activeTab === "terminal" ? "text-white" : "text-brand-purple"}`} />
+                        </div>
+                        <span className={`text-sm font-medium mt-2 transition-colors duration-300 
+                          ${activeTab === "terminal" ? "text-brand-purple" : "text-muted-foreground"}`}
+                        >
+                          What the prompt looks like
+                        </span>
+                        {activeTab === "terminal" && (
+                          <motion.div 
+                            className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-brand-purple to-brand-blue"
+                            layoutId="activeIndicator"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.3 }}
+                          />
+                        )}
+                      </motion.button>
+                    </div>
+
+                    {/* Arrow 2 */}
+                    <motion.div 
+                      className="z-10 flex items-center justify-center w-8 h-8 bg-card rounded-full border border-border shadow-sm"
+                      animate={activeTab === "terminal" ? "animate" : "initial"}
+                      variants={arrowVariants}
+                    >
+                      <ArrowRight className={`w-4 h-4 ${activeTab === "terminal" ? "text-brand-purple" : "text-muted-foreground"}`} />
+                    </motion.div>
+
+                    {/* Step 3 */}
                     <div className="relative z-10 flex-1">
                       <motion.button
                         onClick={() => setActiveTab("prompt")}
@@ -252,6 +329,43 @@ const ExampleOutputSection = () => {
                           className="w-full h-auto rounded max-w-full object-contain max-h-[500px]" 
                         />
                       </div>
+                    </div>
+                  </motion.div>
+                </TabsContent>
+
+                <TabsContent value="terminal" key="terminal">
+                  <motion.div
+                    className="min-h-[500px] border rounded-lg shadow-sm bg-card p-4"
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    variants={tabContentVariants}
+                  >
+                    <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
+                      <div className="flex gap-1">
+                        <div className="h-3 w-3 rounded-full bg-red-500"></div>
+                        <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
+                        <div className="h-3 w-3 rounded-full bg-green-500"></div>
+                      </div>
+                      <span>Terminal</span>
+                    </div>
+                    <div className="font-code bg-card text-sm text-left overflow-x-auto p-4 rounded min-h-[460px]">
+                      {terminalLines.slice(0, currentLine + 1).map((line, index) => (
+                        <div key={index} className={`${index > 0 ? "mt-1" : ""}`}>
+                          {line.includes("LLM Response:") || line.includes("Generated Prompt") || line.includes("==========") ? (
+                            <span className="text-brand-purple font-bold">{line}</span>
+                          ) : line.startsWith("$") ? (
+                            <span className="text-green-500">{line}</span>
+                          ) : line.includes("Error") ? (
+                            <span className="text-yellow-500">{line}</span>
+                          ) : line.startsWith("status=") ? (
+                            <span className="text-blue-400">{line.substring(0, 50)}...</span>
+                          ) : (
+                            <span>{line}</span>
+                          )}
+                          {index === currentLine && <span className="animate-pulse">|</span>}
+                        </div>
+                      ))}
                     </div>
                   </motion.div>
                 </TabsContent>

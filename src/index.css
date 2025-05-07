@@ -252,17 +252,17 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.05);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.2);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.3);
 }
 
 /* Fix for z-index and positioning in the Example Output section */
@@ -278,17 +278,17 @@
   z-index: 10;
 }
 
-/* Neumorphic effects for dark mode */
+/* Neumorphic effects */
 .neo-shadow {
   box-shadow: 
-    8px 8px 16px rgba(0, 0, 0, 0.25), 
-    -8px -8px 16px rgba(255, 255, 255, 0.05);
+    8px 8px 16px rgba(0, 0, 0, 0.05), 
+    -8px -8px 16px rgba(255, 255, 255, 0.7);
 }
 
 .neo-shadow-inset {
   box-shadow: 
-    inset 4px 4px 8px rgba(0, 0, 0, 0.25), 
-    inset -4px -4px 8px rgba(255, 255, 255, 0.05);
+    inset 4px 4px 8px rgba(0, 0, 0, 0.05), 
+    inset -4px -4px 8px rgba(255, 255, 255, 0.7);
 }
 
 .dark .neo-shadow {
@@ -301,19 +301,4 @@
   box-shadow: 
     inset 4px 4px 8px rgba(0, 0, 0, 0.25), 
     inset -4px -4px 8px rgba(255, 255, 255, 0.05);
-}
-
-/* Dark mode specific styles */
-.dark code {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: #e2e8f0;
-}
-
-.dark pre {
-  background-color: rgba(0, 0, 0, 0.3);
-}
-
-/* Enhanced dark mode gradients */
-.dark .bg-gradient-subtle {
-  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
 }
