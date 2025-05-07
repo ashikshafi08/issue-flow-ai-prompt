@@ -48,7 +48,7 @@ const Navbar = () => {
         <div className="flex items-center gap-4">
           <a href="https://github.com/yourusername/triage.flow" target="_blank" rel="noopener noreferrer" className="glow-border">
             <Button variant="outline" size="icon" aria-label="GitHub" className="border-blue-500/20 bg-transparent hover:bg-blue-500/10">
-              <GithubIcon className="text-blue-400" />
+              <GithubIcon />
             </Button>
           </a>
           <Button className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all">Get Started</Button>
