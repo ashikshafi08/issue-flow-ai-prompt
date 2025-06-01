@@ -7,6 +7,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+// @ts-ignore
+import Fuse from 'fuse.js';
 
 interface ChatMessage {
   role: string;
@@ -104,10 +106,76 @@ export default function ChatSession() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false); // Initialize to false, true if initialMessageFromState is not present
-  const [isStreaming, setIsStreaming] = useState(false); // Track streaming state
+  const [isLoading, setIsLoading] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [allFiles, setAllFiles] = useState<{ path: string }[]>([]);
+  const [showFilePicker, setShowFilePicker] = useState(false);
+  const [fileQuery, setFileQuery] = useState('');
+  const [fileResults, setFileResults] = useState<{ path: string }[]>([]);
+  const [highlight, setHighlight] = useState(0);
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
-  const location = useLocation(); // Get location object
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const location = useLocation();
+
+  // Fetch file list when sessionId is available
+  useEffect(() => {
+    if (!sessionId) return; // Don't fetch until sessionId is set
+    fetch(`http://localhost:8000/api/files?session_id=${sessionId}`)
+      .then(res => res.json())
+      .then(data => setAllFiles(data));
+  }, [sessionId]);
+
+  // Fuzzy search files when fileQuery changes
+  useEffect(() => {
+    if (!fileQuery) setFileResults(allFiles);
+    else {
+      const fuse = new Fuse(allFiles, { keys: ['path'], threshold: 0.3 });
+      setFileResults(fuse.search(fileQuery).map(r => r.item));
+    }
+  }, [fileQuery, allFiles]);
+
+  // Open file picker on @
+  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+    const cursor = e.target.selectionStart || 0;
+    if (e.target.value[cursor - 1] === '@') {
+      setShowFilePicker(true);
+      setFileQuery('');
+      setHighlight(0);
+    }
+  };
+
+  // Keyboard navigation for file picker
+  const handleFilePickerKeyDown = (e: React.KeyboardEvent) => {
+    if (!showFilePicker) return;
+    if (e.key === 'ArrowDown') setHighlight(h => Math.min(h + 1, fileResults.length - 1));
+    else if (e.key === 'ArrowUp') setHighlight(h => Math.max(h - 1, 0));
+    else if (e.key === 'Enter' && fileResults[highlight]) {
+      handleFileSelect(fileResults[highlight]);
+    } else if (e.key === 'Escape') setShowFilePicker(false);
+  };
+
+  // Add file to selection
+  const handleFileSelect = (file: { path: string }) => {
+    if (inputRef.current) {
+      const textarea = inputRef.current;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const before = input.slice(0, start);
+      const after = input.slice(end);
+      const mention = `@${file.path}`;
+      const newValue = before + mention + after;
+      setInput(newValue);
+      setTimeout(() => {
+        textarea.focus();
+        textarea.selectionStart = textarea.selectionEnd = start + mention.length;
+      }, 0);
+    } else {
+      setInput(prev => prev + `@${file.path}`);
+    }
+    setShowFilePicker(false);
+    setFileQuery('');
+  };
 
   // Set initial message from route state
   useEffect(() => {
@@ -132,88 +200,57 @@ export default function ChatSession() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isStreaming]);
 
+  // Send message with selected files
   const handleSend = async () => {
     if (!input.trim() || !sessionId) return;
-    
-    // Add user message
     const userMessage = { role: 'user', content: input };
     setMessages(prev => [...prev, userMessage]);
-    const currentInput = input; // Store input before clearing
+    const currentInput = input;
     setInput('');
     setIsLoading(true);
 
     try {
-      // Add a placeholder for the assistant's streaming response
       setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
-      setIsStreaming(true); // Start streaming
-
-      // Send to backend with stream=true
+      setIsStreaming(true);
       const response = await fetch(`http://localhost:8000/sessions/${sessionId}/messages?stream=true`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: 'user', content: currentInput })
       });
-
-      if (!response.body) {
-        throw new Error('Response body is null');
-      }
-
+      if (!response.body) throw new Error('Response body is null');
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let assistantResponseContent = '';
-
       try {
         while (true) {
           const { done, value } = await reader.read();
-          
-          if (done) {
-            break;
-          }
-
+          if (done) break;
           const chunk = decoder.decode(value, { stream: true });
           const lines = chunk.split('\n');
-
           for (const line of lines) {
             if (line.startsWith('data: ')) {
               const data = line.substring(6).trim();
-              
-              if (data === '[DONE]') {
-                setIsStreaming(false); // Stop streaming when done
-                return; // Exit the function completely when done
-              }
-              
+              if (data === '[DONE]') { setIsStreaming(false); return; }
               if (data) {
                 try {
                   const json = JSON.parse(data);
-                  
-                  // Handle error in response
-                  if (json.error) {
-                    throw new Error(json.error);
-                  }
-                  
-                  // Extract content from the response
+                  if (json.error) throw new Error(json.error);
                   const content = json.choices?.[0]?.delta?.content;
-                  
                   if (content) {
                     assistantResponseContent += content;
-                    
-                    // Update the last message with new content immediately for real-time streaming
                     setMessages(prev => {
                       const newMessages = [...prev];
                       const lastMessageIndex = newMessages.length - 1;
-                      
                       if (lastMessageIndex >= 0 && newMessages[lastMessageIndex].role === 'assistant') {
                         newMessages[lastMessageIndex] = {
                           ...newMessages[lastMessageIndex],
                           content: assistantResponseContent
                         };
                       }
-                      
                       return newMessages;
                     });
                   }
                 } catch (parseError) {
-                  // Skip malformed JSON chunks
                   console.warn('Failed to parse streaming chunk:', data, parseError);
                 }
               }
@@ -223,34 +260,36 @@ export default function ChatSession() {
       } finally {
         reader.releaseLock();
       }
-      
     } catch (error) {
       console.error('Failed to send message or stream response', error);
-      
-      // Update the last message to show error
       setMessages(prev => {
         const newMessages = [...prev];
         const lastMessageIndex = newMessages.length - 1;
-        
         if (lastMessageIndex >= 0 && newMessages[lastMessageIndex].role === 'assistant') {
           newMessages[lastMessageIndex] = {
             ...newMessages[lastMessageIndex],
             content: `Error: Failed to get response. ${error instanceof Error ? error.message : String(error)}`
           };
         } else {
-          newMessages.push({ 
-            role: 'assistant', 
-            content: `Error: Failed to get response. ${error instanceof Error ? error.message : String(error)}` 
-          });
+          newMessages.push({ role: 'assistant', content: `Error: Failed to get response. ${error instanceof Error ? error.message : String(error)}` });
         }
-        
         return newMessages;
       });
     } finally {
       setIsLoading(false);
-      setIsStreaming(false); // Ensure streaming state is reset
+      setIsStreaming(false);
     }
   };
+
+  function highlightMentions(text: string) {
+    return text.split(/(@[\w\-/\\.]+)/g).map((part, i) =>
+      part.startsWith('@') ? (
+        <span key={i} className="bg-blue-900 text-blue-300 px-1 rounded">{part}</span>
+      ) : (
+        part
+      )
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen bg-gray-900 text-white">
@@ -299,7 +338,7 @@ export default function ChatSession() {
                         )}
                       </div>
                     ) : (
-                      <p className="text-gray-100">{msg.content}</p>
+                      <p className="text-gray-100">{highlightMentions(msg.content)}</p>
                     )}
                   </div>
                 </div>
@@ -334,22 +373,49 @@ export default function ChatSession() {
       
       <div className="border-t border-gray-800 bg-gray-800 p-4">
         <div className="mx-auto max-w-3xl">
-          <div className="flex items-center rounded-lg bg-gray-700 p-1">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-              placeholder="Type your message..."
-              className="flex-1 border-0 bg-transparent text-white focus-visible:ring-0 focus-visible:ring-offset-0"
-              disabled={isLoading || isStreaming}
-            />
-            <Button 
-              onClick={handleSend} 
-              className="ml-1 rounded-md bg-blue-600 px-3 py-2 hover:bg-blue-700"
-              disabled={isLoading || isStreaming}
-            >
-              Send
-            </Button>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center rounded-lg bg-gray-700 p-1">
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={handleInput}
+                placeholder="Type your message... Use @ to select files."
+                className="flex-1 border-0 bg-transparent text-white focus-visible:ring-0 focus-visible:ring-offset-0"
+                disabled={isLoading || isStreaming}
+              />
+              <Button 
+                onClick={handleSend} 
+                className="ml-1 rounded-md bg-blue-600 px-3 py-2 hover:bg-blue-700"
+                disabled={isLoading || isStreaming}
+              >
+                Send
+              </Button>
+            </div>
+            {/* File picker modal */}
+            {showFilePicker && (
+              <div className="file-picker-modal absolute z-50 bg-gray-900 border border-gray-700 rounded-lg shadow-lg mt-2 w-[400px] max-h-[300px] overflow-y-auto">
+                <input
+                  autoFocus
+                  value={fileQuery}
+                  onChange={e => { setFileQuery(e.target.value); setHighlight(0); }}
+                  onKeyDown={handleFilePickerKeyDown}
+                  placeholder="Type to search files..."
+                  className="w-full p-2 bg-gray-800 text-white border-0 rounded-t-lg"
+                />
+                <ul className="max-h-[240px] overflow-y-auto">
+                  {fileResults.map((file, idx) => (
+                    <li
+                      key={file.path}
+                      className={`px-4 py-2 cursor-pointer ${highlight === idx ? 'bg-blue-700 text-white' : 'hover:bg-gray-700'}`}
+                      onMouseEnter={() => setHighlight(idx)}
+                      onClick={() => handleFileSelect(file)}
+                    >
+                      {file.path}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       </div>
