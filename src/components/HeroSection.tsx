@@ -10,24 +10,55 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Loader2 } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { createChatSession } from "@/lib/api"; // Updated import
+import { useNavigate } from "react-router-dom";
 
 const HeroSection = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [issueUrl, setIssueUrl] = useState("");
   const [promptType, setPromptType] = useState("explain");
-  const [isAnimating, setIsAnimating] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
+  const { toast } = useToast();
+  const navigate = useNavigate();
   
   useEffect(() => {
     setIsVisible(true);
   }, []);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!issueUrl.trim()) return;
     
-    setIsAnimating(true);
-    setTimeout(() => setIsAnimating(false), 2000);
+    setIsLoading(true);
+    setError("");
+    setResult(null);
+    
+    try {
+      // Create a new chat session
+      const { session_id, initial_message } = await createChatSession(issueUrl, promptType);
+      
+      setIsLoading(false);
+      toast({
+        title: "Success",
+        description: "Chat session created successfully!",
+      });
+      // Navigate to the chat page with session_id and initial_message
+      navigate(`/chat/${session_id}`, { state: { initialMessage: initial_message } });
+
+    } catch (error) {
+      console.error('Error creating chat session:', error);
+      setError(error instanceof Error ? error.message : 'Unknown error creating session');
+      setIsLoading(false);
+      toast({
+        title: "Error",
+        description: "Failed to start processing",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -89,18 +120,28 @@ const HeroSection = () => {
                       <SelectItem value="fix">Fix</SelectItem>
                       <SelectItem value="test">Test</SelectItem>
                       <SelectItem value="summarize">Summarize</SelectItem>
+                      <SelectItem value="document">Document</SelectItem>
+                      <SelectItem value="review">Review</SelectItem>
+                      <SelectItem value="prioritize">Prioritize</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 
                 <Button 
                   type="submit" 
-                  className={`w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all text-sm md:text-base py-3 ${
-                    isAnimating ? 'animate-pulse' : ''
-                  }`}
-                  disabled={isAnimating}
+                  className={`w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all text-sm md:text-base py-3`}
+                  disabled={isLoading}
                 >
-                  Generate Prompt <ChevronRight className="h-3 w-3 md:h-4 md:w-4" />
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      Generate <ChevronRight className="h-3 w-3 md:h-4 md:w-4" />
+                    </>
+                  )}
                 </Button>
               </div>
             </form>
@@ -113,24 +154,40 @@ const HeroSection = () => {
                 <div className="h-2 w-2 md:h-3 md:w-3 rounded-full bg-yellow-500/80"></div>
                 <div className="h-2 w-2 md:h-3 md:w-3 rounded-full bg-green-500/80"></div>
               </div>
-              <span>Prompt Preview</span>
+              <span>{result ? 'Generated Prompt' : 'Prompt Preview'}</span>
             </div>
             <div className="font-code bg-[rgba(15,23,42,0.6)] text-xs md:text-sm text-left overflow-x-auto p-3 md:p-6 rounded">
-              <div className="text-blue-400 font-semibold mb-2">// Generated AI Prompt with RAG Context</div>
-              <p className="text-gray-300 mb-3">
-                Analyze the GitHub issue <span className="text-blue-400">#12345</span> regarding pagination in the API endpoints.
-              </p>
-              <p className="text-gray-300 mb-3">
-                Based on the repository context:
-              </p>
-              <ol className="list-decimal pl-6 space-y-1 md:space-y-2 text-gray-300">
-                <li>The current pagination implementation in <span className="text-yellow-400">src/api/controllers/BaseController.ts</span> uses offset-based pagination.</li>
-                <li>The reported issue describes cursor-based pagination as a preferred solution for performance.</li>
-                <li>Relevant code sections show that changing to cursor-based pagination requires updates to the database queries and response format.</li>
-              </ol>
-              <p className="text-gray-300 mt-3">
-                Please provide a detailed explanation of how to implement cursor-based pagination in this codebase, with code examples.
-              </p>
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-blue-500 mb-4" />
+                  <p className="text-blue-300">Processing your request...</p>
+                </div>
+              ) : error ? (
+                <div className="text-red-400">
+                  <div className="font-semibold mb-2">// Error</div>
+                  <p>{error}</p>
+                </div>
+              ) : result ? (
+                <pre className="whitespace-pre-wrap text-gray-300">{result}</pre>
+              ) : (
+                <>
+                  <div className="text-blue-400 font-semibold mb-2">// Generated AI Prompt with RAG Context</div>
+                  <p className="text-gray-300 mb-3">
+                    Analyze the GitHub issue <span className="text-blue-400">#12345</span> regarding pagination in the API endpoints.
+                  </p>
+                  <p className="text-gray-300 mb-3">
+                    Based on the repository context:
+                  </p>
+                  <ol className="list-decimal pl-6 space-y-1 md:space-y-2 text-gray-300">
+                    <li>The current pagination implementation in <span className="text-yellow-400">src/api/controllers/BaseController.ts</span> uses offset-based pagination.</li>
+                    <li>The reported issue describes cursor-based pagination as a preferred solution for performance.</li>
+                    <li>Relevant code sections show that changing to cursor-based pagination requires updates to the database queries and response format.</li>
+                  </ol>
+                  <p className="text-gray-300 mt-3">
+                    Please provide a detailed explanation of how to implement cursor-based pagination in this codebase, with code examples.
+                  </p>
+                </>
+              )}
             </div>
           </div>
         </div>
