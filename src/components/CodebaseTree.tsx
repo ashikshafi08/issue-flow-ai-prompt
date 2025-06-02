@@ -164,7 +164,7 @@ const CodebaseTree: React.FC<CodebaseTreeProps> = ({ sessionId, onFileSelect }) 
 
   const renderNode = (node: FileNode, level: number = 0) => {
     const isExpanded = expandedNodes.has(node.path);
-    const paddingLeft = level * 20 + 12;
+    const paddingLeft = level * 16 + 8;
     const isHighlighted = searchQuery && (
       node.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       node.path.toLowerCase().includes(searchQuery.toLowerCase())
@@ -173,8 +173,8 @@ const CodebaseTree: React.FC<CodebaseTreeProps> = ({ sessionId, onFileSelect }) 
     return (
       <div key={node.path}>
         <div
-          className={`flex items-center py-2.5 px-3 hover:bg-gray-700/60 cursor-pointer transition-all duration-200 rounded-lg mx-2 group ${
-            isHighlighted ? 'bg-blue-600/20 border border-blue-500/30' : ''
+          className={`flex items-center py-1 px-2 hover:bg-gray-700/50 cursor-pointer transition-all duration-150 group ${
+            isHighlighted ? 'bg-blue-600/20 border-r-2 border-blue-500' : ''
           } ${node.type === 'file' ? 'text-gray-300' : 'text-gray-200'}`}
           style={{ paddingLeft }}
           onClick={() => {
@@ -186,16 +186,16 @@ const CodebaseTree: React.FC<CodebaseTreeProps> = ({ sessionId, onFileSelect }) 
           }}
         >
           {node.type === 'directory' && (
-            <span className="mr-2 text-gray-400 group-hover:text-gray-300 transition-colors">
+            <span className="mr-1 text-gray-500 group-hover:text-gray-400 transition-colors flex-shrink-0">
               {isExpanded ? (
-                <ChevronDown className="h-4 w-4" />
+                <ChevronDown className="h-3 w-3" />
               ) : (
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-3 w-3" />
               )}
             </span>
           )}
           
-          <span className="mr-3 text-base">
+          <span className="mr-2 flex-shrink-0 text-sm">
             {node.type === 'directory' ? (
               isExpanded ? '📂' : '📁'
             ) : (
@@ -209,7 +209,7 @@ const CodebaseTree: React.FC<CodebaseTreeProps> = ({ sessionId, onFileSelect }) 
         </div>
         
         {node.type === 'directory' && isExpanded && node.children && (
-          <div className="ml-2">
+          <div>
             {node.children.map(child => renderNode(child, level + 1))}
           </div>
         )}

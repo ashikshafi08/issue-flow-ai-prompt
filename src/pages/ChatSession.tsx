@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Send, FileText, Search, Copy, Check, FolderTree, Menu, X } from 'lucide-react';
 import CodebaseTree from '@/components/CodebaseTree';
+import FileViewer from '@/components/FileViewer';
 // @ts-ignore
 import Fuse from 'fuse.js';
 
@@ -280,9 +280,10 @@ const MarkdownComponents = {
   em: ({ node, ...props }: any) => <em className="italic text-gray-300" {...props} />,
 };
 
-const AppSidebar = ({ sessionId }: { sessionId: string }) => {
+const AppSidebar = ({ sessionId, onFileSelect }: { sessionId: string; onFileSelect: (filePath: string) => void }) => {
   const handleFileSelect = (filePath: string) => {
     console.log('Selected file:', filePath);
+    onFileSelect(filePath);
   };
 
   return (
@@ -313,6 +314,7 @@ export default function ChatSession() {
   const [fileResults, setFileResults] = useState<{ path: string }[]>([]);
   const [highlight, setHighlight] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [viewingFile, setViewingFile] = useState<string | null>(null);
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const location = useLocation();
@@ -533,10 +535,22 @@ export default function ChatSession() {
     );
   }
 
+  const handleFileView = (filePath: string) => {
+    setViewingFile(filePath);
+  };
+
   return (
     <SidebarProvider defaultOpen={sidebarOpen}>
       <div className="min-h-screen flex w-full bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
-        <AppSidebar sessionId={sessionId} />
+        <AppSidebar sessionId={sessionId} onFileSelect={handleFileView} />
+        
+        {viewingFile && (
+          <FileViewer
+            filePath={viewingFile}
+            sessionId={sessionId}
+            onClose={() => setViewingFile(null)}
+          />
+        )}
         
         <div className="flex flex-col flex-1 min-w-0">
           {/* Modern Header with Glass Effect */}
