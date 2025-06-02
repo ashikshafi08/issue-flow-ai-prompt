@@ -97,16 +97,21 @@ const enhanceTextWithLinks = (children: React.ReactNode): React.ReactNode => {
   
   if (React.isValidElement(children)) {
     return React.cloneElement(children as React.ReactElement, {
+      key: (children as React.ReactElement).key,
       children: enhanceTextWithLinks((children as React.ReactElement).props.children)
     });
   }
   
   if (Array.isArray(children)) {
-    return children.map((child, index) => (
-      <React.Fragment key={index}>
-        {enhanceTextWithLinks(child)}
-      </React.Fragment>
-    ));
+    return children.map((child, index) => {
+      if (React.isValidElement(child)) {
+        return React.cloneElement(child as React.ReactElement, {
+          key: child.key || index,
+          children: enhanceTextWithLinks((child as React.ReactElement).props.children)
+        });
+      }
+      return enhanceTextWithLinks(child);
+    });
   }
   
   return children;
@@ -229,9 +234,16 @@ const MarkdownComponents = {
   },
   p: ({ node, children, ...props }: any) => {
     const hasBlockChild = React.Children.toArray(children).some(
-      (child: any) => typeof child === 'object' && child !== null && 'type' in child && 
-      ['pre', 'blockquote', 'div', 'ul', 'ol'].includes(child.type)
+      (child: any) => {
+        if (typeof child === 'object' && child !== null && 'type' in child) {
+          // Check for block-level elements that shouldn't be in paragraphs
+          const blockElements = ['pre', 'blockquote', 'div', 'ul', 'ol', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
+          return blockElements.includes(child.type);
+        }
+        return false;
+      }
     );
+    
     if (hasBlockChild) {
       return <div className="my-4 leading-relaxed text-gray-200" {...props}>{enhanceTextWithLinks(children)}</div>;
     }

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, ChevronDown, File, Folder, FolderOpen } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -19,16 +18,41 @@ const CodebaseTree: React.FC<CodebaseTreeProps> = ({ sessionId, onFileSelect }) 
   const [treeData, setTreeData] = useState<FileNode[]>([]);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchTreeStructure = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/api/tree?session_id=${sessionId}`);
-        const data = await response.json();
-        setTreeData(data);
+        setLoading(true);
+        setError(null);
+        
+        // Try to fetch tree structure first
+        let response = await fetch(`http://localhost:8000/api/tree?session_id=${sessionId}`);
+        
+        if (response.status === 404) {
+          // Fallback to files API if tree API doesn't exist
+          response = await fetch(`http://localhost:8000/api/files?session_id=${sessionId}`);
+          if (response.ok) {
+            const filesData = await response.json();
+            // Convert flat file list to tree structure
+            const treeStructure = buildTreeFromFiles(filesData);
+            setTreeData(treeStructure);
+          } else {
+            throw new Error('Failed to fetch files');
+          }
+        } else if (response.ok) {
+          const data = await response.json();
+          // Ensure data is an array
+          setTreeData(Array.isArray(data) ? data : []);
+        } else {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         setLoading(false);
       } catch (error) {
         console.error('Failed to fetch tree structure:', error);
+        setError(error instanceof Error ? error.message : 'Failed to load codebase');
+        setTreeData([]); // Ensure it's always an array
         setLoading(false);
       }
     };
@@ -37,6 +61,45 @@ const CodebaseTree: React.FC<CodebaseTreeProps> = ({ sessionId, onFileSelect }) 
       fetchTreeStructure();
     }
   }, [sessionId]);
+
+  // Helper function to build tree structure from flat file list
+  const buildTreeFromFiles = (files: { path: string }[]): FileNode[] => {
+    const tree: FileNode[] = [];
+    const pathMap = new Map<string, FileNode>();
+
+    files.forEach(file => {
+      const parts = file.path.split('/');
+      let currentPath = '';
+      
+      parts.forEach((part, index) => {
+        const isLast = index === parts.length - 1;
+        currentPath = currentPath ? `${currentPath}/${part}` : part;
+        
+        if (!pathMap.has(currentPath)) {
+          const node: FileNode = {
+            name: part,
+            path: currentPath,
+            type: isLast ? 'file' : 'directory',
+            children: isLast ? undefined : []
+          };
+          
+          pathMap.set(currentPath, node);
+          
+          if (index === 0) {
+            tree.push(node);
+          } else {
+            const parentPath = parts.slice(0, index).join('/');
+            const parent = pathMap.get(parentPath);
+            if (parent && parent.children) {
+              parent.children.push(node);
+            }
+          }
+        }
+      });
+    });
+
+    return tree;
+  };
 
   const toggleNode = (path: string) => {
     const newExpanded = new Set(expandedNodes);
@@ -108,6 +171,21 @@ const CodebaseTree: React.FC<CodebaseTreeProps> = ({ sessionId, onFileSelect }) 
     );
   }
 
+  if (error) {
+    return (
+      <div className="p-4 text-center">
+        <div className="text-red-400 mb-2">⚠️</div>
+        <p className="text-sm text-gray-400">{error}</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="text-xs text-blue-400 hover:text-blue-300 mt-2 underline"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   return (
     <ScrollArea className="h-full">
       <div className="p-2">
@@ -117,7 +195,13 @@ const CodebaseTree: React.FC<CodebaseTreeProps> = ({ sessionId, onFileSelect }) 
             Codebase
           </h3>
         </div>
-        {treeData.map(node => renderNode(node))}
+        {Array.isArray(treeData) && treeData.length > 0 ? (
+          treeData.map(node => renderNode(node))
+        ) : (
+          <div className="px-2 py-4 text-center text-sm text-gray-400">
+            No files found
+          </div>
+        )}
       </div>
     </ScrollArea>
   );
