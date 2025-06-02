@@ -285,9 +285,10 @@ export default function ChatSession() {
   const [isLoading, setIsLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [allFiles, setAllFiles] = useState<{ path: string }[]>([]);
+  const [allFolders, setAllFolders] = useState<{ path: string }[]>([]);
   const [showFilePicker, setShowFilePicker] = useState(false);
   const [fileQuery, setFileQuery] = useState('');
-  const [fileResults, setFileResults] = useState<{ path: string }[]>([]);
+  const [fileResults, setFileResults] = useState<{ path: string; type: 'file' | 'folder' }[]>([]);
   const [highlight, setHighlight] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [viewingFile, setViewingFile] = useState<string | null>(null);
@@ -298,19 +299,67 @@ export default function ChatSession() {
   // Fetch file list when sessionId is available
   useEffect(() => {
     if (!sessionId) return; // Don't fetch until sessionId is set
-    fetch(`http://localhost:8000/api/files?session_id=${sessionId}`)
-      .then(res => res.json())
-      .then(data => setAllFiles(data));
+    
+    // Fetch both files and tree structure for folder support
+    Promise.all([
+      fetch(`http://localhost:8000/api/files?session_id=${sessionId}`).then(res => res.json()),
+      fetch(`http://localhost:8000/api/tree?session_id=${sessionId}`).then(res => res.json())
+    ]).then(([files, tree]) => {
+      setAllFiles(files);
+      // Extract folders from tree structure
+      const folders = extractFoldersFromTree(tree);
+      setAllFolders(folders);
+    }).catch(err => {
+      console.error('Error fetching files/folders:', err);
+      // Fallback to just files
+      fetch(`http://localhost:8000/api/files?session_id=${sessionId}`)
+        .then(res => res.json())
+        .then(data => setAllFiles(data))
+        .catch(err => console.error('Error fetching files:', err));
+    });
   }, [sessionId]);
+
+  // Helper function to extract folders from tree structure
+  const extractFoldersFromTree = (tree: any[], currentPath: string = ""): { path: string }[] => {
+    let folders: { path: string }[] = [];
+    
+    tree.forEach(item => {
+      if (item.type === "directory") {
+        const folderPath = currentPath ? `${currentPath}/${item.name}` : item.name;
+        folders.push({ path: folderPath });
+        
+        // Recursively get subfolders
+        if (item.children && item.children.length > 0) {
+          folders = folders.concat(extractFoldersFromTree(item.children, folderPath));
+        }
+      }
+    });
+    
+    return folders;
+  };
 
   // Fuzzy search files when fileQuery changes
   useEffect(() => {
-    if (!fileQuery) setFileResults(allFiles);
-    else {
-      const fuse = new Fuse(allFiles, { keys: ['path'], threshold: 0.3 });
-      setFileResults(fuse.search(fileQuery).map(r => r.item));
+    if (!fileQuery) {
+      // Show both files and folders when no query
+      const combinedResults = [
+        ...allFolders.map(folder => ({ ...folder, type: 'folder' as const })),
+        ...allFiles.map(file => ({ ...file, type: 'file' as const }))
+      ];
+      setFileResults(combinedResults);
+    } else {
+      // Search in both files and folders
+      const filesFuse = new Fuse(allFiles, { keys: ['path'], threshold: 0.3 });
+      const foldersFuse = new Fuse(allFolders, { keys: ['path'], threshold: 0.3 });
+      
+      const fileMatches = filesFuse.search(fileQuery).map(r => ({ ...r.item, type: 'file' as const }));
+      const folderMatches = foldersFuse.search(fileQuery).map(r => ({ ...r.item, type: 'folder' as const }));
+      
+      // Combine and sort: folders first, then files
+      const combinedResults = [...folderMatches, ...fileMatches];
+      setFileResults(combinedResults);
     }
-  }, [fileQuery, allFiles]);
+  }, [fileQuery, allFiles, allFolders]);
 
   // Handle input changes and detect @ for file picker
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -356,14 +405,16 @@ export default function ChatSession() {
   };
 
   // Add file to selection
-  const handleFileSelect = (file: { path: string }) => {
+  const handleFileSelect = (item: { path: string; type?: 'file' | 'folder' }) => {
     if (textareaRef.current) {
       const textarea = textareaRef.current;
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
       const before = input.slice(0, start);
       const after = input.slice(end);
-      const mention = `@${file.path}`;
+      
+      // Use different syntax for folders vs files
+      const mention = item.type === 'folder' ? `@folder/${item.path}` : `@${item.path}`;
       const newValue = before + mention + after;
       setInput(newValue);
       setTimeout(() => {
@@ -371,7 +422,8 @@ export default function ChatSession() {
         textarea.selectionStart = textarea.selectionEnd = start + mention.length;
       }, 0);
     } else {
-      setInput(prev => prev + `@${file.path}`);
+      const mention = item.type === 'folder' ? `@folder/${item.path}` : `@${item.path}`;
+      setInput(prev => prev + mention);
     }
     setShowFilePicker(false);
     setFileQuery('');
@@ -488,8 +540,13 @@ export default function ChatSession() {
   };
 
   function highlightMentions(text: string) {
-    return text.split(/(@[\w\-/\\.]+)/g).map((part, i) =>
-      part.startsWith('@') ? (
+    return text.split(/(@folder\/[\w\-/\\.]+|@[\w\-/\\.]+)/g).map((part, i) =>
+      part.startsWith('@folder/') ? (
+        <span key={i} className="inline-flex items-center gap-1 bg-yellow-600/20 text-yellow-300 px-2 py-1 rounded-md font-medium border border-yellow-500/30 hover:bg-yellow-600/30 transition-all cursor-pointer" title="Folder reference">
+          <span className="text-xs">📁</span>
+          {part}
+        </span>
+      ) : part.startsWith('@') ? (
         <span key={i} className="inline-flex items-center gap-1 bg-blue-600/20 text-blue-300 px-2 py-1 rounded-md font-medium border border-blue-500/30 hover:bg-blue-600/30 transition-all cursor-pointer" title="File attachment">
           <span className="text-xs">📎</span>
           {part}
@@ -579,12 +636,12 @@ export default function ChatSession() {
                       </p>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto text-left">
                         <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-4 hover:bg-gray-800/70 transition-colors">
-                          <div className="text-blue-400 mb-2">📁</div>
-                          <p className="text-sm text-gray-300">Browse files in the sidebar explorer</p>
-                        </div>
-                        <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-4 hover:bg-gray-800/70 transition-colors">
                           <div className="text-green-400 mb-2">@</div>
                           <p className="text-sm text-gray-300">Reference specific files with @ mentions</p>
+                        </div>
+                        <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-4 hover:bg-gray-800/70 transition-colors">
+                          <div className="text-yellow-400 mb-2">📁</div>
+                          <p className="text-sm text-gray-300">Reference folders with @folder/ to query entire directories</p>
                         </div>
                         <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-4 hover:bg-gray-800/70 transition-colors">
                           <div className="text-purple-400 mb-2">💬</div>
@@ -663,7 +720,7 @@ export default function ChatSession() {
                       <div className="border-b border-gray-600/50 p-4">
                         <div className="flex items-center gap-3 text-sm font-medium text-gray-200 mb-3">
                           <FileText className="h-5 w-5 text-blue-400" />
-                          Reference Files
+                          Reference Files & Folders
                           <span className="ml-auto text-xs text-gray-500">ESC to close</span>
                         </div>
                         <div className="relative">
@@ -673,7 +730,7 @@ export default function ChatSession() {
                             value={fileQuery}
                             onChange={e => { setFileQuery(e.target.value); setHighlight(0); }}
                             onKeyDown={handleKeyDown}
-                            placeholder="Search files in repository..."
+                            placeholder="Search files and folders in repository..."
                             className="w-full pl-12 pr-4 py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-sm text-gray-100 placeholder:text-gray-400 focus:border-blue-500/50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
                           />
                         </div>
@@ -690,19 +747,28 @@ export default function ChatSession() {
                                   {fileResults.length} file{fileResults.length !== 1 ? 's' : ''} found
                                 </div>
                                 
-                                {fileResults.map((file, idx) => (
+                                {fileResults.map((item, idx) => (
                                   <div
-                                    key={file.path}
+                                    key={item.path}
                                     className={`flex items-center gap-3 px-4 py-3 cursor-pointer rounded-xl transition-all duration-200 ${
                                       highlight === idx 
                                         ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30 scale-[1.02]' 
                                         : 'hover:bg-gray-700/40 text-gray-300 hover:scale-[1.01]'
                                     }`}
                                     onMouseEnter={() => setHighlight(idx)}
-                                    onClick={() => handleFileSelect(file)}
+                                    onClick={() => handleFileSelect(item)}
                                   >
-                                    <FileText className="h-4 w-4 flex-shrink-0 text-gray-400" />
-                                    <span className="text-sm truncate font-mono flex-1">{file.path}</span>
+                                    {item.type === 'folder' ? (
+                                      <FolderTree className="h-4 w-4 flex-shrink-0 text-yellow-400" />
+                                    ) : (
+                                      <FileText className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                      <span className="text-sm truncate font-mono block">{item.path}</span>
+                                      <span className="text-xs text-gray-500">
+                                        {item.type === 'folder' ? 'Folder - @folder/' : 'File - @'}
+                                      </span>
+                                    </div>
                                     {highlight === idx && (
                                       <span className="text-xs text-blue-400 font-medium px-2 py-1 bg-blue-500/20 rounded-md">
                                         Enter ↵
@@ -781,7 +847,7 @@ export default function ChatSession() {
                     value={input}
                     onChange={handleInput}
                     onKeyDown={handleKeyDown}
-                    placeholder="Ask anything about your codebase... Use @ to reference files"
+                    placeholder="Ask anything about your codebase... Use @ for files, @folder/ for folders"
                     className="flex-1 min-h-[24px] max-h-[120px] bg-transparent border-0 resize-none text-gray-100 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0 text-base leading-6"
                     disabled={isLoading || isStreaming}
                     rows={1}
@@ -798,7 +864,7 @@ export default function ChatSession() {
                 
                 <div className="flex items-center justify-between mt-3 text-xs text-gray-500">
                   <div className="flex items-center gap-4">
-                    <span>Use @ to reference files</span>
+                    <span>Use @ for files, @folder/ for folders</span>
                     <span>•</span>
                     <span>Enter to send, Shift+Enter for new line</span>
                   </div>
