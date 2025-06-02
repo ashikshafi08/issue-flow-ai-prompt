@@ -678,35 +678,98 @@ export default function ChatSession() {
                           />
                         </div>
                       </div>
-                      <ScrollArea className="max-h-80">
-                        <div className="p-2">
-                          {fileResults.length > 0 ? (
-                            fileResults.map((file, idx) => (
-                              <div
-                                key={file.path}
-                                className={`flex items-center gap-3 px-4 py-3 cursor-pointer rounded-xl transition-all duration-200 ${
-                                  highlight === idx 
-                                    ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30' 
-                                    : 'hover:bg-gray-700/40 text-gray-300'
-                                }`}
-                                onMouseEnter={() => setHighlight(idx)}
-                                onClick={() => handleFileSelect(file)}
-                              >
-                                <FileText className="h-4 w-4 flex-shrink-0 text-gray-400" />
-                                <span className="text-sm truncate font-mono">{file.path}</span>
-                                {highlight === idx && (
-                                  <span className="text-xs text-blue-400 ml-auto">Enter</span>
+                      
+                      {/* Enhanced Scrollable File List */}
+                      <div className="relative">
+                        <ScrollArea className="max-h-80 overflow-y-auto">
+                          <div className="p-2 space-y-1">
+                            {fileResults.length > 0 ? (
+                              <>
+                                {/* Show file count */}
+                                <div className="px-4 py-2 text-xs text-gray-400 border-b border-gray-700/30 mb-2">
+                                  {fileResults.length} file{fileResults.length !== 1 ? 's' : ''} found
+                                </div>
+                                
+                                {fileResults.map((file, idx) => (
+                                  <div
+                                    key={file.path}
+                                    className={`flex items-center gap-3 px-4 py-3 cursor-pointer rounded-xl transition-all duration-200 ${
+                                      highlight === idx 
+                                        ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30 scale-[1.02]' 
+                                        : 'hover:bg-gray-700/40 text-gray-300 hover:scale-[1.01]'
+                                    }`}
+                                    onMouseEnter={() => setHighlight(idx)}
+                                    onClick={() => handleFileSelect(file)}
+                                  >
+                                    <FileText className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                                    <span className="text-sm truncate font-mono flex-1">{file.path}</span>
+                                    {highlight === idx && (
+                                      <span className="text-xs text-blue-400 font-medium px-2 py-1 bg-blue-500/20 rounded-md">
+                                        Enter ↵
+                                      </span>
+                                    )}
+                                  </div>
+                                ))}
+                                
+                                {/* Scroll indicator for many files */}
+                                {fileResults.length > 8 && (
+                                  <div className="sticky bottom-0 bg-gradient-to-t from-gray-800/95 to-transparent pt-4 pb-2">
+                                    <div className="text-center text-xs text-gray-500 flex items-center justify-center gap-2">
+                                      <ChevronDown className="h-3 w-3 animate-bounce" />
+                                      Scroll for more files
+                                      <ChevronDown className="h-3 w-3 animate-bounce" style={{ animationDelay: '0.2s' }} />
+                                    </div>
+                                  </div>
                                 )}
+                              </>
+                            ) : (
+                              <div className="px-4 py-8 text-center text-sm text-gray-400">
+                                <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                No files found matching "{fileQuery}"
+                                <div className="text-xs text-gray-500 mt-2">
+                                  Try a different search term
+                                </div>
                               </div>
-                            ))
-                          ) : (
-                            <div className="px-4 py-8 text-center text-sm text-gray-400">
-                              <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                              No files found matching "{fileQuery}"
+                            )}
+                          </div>
+                          
+                          {/* Custom scrollbar styling - this will make scrollbar more visible */}
+                          <style dangerouslySetInnerHTML={{
+                            __html: `
+                              .scroll-area-viewport {
+                                scrollbar-width: thin;
+                                scrollbar-color: rgba(156, 163, 175, 0.5) rgba(55, 65, 81, 0.3);
+                              }
+                              .scroll-area-viewport::-webkit-scrollbar {
+                                width: 8px;
+                              }
+                              .scroll-area-viewport::-webkit-scrollbar-track {
+                                background: rgba(55, 65, 81, 0.3);
+                                border-radius: 4px;
+                              }
+                              .scroll-area-viewport::-webkit-scrollbar-thumb {
+                                background: rgba(156, 163, 175, 0.5);
+                                border-radius: 4px;
+                              }
+                              .scroll-area-viewport::-webkit-scrollbar-thumb:hover {
+                                background: rgba(156, 163, 175, 0.7);
+                              }
+                            `
+                          }} />
+                        </ScrollArea>
+                        
+                        {/* Keyboard navigation hints */}
+                        <div className="border-t border-gray-700/30 px-4 py-2 bg-gray-800/50">
+                          <div className="flex items-center justify-between text-xs text-gray-500">
+                            <div className="flex items-center gap-4">
+                              <span>↑↓ Navigate</span>
+                              <span>Enter Select</span>
+                              <span>Esc Close</span>
                             </div>
-                          )}
+                            <span>Type to filter</span>
+                          </div>
                         </div>
-                      </ScrollArea>
+                      </div>
                     </div>
                   </div>
                 )}

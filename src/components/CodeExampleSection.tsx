@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -6,7 +5,7 @@ const CodeExampleSection = () => {
   const [activeTab, setActiveTab] = useState("python");
 
   const pythonCode = `from src.github_client import GitHubIssueClient
-from src.local_rag import LocalRepoContextExtractor
+from src.new_rag import LocalRepoContextExtractor
 from src.prompt_generator import PromptGenerator
 import asyncio
 
