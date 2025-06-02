@@ -3,11 +3,13 @@ import { useParams, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Sidebar, SidebarContent, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Send, FileText, Search, Copy, Check } from 'lucide-react';
+import { Send, FileText, Search, Copy, Check, FolderTree } from 'lucide-react';
+import CodebaseTree from '@/components/CodebaseTree';
 // @ts-ignore
 import Fuse from 'fuse.js';
 
@@ -265,6 +267,21 @@ const MarkdownComponents = {
   em: ({ node, ...props }: any) => <em className="italic text-gray-300" {...props} />,
 };
 
+const AppSidebar = ({ sessionId }: { sessionId: string }) => {
+  const handleFileSelect = (filePath: string) => {
+    // You can implement file selection logic here
+    console.log('Selected file:', filePath);
+  };
+
+  return (
+    <Sidebar className="border-r border-gray-700/50">
+      <SidebarContent className="bg-gray-800/50">
+        <CodebaseTree sessionId={sessionId} onFileSelect={handleFileSelect} />
+      </SidebarContent>
+    </Sidebar>
+  );
+};
+
 export default function ChatSession() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -369,14 +386,8 @@ export default function ChatSession() {
       setMessages([{ role: 'assistant', content: initialMessageFromState }]);
       setIsLoading(false);
     } else if (sessionId) {
-      // Fallback or error if no initial message is passed and we are on this page
-      // This part might indicate a flow issue if reached often.
-      // For now, let's assume initialMessageFromState will be provided.
-      // If not, we could try to fetch, but that's what we are moving away from.
       console.warn('ChatSession loaded without initial message in state. SessionId:', sessionId);
-      // Potentially set an error message or a default loading state.
-      // setIsLoading(true); // if we were to implement a fallback fetch
-      setIsLoading(false); // For now, just stop loading if no message
+      setIsLoading(false);
     }
   }, [sessionId, location.state]);
 
@@ -396,7 +407,6 @@ export default function ChatSession() {
     setIsLoading(true);
 
     try {
-      // Add empty assistant message for streaming
       setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
       setIsStreaming(true);
       setIsLoading(false);
@@ -436,7 +446,6 @@ export default function ChatSession() {
                   const content = json.choices?.[0]?.delta?.content;
                   if (content) {
                     assistantResponseContent += content;
-                    // Real-time update without delay
                     setMessages(prev => {
                       const newMessages = [...prev];
                       const lastMessageIndex = newMessages.length - 1;
@@ -493,161 +502,185 @@ export default function ChatSession() {
     );
   }
 
-  return (
-    <div className="flex flex-col h-screen bg-gray-900 text-white">
-      {/* Enhanced Header with better gradients */}
-      <div className="border-b border-gray-700/50 bg-gradient-to-r from-gray-800/90 to-gray-800/80 backdrop-blur-sm px-6 py-4 shadow-lg">
-        <h1 className="text-xl font-semibold text-gray-100 flex items-center gap-2">
-          <span className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-sm font-bold">AI</span>
-          Chat Session
-        </h1>
-        <p className="text-sm text-gray-400 mt-1 flex items-center gap-2">
-          <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-          AI Assistant - Enhanced Analysis Mode
-        </p>
+  if (!sessionId) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">No Session ID</h1>
+          <p className="text-gray-400">Please provide a valid session ID to continue.</p>
+        </div>
       </div>
-      
-      {/* Enhanced Messages Area */}
-      <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full">
-          <div className="px-4 py-6">
-            <div className="mx-auto max-w-3xl space-y-8">
-              {messages.map((msg, index) => (
-                <div key={index} className="group">
-                  {msg.role === 'user' ? (
-                    /* User Message - ChatGPT Style */
-                    <div className="flex justify-end">
-                      <div className="max-w-[80%] bg-blue-600 text-white px-5 py-3 rounded-2xl rounded-br-md shadow-lg">
-                        <div className="text-[15px] leading-relaxed">
-                          {highlightMentions(msg.content)}
+    );
+  }
+
+  return (
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-gray-900 text-white">
+        <AppSidebar sessionId={sessionId} />
+        
+        <div className="flex flex-col flex-1">
+          {/* Enhanced Header with Sidebar Toggle */}
+          <div className="border-b border-gray-700/50 bg-gradient-to-r from-gray-800/90 to-gray-800/80 backdrop-blur-sm px-6 py-4 shadow-lg">
+            <div className="flex items-center gap-4">
+              <SidebarTrigger className="text-gray-400 hover:text-white transition-colors">
+                <FolderTree className="h-5 w-5" />
+              </SidebarTrigger>
+              <div>
+                <h1 className="text-xl font-semibold text-gray-100 flex items-center gap-2">
+                  <span className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-sm font-bold">AI</span>
+                  Chat Session
+                </h1>
+                <p className="text-sm text-gray-400 mt-1 flex items-center gap-2">
+                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                  AI Assistant - Enhanced Analysis Mode
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Enhanced Messages Area */}
+          <div className="flex-1 overflow-hidden">
+            <ScrollArea className="h-full">
+              <div className="px-4 py-6">
+                <div className="mx-auto max-w-3xl space-y-8">
+                  {messages.map((msg, index) => (
+                    <div key={index} className="group">
+                      {msg.role === 'user' ? (
+                        /* User Message - ChatGPT Style */
+                        <div className="flex justify-end">
+                          <div className="max-w-[80%] bg-blue-600 text-white px-5 py-3 rounded-2xl rounded-br-md shadow-lg">
+                            <div className="text-[15px] leading-relaxed">
+                              {highlightMentions(msg.content)}
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        /* Assistant Message - ChatGPT Style */
+                        <div className="flex items-start space-x-4">
+                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white text-sm font-semibold shadow-lg">
+                            AI
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="prose prose-invert max-w-none prose-headings:text-white prose-p:text-gray-200 prose-strong:text-white prose-code:text-amber-300 prose-pre:bg-transparent prose-pre:p-0">
+                              <ReactMarkdown
+                                components={MarkdownComponents}
+                                remarkPlugins={[remarkGfm]}
+                              >
+                                {msg.content}
+                              </ReactMarkdown>
+                              {isStreaming && index === messages.length - 1 && (
+                                <span className="inline-block w-2 h-5 bg-green-400 ml-1 animate-pulse rounded-sm" />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    /* Assistant Message - ChatGPT Style */
+                  ))}
+                  
+                  {/* Loading Indicator */}
+                  {isLoading && !isStreaming && (
                     <div className="flex items-start space-x-4">
                       <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white text-sm font-semibold shadow-lg">
                         AI
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="prose prose-invert max-w-none prose-headings:text-white prose-p:text-gray-200 prose-strong:text-white prose-code:text-amber-300 prose-pre:bg-transparent prose-pre:p-0">
-                          <ReactMarkdown
-                            components={MarkdownComponents}
-                            remarkPlugins={[remarkGfm]}
-                          >
-                            {msg.content}
-                          </ReactMarkdown>
-                          {isStreaming && index === messages.length - 1 && (
-                            <span className="inline-block w-2 h-5 bg-green-400 ml-1 animate-pulse rounded-sm" />
-                          )}
+                        <div className="flex items-center space-x-3 py-2">
+                          <div className="flex space-x-1">
+                            <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                            <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                            <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                          </div>
+                          <span className="text-gray-400 text-sm">Thinking...</span>
                         </div>
                       </div>
                     </div>
                   )}
-                </div>
-              ))}
-              
-              {/* Loading Indicator */}
-              {isLoading && !isStreaming && (
-                <div className="flex items-start space-x-4">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white text-sm font-semibold shadow-lg">
-                    AI
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-3 py-2">
-                      <div className="flex space-x-1">
-                        <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                        <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                        <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                      </div>
-                      <span className="text-gray-400 text-sm">Thinking...</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              <div ref={messagesEndRef} />
-            </div>
-          </div>
-        </ScrollArea>
-      </div>
-      
-      {/* Enhanced Input Area with Inline File Picker */}
-      <div className="border-t border-gray-700/50 bg-gray-800/80 backdrop-blur-sm p-4">
-        <div className="mx-auto max-w-4xl">
-          <div className="relative">
-            {/* File Picker - positioned above input */}
-            {showFilePicker && (
-              <div className="absolute bottom-full left-0 right-0 mb-2 z-10">
-                <div className="bg-gray-800/95 backdrop-blur-md border border-gray-600/50 rounded-xl shadow-xl overflow-hidden">
-                  <div className="border-b border-gray-600/50 p-3">
-                    <div className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-3">
-                      <FileText className="h-4 w-4" />
-                      Attach Files
-                    </div>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <input
-                        autoFocus
-                        value={fileQuery}
-                        onChange={e => { setFileQuery(e.target.value); setHighlight(0); }}
-                        onKeyDown={handleKeyDown}
-                        placeholder="Search files..."
-                        className="w-full pl-10 pr-3 py-2 bg-gray-700/50 border border-gray-600/50 rounded-lg text-sm text-gray-100 placeholder:text-gray-400 focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
-                      />
-                    </div>
-                  </div>
-                  <ScrollArea className="max-h-64">
-                    <div className="p-1">
-                      {fileResults.length > 0 ? (
-                        fileResults.map((file, idx) => (
-                          <div
-                            key={file.path}
-                            className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg transition-colors duration-150 ${
-                              highlight === idx ? 'bg-blue-600/20 text-blue-300' : 'hover:bg-gray-700/50 text-gray-300'
-                            }`}
-                            onMouseEnter={() => setHighlight(idx)}
-                            onClick={() => handleFileSelect(file)}
-                          >
-                            <FileText className="h-4 w-4 flex-shrink-0" />
-                            <span className="text-sm truncate">{file.path}</span>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="px-3 py-4 text-center text-sm text-gray-400">
-                          No files found
-                        </div>
-                      )}
-                    </div>
-                  </ScrollArea>
+                  
+                  <div ref={messagesEndRef} />
                 </div>
               </div>
-            )}
-            
-            {/* Input Field */}
-            <div className="flex items-end gap-3 rounded-2xl bg-gray-700/50 border border-gray-600/50 p-3 focus-within:border-blue-500/50 focus-within:ring-1 focus-within:ring-blue-500/20 transition-all duration-200">
-              <Textarea
-                ref={textareaRef}
-                value={input}
-                onChange={handleInput}
-                onKeyDown={handleKeyDown}
-                placeholder="Message AI... Use @ to mention files"
-                className="flex-1 min-h-[20px] max-h-[120px] bg-transparent border-0 resize-none text-gray-100 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0 text-base leading-6"
-                disabled={isLoading || isStreaming}
-                rows={1}
-              />
-              <Button 
-                onClick={handleSend} 
-                className="rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:opacity-50 transition-colors duration-200 px-4 py-2"
-                disabled={isLoading || isStreaming || !input.trim()}
-                size="sm"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
+            </ScrollArea>
+          </div>
+          
+          {/* Enhanced Input Area with Inline File Picker */}
+          <div className="border-t border-gray-700/50 bg-gray-800/80 backdrop-blur-sm p-4">
+            <div className="mx-auto max-w-4xl">
+              <div className="relative">
+                {/* File Picker - positioned above input */}
+                {showFilePicker && (
+                  <div className="absolute bottom-full left-0 right-0 mb-2 z-10">
+                    <div className="bg-gray-800/95 backdrop-blur-md border border-gray-600/50 rounded-xl shadow-xl overflow-hidden">
+                      <div className="border-b border-gray-600/50 p-3">
+                        <div className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-3">
+                          <FileText className="h-4 w-4" />
+                          Attach Files
+                        </div>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <input
+                            autoFocus
+                            value={fileQuery}
+                            onChange={e => { setFileQuery(e.target.value); setHighlight(0); }}
+                            onKeyDown={handleKeyDown}
+                            placeholder="Search files..."
+                            className="w-full pl-10 pr-3 py-2 bg-gray-700/50 border border-gray-600/50 rounded-lg text-sm text-gray-100 placeholder:text-gray-400 focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+                          />
+                        </div>
+                      </div>
+                      <ScrollArea className="max-h-64">
+                        <div className="p-1">
+                          {fileResults.length > 0 ? (
+                            fileResults.map((file, idx) => (
+                              <div
+                                key={file.path}
+                                className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg transition-colors duration-150 ${
+                                  highlight === idx ? 'bg-blue-600/20 text-blue-300' : 'hover:bg-gray-700/50 text-gray-300'
+                                }`}
+                                onMouseEnter={() => setHighlight(idx)}
+                                onClick={() => handleFileSelect(file)}
+                              >
+                                <FileText className="h-4 w-4 flex-shrink-0" />
+                                <span className="text-sm truncate">{file.path}</span>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="px-3 py-4 text-center text-sm text-gray-400">
+                              No files found
+                            </div>
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Input Field */}
+                <div className="flex items-end gap-3 rounded-2xl bg-gray-700/50 border border-gray-600/50 p-3 focus-within:border-blue-500/50 focus-within:ring-1 focus-within:ring-blue-500/20 transition-all duration-200">
+                  <Textarea
+                    ref={textareaRef}
+                    value={input}
+                    onChange={handleInput}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Message AI... Use @ to mention files"
+                    className="flex-1 min-h-[20px] max-h-[120px] bg-transparent border-0 resize-none text-gray-100 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0 text-base leading-6"
+                    disabled={isLoading || isStreaming}
+                    rows={1}
+                  />
+                  <Button 
+                    onClick={handleSend} 
+                    className="rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:opacity-50 transition-colors duration-200 px-4 py-2"
+                    disabled={isLoading || isStreaming || !input.trim()}
+                    size="sm"
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }
