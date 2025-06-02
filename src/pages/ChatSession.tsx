@@ -8,7 +8,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Send, FileText, Search, Copy, Check, FolderTree, Menu, X } from 'lucide-react';
+import { Send, FileText, Search, Copy, Check, FolderTree, Menu, ChevronDown, ChevronRight } from 'lucide-react';
 import CodebaseTree from '@/components/CodebaseTree';
 import FileViewer from '@/components/FileViewer';
 // @ts-ignore
@@ -118,7 +118,7 @@ const enhanceTextWithLinks = (children: React.ReactNode): React.ReactNode => {
   return children;
 };
 
-// Enhanced markdown components with ChatGPT-style appearance
+// Enhanced markdown components with better formatting
 const MarkdownComponents = {
   code({ node, inline, className, children, ...props }: any) {
     const [copied, setCopied] = useState(false);
@@ -133,12 +133,19 @@ const MarkdownComponents = {
     
     if (!inline) {
       return (
-        <div className="my-6 rounded-lg overflow-hidden border border-gray-700/50 bg-gray-950/80">
-          <div className="flex items-center justify-between bg-gray-800/80 px-4 py-2 text-xs">
-            <span className="text-gray-400 font-mono">{language}</span>
+        <div className="my-4 rounded-lg overflow-hidden border border-gray-700/40 bg-gray-950/60 shadow-lg">
+          <div className="flex items-center justify-between bg-gray-800/60 px-4 py-2.5 border-b border-gray-700/40">
+            <div className="flex items-center gap-2">
+              <div className="flex gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
+                <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
+                <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
+              </div>
+              <span className="text-gray-400 font-mono text-sm ml-2">{language}</span>
+            </div>
             <button
               onClick={copyToClipboard}
-              className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors px-2 py-1 rounded hover:bg-gray-700/50"
+              className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors px-2 py-1 rounded hover:bg-gray-700/50 text-sm"
             >
               {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
               {copied ? 'Copied!' : 'Copy'}
@@ -148,14 +155,14 @@ const MarkdownComponents = {
             style={vscDarkPlus}
             language={language}
             PreTag="div"
-            showLineNumbers
-            wrapLines
+            showLineNumbers={true}
+            wrapLines={true}
             customStyle={{
               margin: 0,
               padding: '1rem',
               background: 'transparent',
               fontSize: '0.875rem',
-              lineHeight: '1.5',
+              lineHeight: '1.6',
             }}
             codeTagProps={{ 
               style: { 
@@ -171,112 +178,91 @@ const MarkdownComponents = {
     }
     
     return (
-      <code className="bg-gray-800/60 border border-gray-700/30 px-1.5 py-0.5 rounded text-sm font-mono text-amber-300" {...props}>
+      <code className="bg-orange-500/20 border border-orange-500/30 px-1.5 py-0.5 rounded text-sm font-mono text-orange-200" {...props}>
         {children}
       </code>
     );
   },
-  h1: ({ node, children, ...props }: any) => {
-    const text = String(children);
-    const emoji = getHeaderEmoji(text, 1);
-    return (
-      <h1 className="text-2xl font-bold text-white my-6 pb-3 border-b-2 border-blue-500/30 flex items-center gap-3" {...props}>
-        <span className="text-2xl">{emoji}</span>
-        <span>{children}</span>
-      </h1>
-    );
-  },
-  h2: ({ node, children, ...props }: any) => {
-    const text = String(children);
-    const emoji = getHeaderEmoji(text, 2);
-    return (
-      <h2 className="text-xl font-semibold text-white my-5 pb-2 border-b border-gray-700 flex items-center gap-2 group" {...props}>
-        <span className="text-lg">{emoji}</span>
-        <span>{children}</span>
-        <span className="ml-auto text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">
-          #{Math.random().toString(36).substring(2, 8)}
-        </span>
-      </h2>
-    );
-  },
-  h3: ({ node, children, ...props }: any) => {
-    const text = String(children);
-    const emoji = getHeaderEmoji(text, 3);
-    return (
-      <h3 className="text-lg font-semibold text-white my-4 flex items-center gap-2" {...props}>
-        <span className="text-base">{emoji}</span>
-        <span>{children}</span>
-      </h3>
-    );
-  },
-  h4: ({ node, children, ...props }: any) => {
-    const text = String(children);
-    const isNumbered = /^\d+\./.test(text);
-    return (
-      <h4 className="text-base font-semibold text-white my-3 flex items-center gap-2" {...props}>
-        {isNumbered && <span className="w-6 h-6 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center font-bold">
-          {text.match(/^\d+/)?.[0]}
-        </span>}
-        <span>{isNumbered ? text.replace(/^\d+\.\s*/, '') : children}</span>
-      </h4>
-    );
-  },
-  ul: ({ node, ...props }: any) => <ul className="list-none pl-0 my-4 space-y-3 text-gray-200" {...props} />,
-  ol: ({ node, ...props }: any) => <ol className="list-none pl-0 my-4 space-y-3 text-gray-200" {...props} />,
-  li: ({ node, children, ...props }: any) => {
-    const text = String(children);
-    const bullet = getBulletIcon(text);
-    return (
-      <li className="flex items-start gap-3 leading-relaxed pl-2" {...props}>
-        <span className="text-blue-400 mt-1 flex-shrink-0">{bullet}</span>
-        <span className="flex-1">{children}</span>
-      </li>
-    );
-  },
-  p: ({ node, children, ...props }: any) => {
-    const hasBlockChild = React.Children.toArray(children).some(
-      (child: any) => {
-        if (typeof child === 'object' && child !== null && 'type' in child) {
-          // Check for block-level elements that shouldn't be in paragraphs
-          const blockElements = ['pre', 'blockquote', 'div', 'ul', 'ol', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
-          return blockElements.includes(child.type);
-        }
-        return false;
-      }
-    );
-    
-    if (hasBlockChild) {
-      return <div className="my-4 leading-relaxed text-gray-200" {...props}>{enhanceTextWithLinks(children)}</div>;
-    }
-    return <p className="my-4 leading-relaxed text-gray-200" {...props}>{enhanceTextWithLinks(children)}</p>;
-  },
+  h1: ({ node, children, ...props }: any) => (
+    <h1 className="text-2xl font-bold text-white my-6 pb-3 border-b-2 border-blue-500/40 flex items-center gap-3" {...props}>
+      <span className="text-blue-400">📋</span>
+      <span>{children}</span>
+    </h1>
+  ),
+  h2: ({ node, children, ...props }: any) => (
+    <h2 className="text-xl font-semibold text-white my-5 pb-2 border-b border-gray-600/50 flex items-center gap-2" {...props}>
+      <span className="text-green-400">🔧</span>
+      <span>{children}</span>
+    </h2>
+  ),
+  h3: ({ node, children, ...props }: any) => (
+    <h3 className="text-lg font-semibold text-white my-4 flex items-center gap-2" {...props}>
+      <span className="text-purple-400">⚡</span>
+      <span>{children}</span>
+    </h3>
+  ),
+  h4: ({ node, children, ...props }: any) => (
+    <h4 className="text-base font-semibold text-white my-3 flex items-center gap-2" {...props}>
+      <span className="text-yellow-400">💡</span>
+      <span>{children}</span>
+    </h4>
+  ),
+  ul: ({ node, ...props }: any) => (
+    <ul className="list-none pl-0 my-4 space-y-2 text-gray-200" {...props} />
+  ),
+  ol: ({ node, ...props }: any) => (
+    <ol className="list-none pl-0 my-4 space-y-2 text-gray-200" {...props} />
+  ),
+  li: ({ node, children, ...props }: any) => (
+    <li className="flex items-start gap-3 leading-relaxed pl-2" {...props}>
+      <span className="text-blue-400 mt-1 flex-shrink-0">▶️</span>
+      <span className="flex-1">{children}</span>
+    </li>
+  ),
+  p: ({ node, children, ...props }: any) => (
+    <p className="my-3 leading-relaxed text-gray-200" {...props}>
+      {children}
+    </p>
+  ),
   blockquote: ({ node, children, ...props }: any) => (
-    <blockquote className="border-l-4 border-yellow-500 bg-yellow-500/10 pl-4 py-3 my-4 rounded-r relative" {...props}>
+    <div className="my-6 border-l-4 border-yellow-500 bg-yellow-500/10 pl-4 py-3 rounded-r-lg relative">
       <div className="absolute -left-2 top-3 w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center">
-        <span className="text-xs">💡</span>
+        <span className="text-xs">⚠️</span>
       </div>
-      <div className="text-gray-300 italic pl-2">{children}</div>
-    </blockquote>
+      <div className="text-yellow-100 pl-2 italic">
+        <strong className="text-yellow-200 not-italic">Heads up:</strong> {children}
+      </div>
+    </div>
   ),
   a: ({ node, ...props }: any) => (
-    <a className="text-blue-400 hover:text-blue-300 underline underline-offset-2 hover:bg-blue-400/10 px-1 py-0.5 rounded transition-all" target="_blank" rel="noopener noreferrer" {...props} />
+    <a 
+      className="text-blue-400 hover:text-blue-300 underline underline-offset-2 hover:bg-blue-400/10 px-1 py-0.5 rounded transition-all" 
+      target="_blank" 
+      rel="noopener noreferrer" 
+      {...props} 
+    />
   ),
   table: ({ node, ...props }: any) => (
-    <div className="overflow-x-auto my-6 rounded-lg border border-gray-700 shadow-lg">
+    <div className="overflow-x-auto my-6 rounded-lg border border-gray-700/50 shadow-lg">
       <table className="min-w-full divide-y divide-gray-700 bg-gray-900/50" {...props} />
     </div>
   ),
-  thead: ({ node, ...props }: any) => <thead className="bg-gray-800/50" {...props} />,
-  tbody: ({ node, ...props }: any) => <tbody className="divide-y divide-gray-700" {...props} />,
-  tr: ({ node, ...props }: any) => <tr className="hover:bg-gray-800/30 transition-colors" {...props} />,
-  th: ({ node, ...props }: any) => <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider" {...props} />,
-  td: ({ node, ...props }: any) => <td className="px-4 py-3 text-sm text-gray-200" {...props} />,
+  thead: ({ node, ...props }: any) => <thead className="bg-gray-800/60" {...props} />,
+  tbody: ({ node, ...props }: any) => <tbody className="divide-y divide-gray-700/50" {...props} />,
+  tr: ({ node, ...props }: any) => <tr className="hover:bg-gray-800/40 transition-colors" {...props} />,
+  th: ({ node, ...props }: any) => (
+    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider" {...props} />
+  ),
+  td: ({ node, ...props }: any) => (
+    <td className="px-4 py-3 text-sm text-gray-200" {...props} />
+  ),
   pre: ({ node, ...props }: any) => <pre className="overflow-auto p-0 bg-transparent" {...props} />,
   hr: ({ node, ...props }: any) => (
-    <hr className="border-0 h-px bg-gradient-to-r from-transparent via-gray-600 to-transparent my-8" {...props} />
+    <hr className="border-0 h-px bg-gradient-to-r from-transparent via-gray-500 to-transparent my-8" {...props} />
   ),
-  img: ({ node, ...props }: any) => <img className="max-w-full h-auto rounded-lg my-4 shadow-lg border border-gray-700" {...props} />,
-  strong: ({ node, ...props }: any) => <strong className="font-semibold text-white bg-gray-800/30 px-1 py-0.5 rounded" {...props} />,
+  strong: ({ node, ...props }: any) => (
+    <strong className="font-semibold text-white bg-gray-800/40 px-1 py-0.5 rounded" {...props} />
+  ),
   em: ({ node, ...props }: any) => <em className="italic text-gray-300" {...props} />,
 };
 
@@ -553,8 +539,8 @@ export default function ChatSession() {
         )}
         
         <div className="flex flex-col flex-1 min-w-0">
-          {/* Modern Header with Glass Effect */}
-          <div className="sticky top-0 z-40 border-b border-gray-700/30 bg-gray-800/80 backdrop-blur-xl px-6 py-4 shadow-xl">
+          {/* Enhanced Header */}
+          <div className="sticky top-0 z-40 border-b border-gray-700/40 bg-gray-800/95 backdrop-blur-xl px-6 py-4 shadow-xl">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <SidebarTrigger className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-gray-700/50 rounded-lg">
@@ -570,14 +556,14 @@ export default function ChatSession() {
                     </h1>
                     <p className="text-sm text-gray-300 flex items-center gap-2">
                       <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                      Connected & Ready
+                      Ready to help with your code
                     </p>
                   </div>
                 </div>
               </div>
               
               <div className="flex items-center gap-3">
-                <div className="hidden md:flex items-center gap-2 text-xs text-gray-400 bg-gray-700/30 px-3 py-1.5 rounded-full">
+                <div className="hidden md:flex items-center gap-2 text-xs text-gray-400 bg-gray-700/30 px-3 py-1.5 rounded-full border border-gray-600/30">
                   <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
                   Session: {sessionId?.slice(-8)}
                 </div>
@@ -585,7 +571,7 @@ export default function ChatSession() {
             </div>
           </div>
           
-          {/* Enhanced Messages Area with Better Spacing */}
+          {/* Enhanced Messages Area */}
           <div className="flex-1 overflow-hidden relative">
             <ScrollArea className="h-full">
               <div className="px-6 py-8">
@@ -621,19 +607,19 @@ export default function ChatSession() {
                       <div key={index} className="group">
                         {msg.role === 'user' ? (
                           <div className="flex justify-end mb-6">
-                            <div className="max-w-[85%] bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 rounded-2xl rounded-br-lg shadow-lg border border-blue-500/20">
+                            <div className="max-w-[85%] bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 rounded-2xl rounded-br-lg shadow-lg border border-blue-500/30">
                               <div className="text-[15px] leading-relaxed">
                                 {highlightMentions(msg.content)}
                               </div>
                             </div>
                           </div>
                         ) : (
-                          <div className="flex items-start space-x-4 mb-6">
-                            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-semibold shadow-lg border border-emerald-400/20">
+                          <div className="flex items-start space-x-4 mb-8">
+                            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-semibold shadow-lg border border-emerald-400/30">
                               AI
                             </div>
-                            <div className="flex-1 min-w-0 bg-gray-800/30 border border-gray-700/30 rounded-2xl p-6 shadow-lg backdrop-blur-sm">
-                              <div className="prose prose-invert max-w-none prose-headings:text-white prose-p:text-gray-200 prose-strong:text-white prose-code:text-amber-300 prose-pre:bg-transparent prose-pre:p-0">
+                            <div className="flex-1 min-w-0 bg-gray-800/40 border border-gray-700/40 rounded-2xl p-6 shadow-lg backdrop-blur-sm">
+                              <div className="prose prose-invert max-w-none">
                                 <ReactMarkdown
                                   components={MarkdownComponents}
                                   remarkPlugins={[remarkGfm]}
@@ -657,14 +643,14 @@ export default function ChatSession() {
                       <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-semibold shadow-lg">
                         AI
                       </div>
-                      <div className="flex-1 min-w-0 bg-gray-800/30 border border-gray-700/30 rounded-2xl p-6 shadow-lg backdrop-blur-sm">
+                      <div className="flex-1 min-w-0 bg-gray-800/40 border border-gray-700/40 rounded-2xl p-6 shadow-lg backdrop-blur-sm">
                         <div className="flex items-center space-x-4">
                           <div className="flex space-x-1">
                             <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                             <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
                             <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                           </div>
-                          <span className="text-gray-300 text-sm">Analyzing your request...</span>
+                          <span className="text-gray-300 text-sm">Analyzing your code...</span>
                         </div>
                       </div>
                     </div>
@@ -676,8 +662,8 @@ export default function ChatSession() {
             </ScrollArea>
           </div>
           
-          {/* Enhanced Input Area with Modern Glass Design */}
-          <div className="sticky bottom-0 border-t border-gray-700/30 bg-gray-800/80 backdrop-blur-xl p-6 shadow-2xl">
+          {/* Enhanced Input Area */}
+          <div className="sticky bottom-0 border-t border-gray-700/40 bg-gray-800/95 backdrop-blur-xl p-6 shadow-2xl">
             <div className="mx-auto max-w-4xl">
               <div className="relative">
                 {/* Enhanced File Picker */}
@@ -736,7 +722,7 @@ export default function ChatSession() {
                 )}
                 
                 {/* Modern Input Field */}
-                <div className="flex items-end gap-4 rounded-2xl bg-gray-700/40 border border-gray-600/40 p-4 focus-within:border-blue-500/50 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all duration-200 backdrop-blur-sm">
+                <div className="flex items-end gap-4 rounded-2xl bg-gray-700/50 border border-gray-600/50 p-4 focus-within:border-blue-500/60 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all duration-200 backdrop-blur-sm">
                   <Textarea
                     ref={textareaRef}
                     value={input}
