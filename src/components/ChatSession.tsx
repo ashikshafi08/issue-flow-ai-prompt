@@ -7,11 +7,97 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Session, ChatMessage } from '@/pages/Assistant';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 interface ChatSessionProps {
   session: Session;
   onUpdateSession: (updates: Partial<Session>) => void;
 }
+
+// Custom components for React Markdown with enhanced styling
+const MarkdownComponents = {
+  code({ node, inline, className, children, ...props }: any) {
+    const match = /language-(\w+)/.exec(className || '');
+    const language = match ? match[1] : 'plaintext';
+    
+    if (!inline) {
+      return (
+        <div className="my-4 rounded-md overflow-hidden">
+          <div className="bg-gray-800 px-4 py-1 text-xs font-mono text-gray-300 flex justify-between items-center border-b border-gray-700">
+            {language !== 'plaintext' && <span>{language}</span>}
+          </div>
+          <SyntaxHighlighter
+            style={atomDark}
+            language={language}
+            PreTag="div"
+            showLineNumbers
+            wrapLines
+            wrapLongLines
+            customStyle={{
+              margin: 0,
+              padding: '1rem',
+              borderRadius: '0 0 0.375rem 0.375rem',
+              background: '#1a1a2e',
+              fontSize: '0.875rem',
+            }}
+            codeTagProps={{ 
+              style: { 
+                fontFamily: "Menlo, Monaco, Consolas, 'Courier New', monospace",
+                lineHeight: 1.5
+              } 
+            }}
+            {...props}
+          >
+            {String(children).replace(/\n$/, '')}
+          </SyntaxHighlighter>
+        </div>
+      );
+    }
+    
+    return (
+      <code className="bg-gray-800 px-1.5 py-0.5 rounded-sm font-mono text-sm text-green-400" {...props}>
+        {children}
+      </code>
+    );
+  },
+  h1: ({ node, ...props }: any) => <h1 className="text-xl font-bold my-4 pb-1 border-b border-gray-700" {...props} />,
+  h2: ({ node, ...props }: any) => <h2 className="text-lg font-bold my-3 pb-1 border-b border-gray-800" {...props} />,
+  h3: ({ node, ...props }: any) => <h3 className="text-md font-semibold my-3" {...props} />,
+  ul: ({ node, ...props }: any) => <ul className="list-disc pl-6 my-3 space-y-2" {...props} />,
+  ol: ({ node, ...props }: any) => <ol className="list-decimal pl-6 my-3 space-y-2" {...props} />,
+  li: ({ node, ...props }: any) => <li className="my-1" {...props} />,
+  p: ({ node, children, ...props }: any) => {
+    const hasBlockChild = React.Children.toArray(children).some(
+      (child: any) => typeof child === 'object' && child !== null && 'type' in child && 
+      child.type !== React.Fragment && child.type !== 'span' && 
+      child.type !== 'a' && child.type !== 'em' && child.type !== 'strong' && child.type !== 'code' && child.type !== 'del'
+    );
+    if (hasBlockChild) {
+      return <div className="my-3 leading-relaxed" {...props}>{children}</div>;
+    }
+    return <p className="my-3 leading-relaxed" {...props}>{children}</p>;
+  },
+  blockquote: ({ node, ...props }: any) => (
+    <blockquote className="border-l-4 border-blue-500 bg-gray-800/50 pl-4 py-2 italic text-gray-300 my-4 rounded-r-md" {...props} />
+  ),
+  a: ({ node, ...props }: any) => (
+    <a className="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer" {...props} />
+  ),
+  table: ({ node, ...props }: any) => (
+    <div className="overflow-x-auto my-4 rounded-md border border-gray-700">
+      <table className="min-w-full divide-y divide-gray-700" {...props} />
+    </div>
+  ),
+  thead: ({ node, ...props }: any) => <thead className="bg-gray-700/50" {...props} />,
+  tbody: ({ node, ...props }: any) => <tbody className="divide-y divide-gray-600" {...props} />,
+  tr: ({ node, ...props }: any) => <tr className="hover:bg-gray-700/30" {...props} />,
+  th: ({ node, ...props }: any) => <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" {...props} />,
+  td: ({ node, ...props }: any) => <td className="px-3 py-2 text-sm" {...props} />,
+  pre: ({ node, ...props }: any) => <pre className="overflow-auto p-0 bg-transparent" {...props} />,
+  hr: ({ node, ...props }: any) => <hr className="border-gray-600 my-3" {...props} />,
+  img: ({ node, ...props }: any) => <img className="max-w-full h-auto rounded-md my-3" {...props} />,
+};
 
 const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSession }) => {
   const [input, setInput] = useState('');
@@ -165,8 +251,11 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSession }) =
                       
                       <div className={`${message.role === 'assistant' ? 'px-4 py-4' : ''}`}>
                         {message.role === 'assistant' ? (
-                          <div className="prose prose-invert max-w-none prose-headings:text-gray-100 prose-p:text-gray-200 prose-a:text-blue-400 prose-code:text-green-400">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          <div className="prose prose-invert max-w-none prose-headings:text-gray-100 prose-p:text-gray-200 prose-a:text-blue-400 prose-code:text-green-400 prose-pre:bg-transparent prose-pre:p-0 prose-pre:m-0 prose-li:my-0 prose-ul:my-2 prose-ol:my-2">
+                            <ReactMarkdown 
+                              components={MarkdownComponents}
+                              remarkPlugins={[remarkGfm]}
+                            >
                               {message.content}
                             </ReactMarkdown>
                           </div>
