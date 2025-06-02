@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Send, FileText, Search, Copy, Check, FolderTree } from 'lucide-react';
+import { Send, FileText, Search, Copy, Check, FolderTree, Menu, X } from 'lucide-react';
 import CodebaseTree from '@/components/CodebaseTree';
 // @ts-ignore
 import Fuse from 'fuse.js';
@@ -281,13 +282,19 @@ const MarkdownComponents = {
 
 const AppSidebar = ({ sessionId }: { sessionId: string }) => {
   const handleFileSelect = (filePath: string) => {
-    // You can implement file selection logic here
     console.log('Selected file:', filePath);
   };
 
   return (
-    <Sidebar className="border-r border-gray-700/50">
-      <SidebarContent className="bg-gray-800/50">
+    <Sidebar className="border-r border-gray-700/50 bg-gray-900/95 backdrop-blur-sm">
+      <SidebarContent className="bg-transparent">
+        <div className="p-4 border-b border-gray-700/50">
+          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+            <FolderTree className="h-5 w-5 text-blue-400" />
+            Codebase Explorer
+          </h2>
+          <p className="text-sm text-gray-400 mt-1">Browse repository structure</p>
+        </div>
         <CodebaseTree sessionId={sessionId} onFileSelect={handleFileSelect} />
       </SidebarContent>
     </Sidebar>
@@ -305,6 +312,7 @@ export default function ChatSession() {
   const [fileQuery, setFileQuery] = useState('');
   const [fileResults, setFileResults] = useState<{ path: string }[]>([]);
   const [highlight, setHighlight] = useState(0);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const location = useLocation();
@@ -526,84 +534,123 @@ export default function ChatSession() {
   }
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gray-900 text-white">
+    <SidebarProvider defaultOpen={sidebarOpen}>
+      <div className="min-h-screen flex w-full bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
         <AppSidebar sessionId={sessionId} />
         
-        <div className="flex flex-col flex-1">
-          {/* Enhanced Header with Sidebar Toggle */}
-          <div className="border-b border-gray-700/50 bg-gradient-to-r from-gray-800/90 to-gray-800/80 backdrop-blur-sm px-6 py-4 shadow-lg">
-            <div className="flex items-center gap-4">
-              <SidebarTrigger className="text-gray-400 hover:text-white transition-colors">
-                <FolderTree className="h-5 w-5" />
-              </SidebarTrigger>
-              <div>
-                <h1 className="text-xl font-semibold text-gray-100 flex items-center gap-2">
-                  <span className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-sm font-bold">AI</span>
-                  Chat Session
-                </h1>
-                <p className="text-sm text-gray-400 mt-1 flex items-center gap-2">
-                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                  AI Assistant - Enhanced Analysis Mode
-                </p>
+        <div className="flex flex-col flex-1 min-w-0">
+          {/* Modern Header with Glass Effect */}
+          <div className="sticky top-0 z-40 border-b border-gray-700/30 bg-gray-800/80 backdrop-blur-xl px-6 py-4 shadow-xl">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <SidebarTrigger className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-gray-700/50 rounded-lg">
+                  <Menu className="h-5 w-5" />
+                </SidebarTrigger>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <span className="text-sm font-bold text-white">AI</span>
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-semibold text-white">
+                      Code Assistant
+                    </h1>
+                    <p className="text-sm text-gray-300 flex items-center gap-2">
+                      <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                      Connected & Ready
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <div className="hidden md:flex items-center gap-2 text-xs text-gray-400 bg-gray-700/30 px-3 py-1.5 rounded-full">
+                  <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
+                  Session: {sessionId?.slice(-8)}
+                </div>
               </div>
             </div>
           </div>
           
-          {/* Enhanced Messages Area */}
-          <div className="flex-1 overflow-hidden">
+          {/* Enhanced Messages Area with Better Spacing */}
+          <div className="flex-1 overflow-hidden relative">
             <ScrollArea className="h-full">
-              <div className="px-4 py-6">
-                <div className="mx-auto max-w-3xl space-y-8">
-                  {messages.map((msg, index) => (
-                    <div key={index} className="group">
-                      {msg.role === 'user' ? (
-                        /* User Message - ChatGPT Style */
-                        <div className="flex justify-end">
-                          <div className="max-w-[80%] bg-blue-600 text-white px-5 py-3 rounded-2xl rounded-br-md shadow-lg">
-                            <div className="text-[15px] leading-relaxed">
-                              {highlightMentions(msg.content)}
-                            </div>
-                          </div>
+              <div className="px-6 py-8">
+                <div className="mx-auto max-w-4xl space-y-8">
+                  {messages.length === 0 ? (
+                    <div className="text-center py-16">
+                      <div className="w-20 h-20 bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-2xl">
+                        <FileText className="h-10 w-10 text-white" />
+                      </div>
+                      <h2 className="text-2xl font-bold text-white mb-3">
+                        Welcome to Code Assistant
+                      </h2>
+                      <p className="text-gray-400 text-lg mb-8 max-w-md mx-auto">
+                        Ask questions about your codebase, explore files, or get help with implementation
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto text-left">
+                        <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-4 hover:bg-gray-800/70 transition-colors">
+                          <div className="text-blue-400 mb-2">📁</div>
+                          <p className="text-sm text-gray-300">Browse files in the sidebar explorer</p>
                         </div>
-                      ) : (
-                        /* Assistant Message - ChatGPT Style */
-                        <div className="flex items-start space-x-4">
-                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white text-sm font-semibold shadow-lg">
-                            AI
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="prose prose-invert max-w-none prose-headings:text-white prose-p:text-gray-200 prose-strong:text-white prose-code:text-amber-300 prose-pre:bg-transparent prose-pre:p-0">
-                              <ReactMarkdown
-                                components={MarkdownComponents}
-                                remarkPlugins={[remarkGfm]}
-                              >
-                                {msg.content}
-                              </ReactMarkdown>
-                              {isStreaming && index === messages.length - 1 && (
-                                <span className="inline-block w-2 h-5 bg-green-400 ml-1 animate-pulse rounded-sm" />
-                              )}
-                            </div>
-                          </div>
+                        <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-4 hover:bg-gray-800/70 transition-colors">
+                          <div className="text-green-400 mb-2">@</div>
+                          <p className="text-sm text-gray-300">Reference specific files with @ mentions</p>
                         </div>
-                      )}
+                        <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-4 hover:bg-gray-800/70 transition-colors">
+                          <div className="text-purple-400 mb-2">💬</div>
+                          <p className="text-sm text-gray-300">Ask about code patterns and structure</p>
+                        </div>
+                      </div>
                     </div>
-                  ))}
+                  ) : (
+                    messages.map((msg, index) => (
+                      <div key={index} className="group">
+                        {msg.role === 'user' ? (
+                          <div className="flex justify-end mb-6">
+                            <div className="max-w-[85%] bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 rounded-2xl rounded-br-lg shadow-lg border border-blue-500/20">
+                              <div className="text-[15px] leading-relaxed">
+                                {highlightMentions(msg.content)}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-start space-x-4 mb-6">
+                            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-semibold shadow-lg border border-emerald-400/20">
+                              AI
+                            </div>
+                            <div className="flex-1 min-w-0 bg-gray-800/30 border border-gray-700/30 rounded-2xl p-6 shadow-lg backdrop-blur-sm">
+                              <div className="prose prose-invert max-w-none prose-headings:text-white prose-p:text-gray-200 prose-strong:text-white prose-code:text-amber-300 prose-pre:bg-transparent prose-pre:p-0">
+                                <ReactMarkdown
+                                  components={MarkdownComponents}
+                                  remarkPlugins={[remarkGfm]}
+                                >
+                                  {msg.content}
+                                </ReactMarkdown>
+                                {isStreaming && index === messages.length - 1 && (
+                                  <span className="inline-block w-2 h-5 bg-emerald-400 ml-1 animate-pulse rounded-sm" />
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
                   
-                  {/* Loading Indicator */}
+                  {/* Enhanced Loading Indicator */}
                   {isLoading && !isStreaming && (
-                    <div className="flex items-start space-x-4">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white text-sm font-semibold shadow-lg">
+                    <div className="flex items-start space-x-4 mb-6">
+                      <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-semibold shadow-lg">
                         AI
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-3 py-2">
+                      <div className="flex-1 min-w-0 bg-gray-800/30 border border-gray-700/30 rounded-2xl p-6 shadow-lg backdrop-blur-sm">
+                        <div className="flex items-center space-x-4">
                           <div className="flex space-x-1">
-                            <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                            <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                            <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                            <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                            <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                            <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                           </div>
-                          <span className="text-gray-400 text-sm">Thinking...</span>
+                          <span className="text-gray-300 text-sm">Analyzing your request...</span>
                         </div>
                       </div>
                     </div>
@@ -615,50 +662,57 @@ export default function ChatSession() {
             </ScrollArea>
           </div>
           
-          {/* Enhanced Input Area with Inline File Picker */}
-          <div className="border-t border-gray-700/50 bg-gray-800/80 backdrop-blur-sm p-4">
+          {/* Enhanced Input Area with Modern Glass Design */}
+          <div className="sticky bottom-0 border-t border-gray-700/30 bg-gray-800/80 backdrop-blur-xl p-6 shadow-2xl">
             <div className="mx-auto max-w-4xl">
               <div className="relative">
-                {/* File Picker - positioned above input */}
+                {/* Enhanced File Picker */}
                 {showFilePicker && (
-                  <div className="absolute bottom-full left-0 right-0 mb-2 z-10">
-                    <div className="bg-gray-800/95 backdrop-blur-md border border-gray-600/50 rounded-xl shadow-xl overflow-hidden">
-                      <div className="border-b border-gray-600/50 p-3">
-                        <div className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-3">
-                          <FileText className="h-4 w-4" />
-                          Attach Files
+                  <div className="absolute bottom-full left-0 right-0 mb-4 z-50">
+                    <div className="bg-gray-800/95 backdrop-blur-xl border border-gray-600/50 rounded-2xl shadow-2xl overflow-hidden">
+                      <div className="border-b border-gray-600/50 p-4">
+                        <div className="flex items-center gap-3 text-sm font-medium text-gray-200 mb-3">
+                          <FileText className="h-5 w-5 text-blue-400" />
+                          Reference Files
+                          <span className="ml-auto text-xs text-gray-500">ESC to close</span>
                         </div>
                         <div className="relative">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                           <input
                             autoFocus
                             value={fileQuery}
                             onChange={e => { setFileQuery(e.target.value); setHighlight(0); }}
                             onKeyDown={handleKeyDown}
-                            placeholder="Search files..."
-                            className="w-full pl-10 pr-3 py-2 bg-gray-700/50 border border-gray-600/50 rounded-lg text-sm text-gray-100 placeholder:text-gray-400 focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+                            placeholder="Search files in repository..."
+                            className="w-full pl-12 pr-4 py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-sm text-gray-100 placeholder:text-gray-400 focus:border-blue-500/50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
                           />
                         </div>
                       </div>
-                      <ScrollArea className="max-h-64">
-                        <div className="p-1">
+                      <ScrollArea className="max-h-80">
+                        <div className="p-2">
                           {fileResults.length > 0 ? (
                             fileResults.map((file, idx) => (
                               <div
                                 key={file.path}
-                                className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg transition-colors duration-150 ${
-                                  highlight === idx ? 'bg-blue-600/20 text-blue-300' : 'hover:bg-gray-700/50 text-gray-300'
+                                className={`flex items-center gap-3 px-4 py-3 cursor-pointer rounded-xl transition-all duration-200 ${
+                                  highlight === idx 
+                                    ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30' 
+                                    : 'hover:bg-gray-700/40 text-gray-300'
                                 }`}
                                 onMouseEnter={() => setHighlight(idx)}
                                 onClick={() => handleFileSelect(file)}
                               >
-                                <FileText className="h-4 w-4 flex-shrink-0" />
-                                <span className="text-sm truncate">{file.path}</span>
+                                <FileText className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                                <span className="text-sm truncate font-mono">{file.path}</span>
+                                {highlight === idx && (
+                                  <span className="text-xs text-blue-400 ml-auto">Enter</span>
+                                )}
                               </div>
                             ))
                           ) : (
-                            <div className="px-3 py-4 text-center text-sm text-gray-400">
-                              No files found
+                            <div className="px-4 py-8 text-center text-sm text-gray-400">
+                              <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                              No files found matching "{fileQuery}"
                             </div>
                           )}
                         </div>
@@ -667,26 +721,38 @@ export default function ChatSession() {
                   </div>
                 )}
                 
-                {/* Input Field */}
-                <div className="flex items-end gap-3 rounded-2xl bg-gray-700/50 border border-gray-600/50 p-3 focus-within:border-blue-500/50 focus-within:ring-1 focus-within:ring-blue-500/20 transition-all duration-200">
+                {/* Modern Input Field */}
+                <div className="flex items-end gap-4 rounded-2xl bg-gray-700/40 border border-gray-600/40 p-4 focus-within:border-blue-500/50 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all duration-200 backdrop-blur-sm">
                   <Textarea
                     ref={textareaRef}
                     value={input}
                     onChange={handleInput}
                     onKeyDown={handleKeyDown}
-                    placeholder="Message AI... Use @ to mention files"
-                    className="flex-1 min-h-[20px] max-h-[120px] bg-transparent border-0 resize-none text-gray-100 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0 text-base leading-6"
+                    placeholder="Ask anything about your codebase... Use @ to reference files"
+                    className="flex-1 min-h-[24px] max-h-[120px] bg-transparent border-0 resize-none text-gray-100 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0 text-base leading-6"
                     disabled={isLoading || isStreaming}
                     rows={1}
                   />
                   <Button 
                     onClick={handleSend} 
-                    className="rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:opacity-50 transition-colors duration-200 px-4 py-2"
+                    className="rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-600 disabled:to-gray-700 disabled:opacity-50 transition-all duration-200 px-5 py-2.5 shadow-lg"
                     disabled={isLoading || isStreaming || !input.trim()}
                     size="sm"
                   >
                     <Send className="h-4 w-4" />
                   </Button>
+                </div>
+                
+                <div className="flex items-center justify-between mt-3 text-xs text-gray-500">
+                  <div className="flex items-center gap-4">
+                    <span>Use @ to reference files</span>
+                    <span>•</span>
+                    <span>Enter to send, Shift+Enter for new line</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-green-400 rounded-full"></span>
+                    <span>AI Ready</span>
+                  </div>
                 </div>
               </div>
             </div>
