@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -100,22 +99,33 @@ const HeroSection = () => {
                   />
                 </div>
                 
-                <Button 
-                  type="submit" 
-                  className={`w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all text-sm md:text-base py-3`}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
-                      Setting up chat...
-                    </>
-                  ) : (
-                    <>
-                      Chat with Your Code <ChevronRight className="h-3 w-3 md:h-4 md:w-4" />
-                    </>
-                  )}
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    type="submit" 
+                    className={`flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all text-sm md:text-base py-3`}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
+                        Setting up chat...
+                      </>
+                    ) : (
+                      <>
+                        Chat with Your Code <ChevronRight className="h-3 w-3 md:h-4 md:w-4" />
+                      </>
+                    )}
+                  </Button>
+                  
+                  <Button
+                    type="button"
+                    onClick={() => navigate('/assistant')}
+                    variant="outline"
+                    className="px-4 py-3 border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 hover:border-blue-500/50 transition-all text-sm md:text-base"
+                  >
+                    Launch Assistant ↗
+                  </Button>
+                </div>
               </div>
             </form>
           </div>
