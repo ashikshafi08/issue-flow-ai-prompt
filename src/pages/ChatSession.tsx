@@ -16,6 +16,100 @@ interface ChatMessage {
   content: string;
 }
 
+// Helper functions for enhanced markdown rendering
+const getHeaderEmoji = (text: string, level: number): string => {
+  const lowerText = text.toLowerCase();
+  
+  // Context-aware emoji mapping
+  if (lowerText.includes('bug') || lowerText.includes('issue') || lowerText.includes('problem')) return '🐛';
+  if (lowerText.includes('fix') || lowerText.includes('solution') || lowerText.includes('resolve')) return '🔧';
+  if (lowerText.includes('summary') || lowerText.includes('overview')) return '📋';
+  if (lowerText.includes('analysis') || lowerText.includes('investigation')) return '🔍';
+  if (lowerText.includes('code') || lowerText.includes('implementation')) return '💻';
+  if (lowerText.includes('test') || lowerText.includes('testing')) return '🧪';
+  if (lowerText.includes('step') || lowerText.includes('action')) return '⚡';
+  if (lowerText.includes('result') || lowerText.includes('outcome')) return '✅';
+  if (lowerText.includes('error') || lowerText.includes('failure')) return '❌';
+  if (lowerText.includes('warning') || lowerText.includes('caution')) return '⚠️';
+  if (lowerText.includes('recommendation') || lowerText.includes('suggestion')) return '💡';
+  if (lowerText.includes('impact') || lowerText.includes('effect')) return '💥';
+  if (lowerText.includes('root cause') || lowerText.includes('cause')) return '🎯';
+  if (lowerText.includes('timeline') || lowerText.includes('schedule')) return '📅';
+  if (lowerText.includes('priority') || lowerText.includes('urgent')) return '🚨';
+  
+  // Fallback based on header level
+  const levelEmojis = ['🎯', '📌', '🔸', '▪️'];
+  return levelEmojis[level - 1] || '•';
+};
+
+const getBulletIcon = (text: string): string => {
+  const lowerText = text.toLowerCase();
+  
+  if (lowerText.includes('error') || lowerText.includes('fail') || lowerText.includes('wrong')) return '❌';
+  if (lowerText.includes('success') || lowerText.includes('work') || lowerText.includes('correct')) return '✅';
+  if (lowerText.includes('warning') || lowerText.includes('careful') || lowerText.includes('note')) return '⚠️';
+  if (lowerText.includes('important') || lowerText.includes('critical') || lowerText.includes('key')) return '🔥';
+  if (lowerText.includes('idea') || lowerText.includes('suggestion') || lowerText.includes('tip')) return '💡';
+  if (lowerText.includes('file') || lowerText.includes('code') || lowerText.includes('.py') || lowerText.includes('.js')) return '📄';
+  if (lowerText.includes('link') || lowerText.includes('reference') || lowerText.includes('see')) return '🔗';
+  if (lowerText.includes('example') || lowerText.includes('demo') || lowerText.includes('sample')) return '📝';
+  
+  return '▶️';
+};
+
+const knownFiles = [
+  'agents.py', 'vision_web_browser.py', 'llm_client.py', 'local_rag.py', 
+  'new_rag.py', 'language_config.py', 'main.py', 'local_repo_loader.py',
+  'session_manager.py', 'conversation_memory.py', 'models.py', 
+  'prompt_generator.py', 'repo_context.py', 'config.py', 'github_client.py'
+];
+
+const enhanceTextWithLinks = (children: React.ReactNode): React.ReactNode => {
+  if (typeof children === 'string') {
+    // Enhanced file detection regex
+    const fileRegex = /(\b[\w-]+\.(?:py|js|tsx?|json|yaml|yml|md|txt|config)\b)/g;
+    const parts = children.split(fileRegex);
+    
+    return parts.map((part, index) => {
+      if (fileRegex.test(part)) {
+        const isKnownFile = knownFiles.some(file => part.includes(file));
+        return (
+          <span
+            key={index}
+            className={`inline-flex items-center gap-1 px-2 py-1 rounded-md font-mono text-xs border transition-all cursor-pointer ${
+              isKnownFile 
+                ? 'bg-blue-600/20 text-blue-300 border-blue-500/30 hover:bg-blue-600/30' 
+                : 'bg-gray-700/50 text-gray-300 border-gray-600/30 hover:bg-gray-700/70'
+            }`}
+            title={isKnownFile ? 'Click to reference this file' : 'File reference'}
+          >
+            <span className="text-xs">📄</span>
+            {part}
+            {isKnownFile && <span className="text-xs opacity-70">→</span>}
+          </span>
+        );
+      }
+      return part;
+    });
+  }
+  
+  if (React.isValidElement(children)) {
+    return React.cloneElement(children as React.ReactElement, {
+      children: enhanceTextWithLinks((children as React.ReactElement).props.children)
+    });
+  }
+  
+  if (Array.isArray(children)) {
+    return children.map((child, index) => (
+      <React.Fragment key={index}>
+        {enhanceTextWithLinks(child)}
+      </React.Fragment>
+    ));
+  }
+  
+  return children;
+};
+
 // Enhanced markdown components with ChatGPT-style appearance
 const MarkdownComponents = {
   code({ node, inline, className, children, ...props }: any) {
@@ -74,31 +168,86 @@ const MarkdownComponents = {
       </code>
     );
   },
-  h1: ({ node, ...props }: any) => <h1 className="text-2xl font-bold text-white my-4 pb-2 border-b border-gray-700" {...props} />,
-  h2: ({ node, ...props }: any) => <h2 className="text-xl font-semibold text-white my-3 pb-1 border-b border-gray-800" {...props} />,
-  h3: ({ node, ...props }: any) => <h3 className="text-lg font-semibold text-white my-3" {...props} />,
-  h4: ({ node, ...props }: any) => <h4 className="text-base font-semibold text-white my-2" {...props} />,
-  ul: ({ node, ...props }: any) => <ul className="list-disc pl-6 my-4 space-y-2 text-gray-200" {...props} />,
-  ol: ({ node, ...props }: any) => <ol className="list-decimal pl-6 my-4 space-y-2 text-gray-200" {...props} />,
-  li: ({ node, ...props }: any) => <li className="leading-relaxed" {...props} />,
+  h1: ({ node, children, ...props }: any) => {
+    const text = String(children);
+    const emoji = getHeaderEmoji(text, 1);
+    return (
+      <h1 className="text-2xl font-bold text-white my-6 pb-3 border-b-2 border-blue-500/30 flex items-center gap-3" {...props}>
+        <span className="text-2xl">{emoji}</span>
+        <span>{children}</span>
+      </h1>
+    );
+  },
+  h2: ({ node, children, ...props }: any) => {
+    const text = String(children);
+    const emoji = getHeaderEmoji(text, 2);
+    return (
+      <h2 className="text-xl font-semibold text-white my-5 pb-2 border-b border-gray-700 flex items-center gap-2 group" {...props}>
+        <span className="text-lg">{emoji}</span>
+        <span>{children}</span>
+        <span className="ml-auto text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">
+          #{Math.random().toString(36).substring(2, 8)}
+        </span>
+      </h2>
+    );
+  },
+  h3: ({ node, children, ...props }: any) => {
+    const text = String(children);
+    const emoji = getHeaderEmoji(text, 3);
+    return (
+      <h3 className="text-lg font-semibold text-white my-4 flex items-center gap-2" {...props}>
+        <span className="text-base">{emoji}</span>
+        <span>{children}</span>
+      </h3>
+    );
+  },
+  h4: ({ node, children, ...props }: any) => {
+    const text = String(children);
+    const isNumbered = /^\d+\./.test(text);
+    return (
+      <h4 className="text-base font-semibold text-white my-3 flex items-center gap-2" {...props}>
+        {isNumbered && <span className="w-6 h-6 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center font-bold">
+          {text.match(/^\d+/)?.[0]}
+        </span>}
+        <span>{isNumbered ? text.replace(/^\d+\.\s*/, '') : children}</span>
+      </h4>
+    );
+  },
+  ul: ({ node, ...props }: any) => <ul className="list-none pl-0 my-4 space-y-3 text-gray-200" {...props} />,
+  ol: ({ node, ...props }: any) => <ol className="list-none pl-0 my-4 space-y-3 text-gray-200" {...props} />,
+  li: ({ node, children, ...props }: any) => {
+    const text = String(children);
+    const bullet = getBulletIcon(text);
+    return (
+      <li className="flex items-start gap-3 leading-relaxed pl-2" {...props}>
+        <span className="text-blue-400 mt-1 flex-shrink-0">{bullet}</span>
+        <span className="flex-1">{children}</span>
+      </li>
+    );
+  },
   p: ({ node, children, ...props }: any) => {
     const hasBlockChild = React.Children.toArray(children).some(
       (child: any) => typeof child === 'object' && child !== null && 'type' in child && 
       ['pre', 'blockquote', 'div', 'ul', 'ol'].includes(child.type)
     );
     if (hasBlockChild) {
-      return <div className="my-3 leading-relaxed text-gray-200" {...props}>{children}</div>;
+      return <div className="my-4 leading-relaxed text-gray-200" {...props}>{enhanceTextWithLinks(children)}</div>;
     }
-    return <p className="my-3 leading-relaxed text-gray-200" {...props}>{children}</p>;
+    return <p className="my-4 leading-relaxed text-gray-200" {...props}>{enhanceTextWithLinks(children)}</p>;
   },
-  blockquote: ({ node, ...props }: any) => (
-    <blockquote className="border-l-4 border-blue-500 bg-gray-800/30 pl-4 py-3 my-4 italic text-gray-300 rounded-r" {...props} />
+  blockquote: ({ node, children, ...props }: any) => (
+    <blockquote className="border-l-4 border-yellow-500 bg-yellow-500/10 pl-4 py-3 my-4 rounded-r relative" {...props}>
+      <div className="absolute -left-2 top-3 w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center">
+        <span className="text-xs">💡</span>
+      </div>
+      <div className="text-gray-300 italic pl-2">{children}</div>
+    </blockquote>
   ),
   a: ({ node, ...props }: any) => (
-    <a className="text-blue-400 hover:text-blue-300 underline underline-offset-2" target="_blank" rel="noopener noreferrer" {...props} />
+    <a className="text-blue-400 hover:text-blue-300 underline underline-offset-2 hover:bg-blue-400/10 px-1 py-0.5 rounded transition-all" target="_blank" rel="noopener noreferrer" {...props} />
   ),
   table: ({ node, ...props }: any) => (
-    <div className="overflow-x-auto my-4 rounded-lg border border-gray-700">
+    <div className="overflow-x-auto my-6 rounded-lg border border-gray-700 shadow-lg">
       <table className="min-w-full divide-y divide-gray-700 bg-gray-900/50" {...props} />
     </div>
   ),
@@ -108,9 +257,11 @@ const MarkdownComponents = {
   th: ({ node, ...props }: any) => <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider" {...props} />,
   td: ({ node, ...props }: any) => <td className="px-4 py-3 text-sm text-gray-200" {...props} />,
   pre: ({ node, ...props }: any) => <pre className="overflow-auto p-0 bg-transparent" {...props} />,
-  hr: ({ node, ...props }: any) => <hr className="border-gray-600 my-6" {...props} />,
-  img: ({ node, ...props }: any) => <img className="max-w-full h-auto rounded-lg my-4 shadow-lg" {...props} />,
-  strong: ({ node, ...props }: any) => <strong className="font-semibold text-white" {...props} />,
+  hr: ({ node, ...props }: any) => (
+    <hr className="border-0 h-px bg-gradient-to-r from-transparent via-gray-600 to-transparent my-8" {...props} />
+  ),
+  img: ({ node, ...props }: any) => <img className="max-w-full h-auto rounded-lg my-4 shadow-lg border border-gray-700" {...props} />,
+  strong: ({ node, ...props }: any) => <strong className="font-semibold text-white bg-gray-800/30 px-1 py-0.5 rounded" {...props} />,
   em: ({ node, ...props }: any) => <em className="italic text-gray-300" {...props} />,
 };
 
@@ -332,7 +483,10 @@ export default function ChatSession() {
   function highlightMentions(text: string) {
     return text.split(/(@[\w\-/\\.]+)/g).map((part, i) =>
       part.startsWith('@') ? (
-        <span key={i} className="bg-blue-600/20 text-blue-300 px-2 py-1 rounded-md font-medium border border-blue-500/30">{part}</span>
+        <span key={i} className="inline-flex items-center gap-1 bg-blue-600/20 text-blue-300 px-2 py-1 rounded-md font-medium border border-blue-500/30 hover:bg-blue-600/30 transition-all cursor-pointer" title="File attachment">
+          <span className="text-xs">📎</span>
+          {part}
+        </span>
       ) : (
         part
       )
@@ -341,10 +495,16 @@ export default function ChatSession() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-900 text-white">
-      {/* Enhanced Header */}
-      <div className="border-b border-gray-700/50 bg-gray-800/80 backdrop-blur-sm px-6 py-4">
-        <h1 className="text-xl font-semibold text-gray-100">Chat Session</h1>
-        <p className="text-sm text-gray-400 mt-1">AI Assistant</p>
+      {/* Enhanced Header with better gradients */}
+      <div className="border-b border-gray-700/50 bg-gradient-to-r from-gray-800/90 to-gray-800/80 backdrop-blur-sm px-6 py-4 shadow-lg">
+        <h1 className="text-xl font-semibold text-gray-100 flex items-center gap-2">
+          <span className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-sm font-bold">AI</span>
+          Chat Session
+        </h1>
+        <p className="text-sm text-gray-400 mt-1 flex items-center gap-2">
+          <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+          AI Assistant - Enhanced Analysis Mode
+        </p>
       </div>
       
       {/* Enhanced Messages Area */}
