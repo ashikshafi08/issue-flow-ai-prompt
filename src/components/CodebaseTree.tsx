@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, ChevronDown, File, Folder, FolderOpen, Search, Filter } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -207,12 +206,6 @@ const CodebaseTree: React.FC<CodebaseTreeProps> = ({ sessionId, onFileSelect }) 
           <span className="text-sm truncate flex-1 group-hover:text-white transition-colors" title={node.path}>
             {node.name}
           </span>
-          
-          {node.type === 'file' && (
-            <span className="opacity-0 group-hover:opacity-100 text-xs text-gray-500 ml-2 transition-opacity">
-              Click to reference
-            </span>
-          )}
         </div>
         
         {node.type === 'directory' && isExpanded && node.children && (
