@@ -178,45 +178,40 @@ const MarkdownComponents = {
     }
     
     return (
-      <code className="bg-orange-500/20 border border-orange-500/30 px-1.5 py-0.5 rounded text-sm font-mono text-orange-200" {...props}>
+      <code className="bg-gray-800/60 border border-gray-700/40 px-2 py-1 rounded-md text-sm font-mono text-gray-200" {...props}>
         {children}
       </code>
     );
   },
   h1: ({ node, children, ...props }: any) => (
-    <h1 className="text-2xl font-bold text-white my-6 pb-3 border-b-2 border-blue-500/40 flex items-center gap-3" {...props}>
-      <span className="text-blue-400">📋</span>
-      <span>{children}</span>
+    <h1 className="text-xl font-bold text-white my-4 pb-2 border-b border-gray-700/50" {...props}>
+      {children}
     </h1>
   ),
   h2: ({ node, children, ...props }: any) => (
-    <h2 className="text-xl font-semibold text-white my-5 pb-2 border-b border-gray-600/50 flex items-center gap-2" {...props}>
-      <span className="text-green-400">🔧</span>
-      <span>{children}</span>
+    <h2 className="text-lg font-semibold text-white my-3 pb-1" {...props}>
+      {children}
     </h2>
   ),
   h3: ({ node, children, ...props }: any) => (
-    <h3 className="text-lg font-semibold text-white my-4 flex items-center gap-2" {...props}>
-      <span className="text-purple-400">⚡</span>
-      <span>{children}</span>
+    <h3 className="text-base font-semibold text-white my-3" {...props}>
+      {children}
     </h3>
   ),
   h4: ({ node, children, ...props }: any) => (
-    <h4 className="text-base font-semibold text-white my-3 flex items-center gap-2" {...props}>
-      <span className="text-yellow-400">💡</span>
-      <span>{children}</span>
+    <h4 className="text-sm font-semibold text-white my-2" {...props}>
+      {children}
     </h4>
   ),
   ul: ({ node, ...props }: any) => (
-    <ul className="list-none pl-0 my-4 space-y-2 text-gray-200" {...props} />
+    <ul className="list-disc list-inside my-3 space-y-1 text-gray-200 ml-4" {...props} />
   ),
   ol: ({ node, ...props }: any) => (
-    <ol className="list-none pl-0 my-4 space-y-2 text-gray-200" {...props} />
+    <ol className="list-decimal list-inside my-3 space-y-1 text-gray-200 ml-4" {...props} />
   ),
   li: ({ node, children, ...props }: any) => (
-    <li className="flex items-start gap-3 leading-relaxed pl-2" {...props}>
-      <span className="text-blue-400 mt-1 flex-shrink-0">▶️</span>
-      <span className="flex-1">{children}</span>
+    <li className="leading-relaxed text-gray-200" {...props}>
+      {children}
     </li>
   ),
   p: ({ node, children, ...props }: any) => (
@@ -225,25 +220,20 @@ const MarkdownComponents = {
     </p>
   ),
   blockquote: ({ node, children, ...props }: any) => (
-    <div className="my-6 border-l-4 border-yellow-500 bg-yellow-500/10 pl-4 py-3 rounded-r-lg relative">
-      <div className="absolute -left-2 top-3 w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center">
-        <span className="text-xs">⚠️</span>
-      </div>
-      <div className="text-yellow-100 pl-2 italic">
-        <strong className="text-yellow-200 not-italic">Heads up:</strong> {children}
-      </div>
-    </div>
+    <blockquote className="my-4 border-l-4 border-blue-500/50 bg-blue-500/10 pl-4 py-3 rounded-r-lg text-blue-100 italic" {...props}>
+      {children}
+    </blockquote>
   ),
   a: ({ node, ...props }: any) => (
     <a 
-      className="text-blue-400 hover:text-blue-300 underline underline-offset-2 hover:bg-blue-400/10 px-1 py-0.5 rounded transition-all" 
+      className="text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors" 
       target="_blank" 
       rel="noopener noreferrer" 
       {...props} 
     />
   ),
   table: ({ node, ...props }: any) => (
-    <div className="overflow-x-auto my-6 rounded-lg border border-gray-700/50 shadow-lg">
+    <div className="overflow-x-auto my-4 rounded-lg border border-gray-700/50">
       <table className="min-w-full divide-y divide-gray-700 bg-gray-900/50" {...props} />
     </div>
   ),
@@ -258,10 +248,10 @@ const MarkdownComponents = {
   ),
   pre: ({ node, ...props }: any) => <pre className="overflow-auto p-0 bg-transparent" {...props} />,
   hr: ({ node, ...props }: any) => (
-    <hr className="border-0 h-px bg-gradient-to-r from-transparent via-gray-500 to-transparent my-8" {...props} />
+    <hr className="border-0 h-px bg-gradient-to-r from-transparent via-gray-600 to-transparent my-6" {...props} />
   ),
   strong: ({ node, ...props }: any) => (
-    <strong className="font-semibold text-white bg-gray-800/40 px-1 py-0.5 rounded" {...props} />
+    <strong className="font-semibold text-white" {...props} />
   ),
   em: ({ node, ...props }: any) => <em className="italic text-gray-300" {...props} />,
 };
