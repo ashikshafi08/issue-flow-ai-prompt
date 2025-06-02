@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -414,6 +413,7 @@ export default function ChatSession() {
                         autoFocus
                         value={fileQuery}
                         onChange={e => { setFileQuery(e.target.value); setHighlight(0); }}
+                        onKeyDown={handleKeyDown}
                         placeholder="Search files..."
                         className="w-full pl-10 pr-3 py-2 bg-gray-700/50 border border-gray-600/50 rounded-lg text-sm text-gray-100 placeholder:text-gray-400 focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                       />
