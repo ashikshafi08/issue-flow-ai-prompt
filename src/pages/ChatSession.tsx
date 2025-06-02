@@ -18,8 +18,6 @@ interface ChatMessage {
 }
 
 // Custom components for React Markdown with enhanced styling for better formatting
-import { Send } from 'lucide-react';
-
 const MarkdownComponents = {
   code({ node, inline, className, children, ...props }: any) {
     const match = /language-(\w+)/.exec(className || '');
@@ -74,8 +72,8 @@ const MarkdownComponents = {
   p: ({ node, children, ...props }: any) => {
     const hasBlockChild = React.Children.toArray(children).some(
       (child: any) => typeof child === 'object' && child !== null && 'type' in child && 
-      child.type !== React.Fragment && child.type !== 'span' && child.type !== 'a' && 
-      child.type !== 'em' && child.type !== 'strong' && child.type !== 'code' && child.type !== 'del'
+      child.type !== React.Fragment && child.type !== 'span' && 
+      child.type !== 'a' && child.type !== 'em' && child.type !== 'strong' && child.type !== 'code' && child.type !== 'del'
     );
     if (hasBlockChild) {
       return <div className="my-3 leading-relaxed" {...props}>{children}</div>;
