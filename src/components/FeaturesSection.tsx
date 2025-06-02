@@ -13,39 +13,39 @@ import {
 const features = [
   {
     title: "Multi-Language Support",
-    description: "Auto-detect and analyze 20+ programming languages from any repository.",
+    description: "Supports 20+ languages with language-aware parsing and semantic chunking.",
     icon: <Globe className="h-10 w-10 text-blue-400" />,
-    highlight: "20+ languages, auto-detected"
+    highlight: "Language-aware parsing"
   },
   {
-    title: "Local Repo Analysis",
-    description: "Fast, privacy-friendly code analysis without API rate limits.",
+    title: "Local-First Repo Analysis",
+    description: "Local-first, session-aware repo embedding. No rate limits. Always up-to-date.",
     icon: <FileSearch className="h-10 w-10 text-blue-400" />,
-    highlight: "No API rate limits"
+    highlight: "Session-aware embedding"
   },
   {
-    title: "FAISS Vector Store",
-    description: "Efficient, scalable code and document search using advanced vector embeddings.",
+    title: "Hybrid RAG Engine",
+    description: "FAISS + BM25 with LLM reranking. Built for precise issue resolution.",
     icon: <Database className="h-10 w-10 text-blue-400" />,
-    highlight: "Efficient semantic search"
+    highlight: "FAISS + BM25 + reranking"
   },
   {
     title: "Multi-Provider LLM Support",
-    description: "Use OpenAI, OpenRouter, Claude, Mistral, and more for your AI responses.",
+    description: "Plug into OpenAI, Claude, Mistral, or any LLM via OpenRouter or API keys.",
     icon: <Terminal className="h-10 w-10 text-blue-400" />,
-    highlight: "Multiple AI providers"
+    highlight: "OpenRouter compatible"
   },
   {
-    title: "Issue + Comments Extraction",
-    description: "Full context from GitHub issues and all related discussions.",
+    title: "Full Discussion Context",
+    description: "Parse GitHub issues, comments, and references for complete discussion context.",
     icon: <MessageSquare className="h-10 w-10 text-blue-400" />,
-    highlight: "Complete discussion context"
+    highlight: "Issues + comments + refs"
   },
   {
-    title: "Contextual Prompt Generation",
-    description: "Explain, fix, test, summarize, or customize your prompts based on real code.",
+    title: "File-Aware Chat",
+    description: "Use @file to scope questions to exact files or functions, and get accurate, grounded answers.",
     icon: <Code className="h-10 w-10 text-blue-400" />,
-    highlight: "Customizable prompts"
+    highlight: "@file scoped queries"
   },
 ];
 
@@ -54,10 +54,7 @@ const FeaturesSection = () => {
     <section id="features" className="py-20 relative overflow-hidden">
       {/* Background elements */}
       <div className="absolute inset-0 z-0 pointer-events-none">
-        {/* Blue gradient orb center */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-blue-500/5 blur-3xl"></div>
-        
-        {/* Grid pattern overlay */}
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGZpbGw9IiMzQjgyRjYiIGZpbGwtb3BhY2l0eT0iLjAzIiBkPSJNMzYgMzBoLTJ2LTJoMnYyem0wLTJoLTJ2LTJoMnYyem0tMi0yaC0ydjJoMnYtMnptMi0yaC0ydjJoMnYtMnoiLz48L2c+PC9zdmc+')] opacity-40"></div>
       </div>
 
@@ -66,9 +63,9 @@ const FeaturesSection = () => {
           <span className="bg-blue-500/10 text-blue-400 px-4 py-1.5 rounded-full text-sm font-medium mb-4 inline-block border border-blue-500/20">
             Features
           </span>
-          <h2 className="text-4xl font-bold tracking-tighter mb-4">Powerful GitHub Issue Analysis</h2>
+          <h2 className="text-4xl font-bold tracking-tighter mb-4">Powerful Repo-Grounded AI Assistant</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            Save time on issue triage with powerful tools for understanding, analyzing, and responding to GitHub issues with AI-powered context.
+            Save time on issue triage with file-aware chat, hybrid RAG retrieval, and session memory for continuous understanding.
           </p>
         </div>
 
@@ -107,15 +104,19 @@ const FeaturesSection = () => {
               </li>
               <li className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-blue-500"></span>
-                <span className="text-gray-300">Contributors to unfamiliar codebases</span>
+                <span className="text-gray-300">Devs triaging issues in large unfamiliar codebases</span>
               </li>
               <li className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-blue-500"></span>
-                <span className="text-gray-300">AI agents & automation bots</span>
+                <span className="text-gray-300">AI agents that need code context</span>
               </li>
               <li className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-blue-500"></span>
-                <span className="text-gray-300">GitHub issue workflow optimization</span>
+                <span className="text-gray-300">Product engineers needing fast issue understanding</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-blue-500"></span>
+                <span className="text-gray-300">LLM app builders looking for precise repo retrieval</span>
               </li>
             </ul>
           </div>

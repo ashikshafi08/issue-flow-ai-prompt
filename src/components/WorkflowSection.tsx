@@ -4,8 +4,8 @@ import { useInView } from "react-intersection-observer";
 
 const steps = [
   {
-    title: "GitHub Issue URL",
-    description: "Start by providing a GitHub issue URL to analyze.",
+    title: "Paste GitHub Issue URL or Clone Repo",
+    description: "Start by providing a GitHub issue URL or repository to analyze.",
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -24,27 +24,8 @@ const steps = [
     ),
   },
   {
-    title: "Extract Issue & Comments",
-    description: "The tool extracts the issue title, description, and all comments.",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-      </svg>
-    ),
-  },
-  {
-    title: "Clone Repo Locally",
-    description: "Clones the GitHub repository locally for fast, private analysis.",
+    title: "triage.flow Loads Latest Commit",
+    description: "Automatically loads the latest commit and builds a code-aware vector index.",
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -62,8 +43,8 @@ const steps = [
     ),
   },
   {
-    title: "Analyze Code & Docs",
-    description: "Analyzes the codebase, supporting 20+ programming languages.",
+    title: "Chat with @file, @function, or Natural Language",
+    description: "Use @mentions to scope questions to exact files or ask in natural language.",
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -76,37 +57,13 @@ const steps = [
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        <path d="m18 16 4-4-4-4" />
-        <path d="m6 8-4 4 4 4" />
-        <path d="m14.5 4-5 16" />
+        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
       </svg>
     ),
   },
   {
-    title: "Build Vector Index",
-    description: "Creates a FAISS vector index with OpenAI embeddings.",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <rect width="7" height="7" x="3" y="3" rx="1" />
-        <rect width="7" height="7" x="14" y="3" rx="1" />
-        <rect width="7" height="7" x="14" y="14" rx="1" />
-        <rect width="7" height="7" x="3" y="14" rx="1" />
-      </svg>
-    ),
-  },
-  {
-    title: "Retrieve Relevant Context",
-    description: "Finds the most relevant code and documentation for the issue.",
+    title: "Hybrid RAG + Reranking",
+    description: "Fetches precise code snippets using FAISS vector search + BM25 + LLM reranking.",
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -125,8 +82,8 @@ const steps = [
     ),
   },
   {
-    title: "Generate LLM Prompt",
-    description: "Creates a detailed prompt with all the context for the LLM.",
+    title: "LLM Generates Grounded Responses",
+    description: "AI generates suggestions, explanations, or test cases grounded in your actual code.",
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -147,8 +104,30 @@ const steps = [
     ),
   },
   {
-    title: "LLM Response",
-    description: "Get a detailed response that leverages all the context.",
+    title: "Agent Memory Keeps Context",
+    description: "Session memory maintains context across multiple questions and file references.",
+    icon: (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <rect width="7" height="7" x="3" y="3" rx="1" />
+        <rect width="7" height="7" x="14" y="3" rx="1" />
+        <rect width="7" height="7" x="14" y="14" rx="1" />
+        <rect width="7" height="7" x="3" y="14" rx="1" />
+      </svg>
+    ),
+  },
+  {
+    title: "Coming Soon: Apply Changes via Code Actions",
+    description: "Run AI-suggested fixes, tests, or refactorings automatically. Controlled, testable code edits.",
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -201,13 +180,8 @@ const WorkflowSection = () => {
     <section id="how-it-works" className="py-20 relative z-10" ref={ref}>
       {/* Background elements */}
       <div className="absolute inset-0 z-0 pointer-events-none">
-        {/* Blue gradient orb center */}
         <div className="absolute top-1/2 left-1/4 -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full bg-blue-500/5 blur-3xl"></div>
-        
-        {/* Purple gradient orb right */}
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full bg-indigo-500/5 blur-3xl"></div>
-        
-        {/* Grid pattern overlay */}
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGZpbGw9IiMzQjgyRjYiIGZpbGwtb3BhY2l0eT0iLjAzIiBkPSJNMzYgMzBoLTJ2LTJoMnYyem0wLTJoLTJ2LTJoMnYyem0tMi0yaC0ydjJoMnYtMnptMi0yaC0ydjJoMnYtMnoiLz48L2c+PC9zdmc+')] opacity-40"></div>
       </div>
       
@@ -216,9 +190,9 @@ const WorkflowSection = () => {
           <span className="bg-blue-500/10 text-blue-400 px-4 py-1.5 rounded-full text-sm font-medium mb-4 inline-block border border-blue-500/20">
             Workflow
           </span>
-          <h2 className="text-3xl font-bold tracking-tighter mb-2">How it Works</h2>
+          <h2 className="text-3xl font-bold tracking-tighter mb-2">Real-time Indexing → Retrieval → Chat Loop</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            From GitHub issue to detailed AI prompt in seconds.
+            From GitHub issue to file-aware AI assistance in seconds.
           </p>
         </div>
         

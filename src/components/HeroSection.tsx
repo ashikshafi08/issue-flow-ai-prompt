@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ChevronRight, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { createChatSession } from "@/lib/api"; // Updated import
+import { createChatSession } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 
 const HeroSection = () => {
@@ -38,7 +38,6 @@ const HeroSection = () => {
     setResult(null);
     
     try {
-      // Create a new chat session
       const { session_id, initial_message } = await createChatSession(issueUrl, promptType);
       
       setIsLoading(false);
@@ -46,7 +45,6 @@ const HeroSection = () => {
         title: "Success",
         description: "Chat session created successfully!",
       });
-      // Navigate to the chat page with session_id and initial_message
       navigate(`/chat/${session_id}`, { state: { initialMessage: initial_message } });
 
     } catch (error) {
@@ -65,13 +63,8 @@ const HeroSection = () => {
     <section className="pt-24 md:pt-28 pb-12 md:pb-20 overflow-hidden relative">
       {/* Background elements */}
       <div className="absolute inset-0 z-0 pointer-events-none">
-        {/* Blue gradient orb top right */}
         <div className="absolute top-20 right-[10%] w-60 md:w-96 h-60 md:h-96 rounded-full bg-blue-500/10 blur-3xl"></div>
-        
-        {/* Purple gradient orb bottom left */}
         <div className="absolute bottom-20 left-[5%] w-60 md:w-80 h-60 md:h-80 rounded-full bg-indigo-500/10 blur-3xl"></div>
-        
-        {/* Grid pattern overlay */}
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGZpbGw9IiMzQjgyRjYiIGZpbGwtb3BhY2l0eT0iLjAzIiBkPSJNMzYgMzBoLTJ2LTJoMnYyem0wLTJoLTJ2LTJoMnYyem0tMi0yaC0ydjJoMnYtMnptMi0yaC0ydjJoMnYtMnoiLz48L2c+PC9zdmc+')] opacity-40"></div>
       </div>
       
@@ -79,13 +72,13 @@ const HeroSection = () => {
         <div className="flex flex-col items-center text-center space-y-6 md:space-y-10">
           <div className={`space-y-3 md:space-y-4 transition-all duration-700 ${isVisible ? 'opacity-100' : 'opacity-0 translate-y-10'}`}>
             <Badge variant="outline" className="border-blue-500/30 bg-blue-500/10 text-blue-400 font-medium px-2 py-1 md:px-3 md:py-1.5 rounded-full text-xs md:text-sm">
-              AI-powered GitHub Issue Context & Prompt Generator with RAG
+              File-aware • RAG-enhanced • Session memory
             </Badge>
             <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold tracking-tighter px-1">
-              Turn <span className="text-gradient">GitHub Issues</span> into AI-ready Prompts
+              Chat with Your <span className="text-gradient">Repo</span>. Debug, Fix, and Understand Issues — Fast.
             </h1>
             <p className="max-w-[700px] text-muted-foreground mx-auto text-sm sm:text-base md:text-lg px-2">
-              Instantly understand and triage GitHub issues with deep, code-aware context for 20+ programming languages.
+              <span className="highlight-text">triage.flow</span> gives you a file-aware, RAG-enhanced coding assistant that understands your GitHub issues and codebase contextually — in real time.
             </p>
           </div>
           
@@ -94,7 +87,7 @@ const HeroSection = () => {
               <div className="space-y-3 md:space-y-4">
                 <div className="space-y-1 md:space-y-2">
                   <label htmlFor="issueUrl" className="text-xs md:text-sm font-medium text-left block text-blue-300">
-                    GitHub Issue URL
+                    GitHub Issue URL or Repository
                   </label>
                   <Input
                     id="issueUrl"
@@ -107,26 +100,6 @@ const HeroSection = () => {
                   />
                 </div>
                 
-                <div className="space-y-1 md:space-y-2">
-                  <label htmlFor="promptType" className="text-xs md:text-sm font-medium text-left block text-blue-300">
-                    Prompt Type
-                  </label>
-                  <Select value={promptType} onValueChange={setPromptType}>
-                    <SelectTrigger className="w-full bg-[rgba(30,41,59,0.5)] border-blue-500/20 focus:border-blue-500/50 focus:ring-blue-500/30 text-sm md:text-base">
-                      <SelectValue placeholder="Select prompt type" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[rgb(15,23,42)] border-blue-500/20">
-                      <SelectItem value="explain">Explain</SelectItem>
-                      <SelectItem value="fix">Fix</SelectItem>
-                      <SelectItem value="test">Test</SelectItem>
-                      <SelectItem value="summarize">Summarize</SelectItem>
-                      <SelectItem value="document">Document</SelectItem>
-                      <SelectItem value="review">Review</SelectItem>
-                      <SelectItem value="prioritize">Prioritize</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
                 <Button 
                   type="submit" 
                   className={`w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all text-sm md:text-base py-3`}
@@ -135,11 +108,11 @@ const HeroSection = () => {
                   {isLoading ? (
                     <>
                       <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
-                      Processing...
+                      Setting up chat...
                     </>
                   ) : (
                     <>
-                      Generate <ChevronRight className="h-3 w-3 md:h-4 md:w-4" />
+                      Start Chatting <ChevronRight className="h-3 w-3 md:h-4 md:w-4" />
                     </>
                   )}
                 </Button>
@@ -154,13 +127,13 @@ const HeroSection = () => {
                 <div className="h-2 w-2 md:h-3 md:w-3 rounded-full bg-yellow-500/80"></div>
                 <div className="h-2 w-2 md:h-3 md:w-3 rounded-full bg-green-500/80"></div>
               </div>
-              <span>{result ? 'Generated Prompt' : 'Prompt Preview'}</span>
+              <span>Live Chat Preview</span>
             </div>
             <div className="font-code bg-[rgba(15,23,42,0.6)] text-xs md:text-sm text-left overflow-x-auto p-3 md:p-6 rounded">
               {isLoading ? (
                 <div className="flex flex-col items-center justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-blue-500 mb-4" />
-                  <p className="text-blue-300">Processing your request...</p>
+                  <p className="text-blue-300">Building repo index...</p>
                 </div>
               ) : error ? (
                 <div className="text-red-400">
@@ -171,21 +144,25 @@ const HeroSection = () => {
                 <pre className="whitespace-pre-wrap text-gray-300">{result}</pre>
               ) : (
                 <>
-                  <div className="text-blue-400 font-semibold mb-2">// Generated AI Prompt with RAG Context</div>
-                  <p className="text-gray-300 mb-3">
-                    Analyze the GitHub issue <span className="text-blue-400">#12345</span> regarding pagination in the API endpoints.
+                  <div className="text-blue-400 font-semibold mb-2">// Ask something like:</div>
+                  <p className="text-green-400 mb-3">
+                    <span className="text-yellow-400">@utils/logger.ts</span> why is this panic triggered?
                   </p>
-                  <p className="text-gray-300 mb-3">
-                    Based on the repository context:
+                  <p className="text-green-400 mb-3">
+                    What do I need to fix issue <span className="text-blue-400">#1234</span>?
                   </p>
-                  <ol className="list-decimal pl-6 space-y-1 md:space-y-2 text-gray-300">
-                    <li>The current pagination implementation in <span className="text-yellow-400">src/api/controllers/BaseController.ts</span> uses offset-based pagination.</li>
-                    <li>The reported issue describes cursor-based pagination as a preferred solution for performance.</li>
-                    <li>Relevant code sections show that changing to cursor-based pagination requires updates to the database queries and response format.</li>
-                  </ol>
-                  <p className="text-gray-300 mt-3">
-                    Please provide a detailed explanation of how to implement cursor-based pagination in this codebase, with code examples.
+                  <p className="text-green-400 mb-3">
+                    <span className="text-yellow-400">@src/components/Modal.tsx</span> — how does close animation work?
                   </p>
+                  <div className="mt-4 pt-3 border-t border-gray-700">
+                    <div className="text-blue-400 font-semibold mb-2">// AI Response with File Context</div>
+                    <p className="text-gray-300">
+                      Found function <span className="text-yellow-400">`handleClose()`</span> in Modal.tsx, line 48–62
+                    </p>
+                    <p className="text-gray-300 mt-2">
+                      This function triggers <span className="text-green-400">`setVisible(false)`</span> which starts the fade-out animation using Framer Motion.
+                    </p>
+                  </div>
                 </>
               )}
             </div>

@@ -6,6 +6,7 @@ import FeaturesSection from "@/components/FeaturesSection";
 import WorkflowSection from "@/components/WorkflowSection";
 import ExampleOutputSection from "@/components/ExampleOutputSection";
 import CodeExampleSection from "@/components/CodeExampleSection";
+import VisionSection from "@/components/VisionSection";
 import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
 
@@ -26,6 +27,9 @@ const Index = () => {
         </div>
         <div className="relative z-10">
           <CodeExampleSection />
+        </div>
+        <div className="relative z-10">
+          <VisionSection />
         </div>
         <CTASection />
       </main>
