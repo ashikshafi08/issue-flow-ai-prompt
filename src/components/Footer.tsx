@@ -28,7 +28,7 @@ const Footer = () => {
               <span className="text-lg font-bold text-gradient">triage.flow</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              Turn GitHub issues into LLM-ready prompts with deep repo context
+              File-aware, RAG-enhanced coding assistant for GitHub issues and codebases
             </p>
             <div className="flex space-x-3">
               <a 
@@ -69,12 +69,12 @@ const Footer = () => {
             <ul className="space-y-2">
               <li>
                 <a href="#features" className="text-sm text-muted-foreground hover:text-blue-400 transition-colors">
-                  Multi-Language Support
+                  File-Aware Chat
                 </a>
               </li>
               <li>
                 <a href="#features" className="text-sm text-muted-foreground hover:text-blue-400 transition-colors">
-                  FAISS Vector Store
+                  Hybrid RAG Engine
                 </a>
               </li>
               <li>
@@ -86,7 +86,7 @@ const Footer = () => {
           </div>
           
           <div>
-            <h3 className="font-medium mb-4 text-blue-300">Legal</h3>
+            <h3 className="font-medium mb-4 text-blue-300">Community</h3>
             <ul className="space-y-2">
               <li>
                 <a href="LICENSE" className="text-sm text-muted-foreground hover:text-blue-400 transition-colors">
@@ -95,7 +95,12 @@ const Footer = () => {
               </li>
               <li>
                 <a href="#" className="text-sm text-muted-foreground hover:text-blue-400 transition-colors">
-                  Privacy Policy
+                  Join Waitlist
+                </a>
+              </li>
+              <li>
+                <a href="#" className="text-sm text-muted-foreground hover:text-blue-400 transition-colors">
+                  Newsletter
                 </a>
               </li>
             </ul>

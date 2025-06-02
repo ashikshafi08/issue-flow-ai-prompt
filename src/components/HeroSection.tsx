@@ -112,7 +112,7 @@ const HeroSection = () => {
                     </>
                   ) : (
                     <>
-                      Start Chatting <ChevronRight className="h-3 w-3 md:h-4 md:w-4" />
+                      Chat with Your Code <ChevronRight className="h-3 w-3 md:h-4 md:w-4" />
                     </>
                   )}
                 </Button>
@@ -128,6 +128,9 @@ const HeroSection = () => {
                 <div className="h-2 w-2 md:h-3 md:w-3 rounded-full bg-green-500/80"></div>
               </div>
               <span>Live Chat Preview</span>
+              <div className="ml-auto text-xs text-gray-400">
+                Use <code className="bg-blue-900/30 px-1 py-0.5 rounded">@filename</code> or <code className="bg-blue-900/30 px-1 py-0.5 rounded">#issueID</code> to scope your questions
+              </div>
             </div>
             <div className="font-code bg-[rgba(15,23,42,0.6)] text-xs md:text-sm text-left overflow-x-auto p-3 md:p-6 rounded">
               {isLoading ? (
@@ -150,6 +153,9 @@ const HeroSection = () => {
                   </p>
                   <p className="text-green-400 mb-3">
                     What do I need to fix issue <span className="text-blue-400">#1234</span>?
+                  </p>
+                  <p className="text-green-400 mb-3">
+                    What changed in the last 2 commits?
                   </p>
                   <p className="text-green-400 mb-3">
                     <span className="text-yellow-400">@src/components/Modal.tsx</span> — how does close animation work?

@@ -12,40 +12,40 @@ import {
 
 const features = [
   {
-    title: "Multi-Language Support",
-    description: "Supports 20+ languages with language-aware parsing and semantic chunking.",
+    title: "Language-aware Parsing + Chunking",
+    description: "Supports 20+ languages with semantic understanding of code structure and context.",
     icon: <Globe className="h-10 w-10 text-blue-400" />,
-    highlight: "Language-aware parsing"
+    highlight: "Smart code parsing"
   },
   {
-    title: "Local-First Repo Analysis",
-    description: "Local-first, session-aware repo embedding. No rate limits. Always up-to-date.",
+    title: "Session-Based Repo Indexing",
+    description: "Local-first, session-aware repo embedding. No rate limits. Always up-to-date with your changes.",
     icon: <FileSearch className="h-10 w-10 text-blue-400" />,
-    highlight: "Session-aware embedding"
+    highlight: "Memory across chats"
   },
   {
     title: "Hybrid RAG Engine",
-    description: "FAISS + BM25 with LLM reranking. Built for precise issue resolution.",
+    description: "FAISS + BM25 with LLM reranking. Built for precise issue resolution and code retrieval.",
     icon: <Database className="h-10 w-10 text-blue-400" />,
     highlight: "FAISS + BM25 + reranking"
   },
   {
     title: "Multi-Provider LLM Support",
-    description: "Plug into OpenAI, Claude, Mistral, or any LLM via OpenRouter or API keys.",
+    description: "Plug into OpenAI, Claude, Mistral, or any LLM via OpenRouter or direct API keys.",
     icon: <Terminal className="h-10 w-10 text-blue-400" />,
     highlight: "OpenRouter compatible"
   },
   {
-    title: "Full Discussion Context",
-    description: "Parse GitHub issues, comments, and references for complete discussion context.",
+    title: "GitHub Issues + Threads Parsing",
+    description: "Parse GitHub issues, comments, and references for complete discussion context and history.",
     icon: <MessageSquare className="h-10 w-10 text-blue-400" />,
-    highlight: "Issues + comments + refs"
+    highlight: "Full context threads"
   },
   {
-    title: "File-Aware Chat",
-    description: "Use @file to scope questions to exact files or functions, and get accurate, grounded answers.",
+    title: "@file, @function, or Natural Language Queries",
+    description: "Use @file to scope questions to exact files or functions, or ask broad repo questions naturally.",
     icon: <Code className="h-10 w-10 text-blue-400" />,
-    highlight: "@file scoped queries"
+    highlight: "Scoped + natural queries"
   },
 ];
 

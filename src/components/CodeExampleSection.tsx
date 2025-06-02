@@ -29,9 +29,11 @@ async def main():
 
 asyncio.run(main())`;
 
-  const cliCode = `$ python examples/examples_complete_rag.py
+  const cliCode = `# Install triage.flow
+$ pip install triage-flow
 
-Enter GitHub issue URL: https://github.com/huggingface/transformers/issues/12345
+# Analyze a GitHub issue
+$ triage-flow --issue https://github.com/huggingface/transformers/issues/12345
 
 Fetching issue from GitHub...
 Issue title: "Model fails to load with CUDA out of memory error"
@@ -50,31 +52,36 @@ Generated prompt:
 You are a helpful AI assistant for the Hugging Face Transformers library.
 ISSUE TITLE: Model fails to load with CUDA out of memory error
 ...
-"""`;
+"""
 
-  const apiCode = `from fastapi import FastAPI
-from src.github_client import GitHubIssueClient
-from src.local_rag import LocalRepoContextExtractor
-from src.prompt_generator import PromptGenerator
-import asyncio
+# Or use for any repository
+$ triage-flow --repo https://github.com/myorg/myrepo.git --type fix`;
 
-app = FastAPI()
+  const apiCode = `# REST API Usage
+curl -X POST http://localhost:8000/api/generate \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "repo_url": "https://github.com/huggingface/transformers.git",
+    "issue_id": 12345,
+    "prompt_type": "explain"
+  }'
 
-@app.get("/generate-prompt/")
-async def generate_prompt(issue_url: str, prompt_type: str = "explain"):
-    github_client = GitHubIssueClient()
-    issue_response = await github_client.get_issue(issue_url)
-    if issue_response.status != "success":
-        return {"error": "Failed to fetch issue"}
-    repo_extractor = LocalRepoContextExtractor()
-    await repo_extractor.load_repository(issue_url.rsplit("/issues/", 1)[0] + ".git")
-    context = await repo_extractor.get_issue_context(issue_response.data.title, issue_response.data.body)
-    prompt_generator = PromptGenerator()
-    prompt = await prompt_generator.generate_prompt(
-        request=None,  # Fill in as needed
-        issue=issue_response.data
-    )
-    return {"prompt": prompt}`;
+# Response
+{
+  "session_id": "abc123",
+  "prompt": "You are a helpful AI assistant...",
+  "context_files": [
+    "src/transformers/models/bert/modeling_bert.py",
+    "src/transformers/trainer.py"
+  ]
+}
+
+# Start a chat session
+curl -X POST http://localhost:8000/sessions \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "repo_url": "https://github.com/myorg/myrepo.git"
+  }'`;
 
   return (
     <section id="examples" className="py-20">
@@ -82,16 +89,16 @@ async def generate_prompt(issue_url: str, prompt_type: str = "explain"):
         <div className="text-center mb-10">
           <h2 className="text-3xl font-bold tracking-tighter mb-2">Code Examples</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Use GH Issue Prompt as a Python library, CLI tool, or API service.
+            Use triage.flow as a Python library, CLI tool, or API service — integrate however works best for your workflow.
           </p>
         </div>
 
         <div className="bg-card border rounded-xl p-4 shadow-lg max-w-4xl mx-auto">
           <Tabs defaultValue="python" value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="mb-4">
-              <TabsTrigger value="python">Python Library</TabsTrigger>
-              <TabsTrigger value="cli">CLI Tool</TabsTrigger>
-              <TabsTrigger value="api">API Service</TabsTrigger>
+              <TabsTrigger value="python">🐍 Python Library</TabsTrigger>
+              <TabsTrigger value="cli">🔧 CLI Tool</TabsTrigger>
+              <TabsTrigger value="api">🧪 API Usage</TabsTrigger>
             </TabsList>
             <TabsContent value="python" className="rounded-md bg-muted p-4">
               <pre className="font-code text-sm overflow-x-auto">
