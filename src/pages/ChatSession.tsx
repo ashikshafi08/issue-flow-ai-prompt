@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -7,8 +6,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Send, FileText, Search } from 'lucide-react';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { Send, FileText, Search, Copy, Check } from 'lucide-react';
 // @ts-ignore
 import Fuse from 'fuse.js';
 
@@ -17,36 +16,48 @@ interface ChatMessage {
   content: string;
 }
 
-// Custom components for React Markdown with enhanced styling for better formatting
+// Enhanced markdown components with ChatGPT-style appearance
 const MarkdownComponents = {
   code({ node, inline, className, children, ...props }: any) {
+    const [copied, setCopied] = useState(false);
     const match = /language-(\w+)/.exec(className || '');
-    const language = match ? match[1] : 'plaintext';
+    const language = match ? match[1] : 'text';
+    
+    const copyToClipboard = () => {
+      navigator.clipboard.writeText(String(children).replace(/\n$/, ''));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    };
     
     if (!inline) {
       return (
-        <div className="my-4 rounded-md overflow-hidden">
-          <div className="bg-gray-800 px-4 py-1 text-xs font-mono text-gray-300 flex justify-between items-center border-b border-gray-700">
-            {language !== 'plaintext' && <span>{language}</span>}
+        <div className="my-6 rounded-lg overflow-hidden border border-gray-700/50 bg-gray-950/80">
+          <div className="flex items-center justify-between bg-gray-800/80 px-4 py-2 text-xs">
+            <span className="text-gray-400 font-mono">{language}</span>
+            <button
+              onClick={copyToClipboard}
+              className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors px-2 py-1 rounded hover:bg-gray-700/50"
+            >
+              {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+              {copied ? 'Copied!' : 'Copy'}
+            </button>
           </div>
           <SyntaxHighlighter
-            style={atomDark}
+            style={vscDarkPlus}
             language={language}
             PreTag="div"
             showLineNumbers
             wrapLines
-            wrapLongLines
             customStyle={{
               margin: 0,
               padding: '1rem',
-              borderRadius: '0 0 0.375rem 0.375rem',
-              background: '#1a1a2e',
+              background: 'transparent',
               fontSize: '0.875rem',
+              lineHeight: '1.5',
             }}
             codeTagProps={{ 
               style: { 
-                fontFamily: "Menlo, Monaco, Consolas, 'Courier New', monospace",
-                lineHeight: 1.5
+                fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, 'Courier New', monospace"
               } 
             }}
             {...props}
@@ -58,49 +69,50 @@ const MarkdownComponents = {
     }
     
     return (
-      <code className="bg-gray-800 px-1.5 py-0.5 rounded-sm font-mono text-sm text-green-400" {...props}>
+      <code className="bg-gray-800/60 border border-gray-700/30 px-1.5 py-0.5 rounded text-sm font-mono text-amber-300" {...props}>
         {children}
       </code>
     );
   },
-  h1: ({ node, ...props }: any) => <h1 className="text-xl font-bold my-4 pb-1 border-b border-gray-700" {...props} />,
-  h2: ({ node, ...props }: any) => <h2 className="text-lg font-bold my-3 pb-1 border-b border-gray-800" {...props} />,
-  h3: ({ node, ...props }: any) => <h3 className="text-md font-semibold my-3" {...props} />,
-  ul: ({ node, ...props }: any) => <ul className="list-disc pl-6 my-3 space-y-2" {...props} />,
-  ol: ({ node, ...props }: any) => <ol className="list-decimal pl-6 my-3 space-y-2" {...props} />,
-  li: ({ node, ...props }: any) => <li className="my-1" {...props} />,
+  h1: ({ node, ...props }: any) => <h1 className="text-2xl font-bold text-white my-4 pb-2 border-b border-gray-700" {...props} />,
+  h2: ({ node, ...props }: any) => <h2 className="text-xl font-semibold text-white my-3 pb-1 border-b border-gray-800" {...props} />,
+  h3: ({ node, ...props }: any) => <h3 className="text-lg font-semibold text-white my-3" {...props} />,
+  h4: ({ node, ...props }: any) => <h4 className="text-base font-semibold text-white my-2" {...props} />,
+  ul: ({ node, ...props }: any) => <ul className="list-disc pl-6 my-4 space-y-2 text-gray-200" {...props} />,
+  ol: ({ node, ...props }: any) => <ol className="list-decimal pl-6 my-4 space-y-2 text-gray-200" {...props} />,
+  li: ({ node, ...props }: any) => <li className="leading-relaxed" {...props} />,
   p: ({ node, children, ...props }: any) => {
     const hasBlockChild = React.Children.toArray(children).some(
       (child: any) => typeof child === 'object' && child !== null && 'type' in child && 
-      child.type !== React.Fragment && child.type !== 'span' && 
-      child.type !== 'a' && child.type !== 'em' && child.type !== 'strong' && child.type !== 'code' && child.type !== 'del'
+      ['pre', 'blockquote', 'div', 'ul', 'ol'].includes(child.type)
     );
     if (hasBlockChild) {
-      return <div className="my-3 leading-relaxed" {...props}>{children}</div>;
+      return <div className="my-3 leading-relaxed text-gray-200" {...props}>{children}</div>;
     }
-    return <p className="my-3 leading-relaxed" {...props}>{children}</p>;
+    return <p className="my-3 leading-relaxed text-gray-200" {...props}>{children}</p>;
   },
   blockquote: ({ node, ...props }: any) => (
-    <blockquote className="border-l-4 border-blue-500 bg-gray-800/50 pl-4 py-2 italic text-gray-300 my-4 rounded-r-md" {...props} />
+    <blockquote className="border-l-4 border-blue-500 bg-gray-800/30 pl-4 py-3 my-4 italic text-gray-300 rounded-r" {...props} />
   ),
   a: ({ node, ...props }: any) => (
-    <a className="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer" {...props} />
+    <a className="text-blue-400 hover:text-blue-300 underline underline-offset-2" target="_blank" rel="noopener noreferrer" {...props} />
   ),
   table: ({ node, ...props }: any) => (
-    <div className="overflow-x-auto my-4 rounded-md border border-gray-700">
-      <table className="min-w-full divide-y divide-gray-700" {...props} />
+    <div className="overflow-x-auto my-4 rounded-lg border border-gray-700">
+      <table className="min-w-full divide-y divide-gray-700 bg-gray-900/50" {...props} />
     </div>
   ),
-  thead: ({ node, ...props }: any) => <thead className="bg-gray-700/50" {...props} />,
-  tbody: ({ node, ...props }: any) => <tbody className="divide-y divide-gray-600" {...props} />,
-  tr: ({ node, ...props }: any) => <tr className="hover:bg-gray-700/30" {...props} />,
-  th: ({ node, ...props }: any) => <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" {...props} />,
-  td: ({ node, ...props }: any) => <td className="px-3 py-2 text-sm" {...props} />,
+  thead: ({ node, ...props }: any) => <thead className="bg-gray-800/50" {...props} />,
+  tbody: ({ node, ...props }: any) => <tbody className="divide-y divide-gray-700" {...props} />,
+  tr: ({ node, ...props }: any) => <tr className="hover:bg-gray-800/30 transition-colors" {...props} />,
+  th: ({ node, ...props }: any) => <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider" {...props} />,
+  td: ({ node, ...props }: any) => <td className="px-4 py-3 text-sm text-gray-200" {...props} />,
   pre: ({ node, ...props }: any) => <pre className="overflow-auto p-0 bg-transparent" {...props} />,
-  hr: ({ node, ...props }: any) => <hr className="border-gray-600 my-3" {...props} />,
-  img: ({ node, ...props }: any) => <img className="max-w-full h-auto rounded-md my-3" {...props} />,
+  hr: ({ node, ...props }: any) => <hr className="border-gray-600 my-6" {...props} />,
+  img: ({ node, ...props }: any) => <img className="max-w-full h-auto rounded-lg my-4 shadow-lg" {...props} />,
+  strong: ({ node, ...props }: any) => <strong className="font-semibold text-white" {...props} />,
+  em: ({ node, ...props }: any) => <em className="italic text-gray-300" {...props} />,
 };
-
 
 export default function ChatSession() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -222,9 +234,10 @@ export default function ChatSession() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isStreaming]);
 
-  // Send message with selected files
+  // Enhanced send message with real-time streaming
   const handleSend = async () => {
     if (!input.trim() || !sessionId) return;
+    
     const userMessage = { role: 'user', content: input };
     setMessages(prev => [...prev, userMessage]);
     const currentInput = input;
@@ -232,34 +245,47 @@ export default function ChatSession() {
     setIsLoading(true);
 
     try {
+      // Add empty assistant message for streaming
       setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
       setIsStreaming(true);
+      setIsLoading(false);
+      
       const response = await fetch(`http://localhost:8000/sessions/${sessionId}/messages?stream=true`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: 'user', content: currentInput })
       });
+      
       if (!response.body) throw new Error('Response body is null');
+      
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let assistantResponseContent = '';
+      
       try {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
+          
           const chunk = decoder.decode(value, { stream: true });
           const lines = chunk.split('\n');
+          
           for (const line of lines) {
             if (line.startsWith('data: ')) {
               const data = line.substring(6).trim();
-              if (data === '[DONE]') { setIsStreaming(false); return; }
+              if (data === '[DONE]') { 
+                setIsStreaming(false); 
+                return; 
+              }
               if (data) {
                 try {
                   const json = JSON.parse(data);
                   if (json.error) throw new Error(json.error);
+                  
                   const content = json.choices?.[0]?.delta?.content;
                   if (content) {
                     assistantResponseContent += content;
+                    // Real-time update without delay
                     setMessages(prev => {
                       const newMessages = [...prev];
                       const lastMessageIndex = newMessages.length - 1;
@@ -306,7 +332,7 @@ export default function ChatSession() {
   function highlightMentions(text: string) {
     return text.split(/(@[\w\-/\\.]+)/g).map((part, i) =>
       part.startsWith('@') ? (
-        <span key={i} className="bg-blue-600/30 text-blue-400 px-1.5 py-0.5 rounded-md font-medium">{part}</span>
+        <span key={i} className="bg-blue-600/20 text-blue-300 px-2 py-1 rounded-md font-medium border border-blue-500/30">{part}</span>
       ) : (
         part
       )
@@ -321,35 +347,30 @@ export default function ChatSession() {
         <p className="text-sm text-gray-400 mt-1">AI Assistant</p>
       </div>
       
-      {/* Messages Area */}
+      {/* Enhanced Messages Area */}
       <div className="flex-1 overflow-hidden">
         <ScrollArea className="h-full">
           <div className="px-4 py-6">
-            <div className="mx-auto max-w-4xl space-y-6">
+            <div className="mx-auto max-w-3xl space-y-8">
               {messages.map((msg, index) => (
-                <div 
-                  key={index} 
-                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div 
-                    className={`relative max-w-[85%] rounded-2xl ${
-                      msg.role === 'user' 
-                        ? 'bg-blue-600 text-white px-4 py-3 rounded-br-lg' 
-                        : 'bg-gray-800/60 text-gray-100 backdrop-blur-sm border border-gray-700/30'
-                    }`}
-                  >
-                    {msg.role === 'assistant' && (
-                      <div className="px-4 py-3 border-b border-gray-700/30 flex items-center">
-                        <div className="mr-3 flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600">
-                          <span className="text-xs font-semibold">AI</span>
+                <div key={index} className="group">
+                  {msg.role === 'user' ? (
+                    /* User Message - ChatGPT Style */
+                    <div className="flex justify-end">
+                      <div className="max-w-[80%] bg-blue-600 text-white px-5 py-3 rounded-2xl rounded-br-md shadow-lg">
+                        <div className="text-[15px] leading-relaxed">
+                          {highlightMentions(msg.content)}
                         </div>
-                        <span className="text-sm font-medium text-gray-200">Assistant</span>
                       </div>
-                    )}
-                    
-                    <div className={`${msg.role === 'assistant' ? 'px-4 py-4' : ''}`}>
-                      {msg.role === 'assistant' ? (
-                        <div className="prose prose-invert max-w-none prose-headings:text-gray-100 prose-p:text-gray-200 prose-a:text-blue-400 prose-code:text-green-400 prose-pre:bg-transparent prose-pre:p-0 prose-pre:m-0 prose-li:my-0 prose-ul:my-2 prose-ol:my-2">
+                    </div>
+                  ) : (
+                    /* Assistant Message - ChatGPT Style */
+                    <div className="flex items-start space-x-4">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white text-sm font-semibold shadow-lg">
+                        AI
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="prose prose-invert max-w-none prose-headings:text-white prose-p:text-gray-200 prose-strong:text-white prose-code:text-amber-300 prose-pre:bg-transparent prose-pre:p-0">
                           <ReactMarkdown
                             components={MarkdownComponents}
                             remarkPlugins={[remarkGfm]}
@@ -357,38 +378,34 @@ export default function ChatSession() {
                             {msg.content}
                           </ReactMarkdown>
                           {isStreaming && index === messages.length - 1 && (
-                            <span className="inline-block w-2 h-5 bg-blue-400 ml-1 animate-pulse rounded-sm" />
+                            <span className="inline-block w-2 h-5 bg-green-400 ml-1 animate-pulse rounded-sm" />
                           )}
                         </div>
-                      ) : (
-                        <div className="text-gray-100 leading-relaxed">{highlightMentions(msg.content)}</div>
-                      )}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               ))}
               
-              {/* Enhanced Loading Indicator */}
+              {/* Loading Indicator */}
               {isLoading && !isStreaming && (
-                <div className="flex justify-start">
-                  <div className="relative max-w-[85%] rounded-2xl bg-gray-800/60 backdrop-blur-sm border border-gray-700/30">
-                    <div className="px-4 py-3 border-b border-gray-700/30 flex items-center">
-                      <div className="mr-3 flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600">
-                        <span className="text-xs font-semibold">AI</span>
+                <div className="flex items-start space-x-4">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white text-sm font-semibold shadow-lg">
+                    AI
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-3 py-2">
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                        <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                       </div>
-                      <span className="text-sm font-medium text-gray-200">Assistant</span>
-                    </div>
-                    <div className="px-4 py-5 flex items-center">
-                      <div className="flex space-x-2">
-                        <div className="h-2 w-2 animate-bounce rounded-full bg-blue-400 delay-0"></div>
-                        <div className="h-2 w-2 animate-bounce rounded-full bg-blue-400 delay-100"></div>
-                        <div className="h-2 w-2 animate-bounce rounded-full bg-blue-400 delay-200"></div>
-                      </div>
-                      <span className="ml-3 text-sm text-gray-400">Thinking...</span>
+                      <span className="text-gray-400 text-sm">Thinking...</span>
                     </div>
                   </div>
                 </div>
               )}
+              
               <div ref={messagesEndRef} />
             </div>
           </div>
@@ -426,7 +443,7 @@ export default function ChatSession() {
                           <div
                             key={file.path}
                             className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg transition-colors duration-150 ${
-                              highlight === idx ? 'bg-blue-600/20 text-blue-400' : 'hover:bg-gray-700/50 text-gray-300'
+                              highlight === idx ? 'bg-blue-600/20 text-blue-300' : 'hover:bg-gray-700/50 text-gray-300'
                             }`}
                             onMouseEnter={() => setHighlight(idx)}
                             onClick={() => handleFileSelect(file)}
