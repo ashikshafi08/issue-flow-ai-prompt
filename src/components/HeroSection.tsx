@@ -82,7 +82,7 @@ const HeroSection = () => {
           </div>
           
           <div className={`w-full max-w-xl mx-auto transition-all duration-700 delay-200 ${isVisible ? 'opacity-100' : 'opacity-0 translate-y-10'}`}>
-            <form onSubmit={handleSubmit} className="glass-card p-4 md:p-6 shadow-lg">
+            <form onSubmit={handleSubmit} className="glass-card p-4 md:p-6 shadow-lg" id="hero-form">
               <div className="space-y-3 md:space-y-4">
                 <div className="space-y-1 md:space-y-2">
                   <label htmlFor="issueUrl" className="text-xs md:text-sm font-medium text-left block text-blue-300">

@@ -1,7 +1,7 @@
-
 import React from "react";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
+import DemoVideoSection from "@/components/DemoVideoSection";
 import FeaturesSection from "@/components/FeaturesSection";
 import WorkflowSection from "@/components/WorkflowSection";
 import ExampleOutputSection from "@/components/ExampleOutputSection";
@@ -16,6 +16,9 @@ const Index = () => {
       <Navbar />
       <main className="flex-grow relative">
         <HeroSection />
+        <div className="relative z-10">
+          <DemoVideoSection />
+        </div>
         <div className="relative z-10">
           <FeaturesSection />
         </div>
