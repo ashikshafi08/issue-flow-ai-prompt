@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+
+import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -395,81 +395,78 @@ export default function ChatSession() {
         </ScrollArea>
       </div>
       
-      {/* Enhanced Input Area */}
+      {/* Enhanced Input Area with Inline File Picker */}
       <div className="border-t border-gray-700/50 bg-gray-800/80 backdrop-blur-sm p-4">
         <div className="mx-auto max-w-4xl">
           <div className="relative">
-            <Popover open={showFilePicker} onOpenChange={setShowFilePicker}>
-              <PopoverTrigger asChild>
-                <div className="flex items-end gap-3 rounded-2xl bg-gray-700/50 border border-gray-600/50 p-3 focus-within:border-blue-500/50 focus-within:ring-1 focus-within:ring-blue-500/20 transition-all duration-200">
-                  <Textarea
-                    ref={textareaRef}
-                    value={input}
-                    onChange={handleInput}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Message AI... Use @ to mention files"
-                    className="flex-1 min-h-[20px] max-h-[120px] bg-transparent border-0 resize-none text-gray-100 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0 text-base leading-6"
-                    disabled={isLoading || isStreaming}
-                    rows={1}
-                  />
-                  <Button 
-                    onClick={handleSend} 
-                    className="rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:opacity-50 transition-colors duration-200 px-4 py-2"
-                    disabled={isLoading || isStreaming || !input.trim()}
-                    size="sm"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </div>
-              </PopoverTrigger>
-              
-              <PopoverContent 
-                side="top" 
-                align="start" 
-                className="w-96 p-0 bg-gray-800/95 backdrop-blur-md border-gray-600/50 shadow-xl"
-                sideOffset={8}
-              >
-                <div className="border-b border-gray-600/50 p-3">
-                  <div className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-3">
-                    <FileText className="h-4 w-4" />
-                    Attach Files
+            {/* File Picker - positioned above input */}
+            {showFilePicker && (
+              <div className="absolute bottom-full left-0 right-0 mb-2 z-10">
+                <div className="bg-gray-800/95 backdrop-blur-md border border-gray-600/50 rounded-xl shadow-xl overflow-hidden">
+                  <div className="border-b border-gray-600/50 p-3">
+                    <div className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-3">
+                      <FileText className="h-4 w-4" />
+                      Attach Files
+                    </div>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <input
+                        autoFocus
+                        value={fileQuery}
+                        onChange={e => { setFileQuery(e.target.value); setHighlight(0); }}
+                        placeholder="Search files..."
+                        className="w-full pl-10 pr-3 py-2 bg-gray-700/50 border border-gray-600/50 rounded-lg text-sm text-gray-100 placeholder:text-gray-400 focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+                      />
+                    </div>
                   </div>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <input
-                      autoFocus
-                      value={fileQuery}
-                      onChange={e => { setFileQuery(e.target.value); setHighlight(0); }}
-                      placeholder="Search files..."
-                      className="w-full pl-10 pr-3 py-2 bg-gray-700/50 border border-gray-600/50 rounded-lg text-sm text-gray-100 placeholder:text-gray-400 focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
-                    />
-                  </div>
-                </div>
-                <ScrollArea className="max-h-64">
-                  <div className="p-1">
-                    {fileResults.length > 0 ? (
-                      fileResults.map((file, idx) => (
-                        <div
-                          key={file.path}
-                          className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg transition-colors duration-150 ${
-                            highlight === idx ? 'bg-blue-600/20 text-blue-400' : 'hover:bg-gray-700/50 text-gray-300'
-                          }`}
-                          onMouseEnter={() => setHighlight(idx)}
-                          onClick={() => handleFileSelect(file)}
-                        >
-                          <FileText className="h-4 w-4 flex-shrink-0" />
-                          <span className="text-sm truncate">{file.path}</span>
+                  <ScrollArea className="max-h-64">
+                    <div className="p-1">
+                      {fileResults.length > 0 ? (
+                        fileResults.map((file, idx) => (
+                          <div
+                            key={file.path}
+                            className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg transition-colors duration-150 ${
+                              highlight === idx ? 'bg-blue-600/20 text-blue-400' : 'hover:bg-gray-700/50 text-gray-300'
+                            }`}
+                            onMouseEnter={() => setHighlight(idx)}
+                            onClick={() => handleFileSelect(file)}
+                          >
+                            <FileText className="h-4 w-4 flex-shrink-0" />
+                            <span className="text-sm truncate">{file.path}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="px-3 py-4 text-center text-sm text-gray-400">
+                          No files found
                         </div>
-                      ))
-                    ) : (
-                      <div className="px-3 py-4 text-center text-sm text-gray-400">
-                        No files found
-                      </div>
-                    )}
-                  </div>
-                </ScrollArea>
-              </PopoverContent>
-            </Popover>
+                      )}
+                    </div>
+                  </ScrollArea>
+                </div>
+              </div>
+            )}
+            
+            {/* Input Field */}
+            <div className="flex items-end gap-3 rounded-2xl bg-gray-700/50 border border-gray-600/50 p-3 focus-within:border-blue-500/50 focus-within:ring-1 focus-within:ring-blue-500/20 transition-all duration-200">
+              <Textarea
+                ref={textareaRef}
+                value={input}
+                onChange={handleInput}
+                onKeyDown={handleKeyDown}
+                placeholder="Message AI... Use @ to mention files"
+                className="flex-1 min-h-[20px] max-h-[120px] bg-transparent border-0 resize-none text-gray-100 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0 text-base leading-6"
+                disabled={isLoading || isStreaming}
+                rows={1}
+              />
+              <Button 
+                onClick={handleSend} 
+                className="rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:opacity-50 transition-colors duration-200 px-4 py-2"
+                disabled={isLoading || isStreaming || !input.trim()}
+                size="sm"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
