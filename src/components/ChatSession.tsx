@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, FileText, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -38,7 +37,7 @@ const MarkdownComponents = {
               margin: 0,
               padding: '1rem',
               borderRadius: '0 0 0.375rem 0.375rem',
-              background: '#1a1a2e',
+              background: '#1a1a1a',
               fontSize: '0.875rem',
             }}
             codeTagProps={{ 
@@ -56,47 +55,78 @@ const MarkdownComponents = {
     }
     
     return (
-      <code className="bg-gray-800 px-1.5 py-0.5 rounded-sm font-mono text-sm text-green-400" {...props}>
+      <code className="bg-gray-800/60 border border-gray-700/40 px-2 py-1 rounded-md text-sm font-mono text-gray-200" {...props}>
         {children}
       </code>
     );
   },
-  h1: ({ node, ...props }: any) => <h1 className="text-xl font-bold my-4 pb-1 border-b border-gray-700" {...props} />,
-  h2: ({ node, ...props }: any) => <h2 className="text-lg font-bold my-3 pb-1 border-b border-gray-800" {...props} />,
-  h3: ({ node, ...props }: any) => <h3 className="text-md font-semibold my-3" {...props} />,
-  ul: ({ node, ...props }: any) => <ul className="list-disc pl-6 my-3 space-y-2" {...props} />,
-  ol: ({ node, ...props }: any) => <ol className="list-decimal pl-6 my-3 space-y-2" {...props} />,
-  li: ({ node, ...props }: any) => <li className="my-1" {...props} />,
-  p: ({ node, children, ...props }: any) => {
-    const hasBlockChild = React.Children.toArray(children).some(
-      (child: any) => typeof child === 'object' && child !== null && 'type' in child && 
-      child.type !== React.Fragment && child.type !== 'span' && 
-      child.type !== 'a' && child.type !== 'em' && child.type !== 'strong' && child.type !== 'code' && child.type !== 'del'
-    );
-    if (hasBlockChild) {
-      return <div className="my-3 leading-relaxed" {...props}>{children}</div>;
-    }
-    return <p className="my-3 leading-relaxed" {...props}>{children}</p>;
-  },
-  blockquote: ({ node, ...props }: any) => (
-    <blockquote className="border-l-4 border-blue-500 bg-gray-800/50 pl-4 py-2 italic text-gray-300 my-4 rounded-r-md" {...props} />
+  h1: ({ node, children, ...props }: any) => (
+    <h1 className="text-xl font-bold text-white my-4 pb-2 border-b border-gray-700/50" {...props}>
+      {children}
+    </h1>
+  ),
+  h2: ({ node, children, ...props }: any) => (
+    <h2 className="text-lg font-semibold text-white my-3 pb-1" {...props}>
+      {children}
+    </h2>
+  ),
+  h3: ({ node, children, ...props }: any) => (
+    <h3 className="text-base font-semibold text-white my-3" {...props}>
+      {children}
+    </h3>
+  ),
+  h4: ({ node, children, ...props }: any) => (
+    <h4 className="text-sm font-semibold text-white my-2" {...props}>
+      {children}
+    </h4>
+  ),
+  ul: ({ node, ...props }: any) => (
+    <ul className="list-disc list-inside my-3 space-y-1 text-gray-200 ml-4" {...props} />
+  ),
+  ol: ({ node, ...props }: any) => (
+    <ol className="list-decimal list-inside my-3 space-y-1 text-gray-200 ml-4" {...props} />
+  ),
+  li: ({ node, children, ...props }: any) => (
+    <li className="leading-relaxed text-gray-200" {...props}>
+      {children}
+    </li>
+  ),
+  p: ({ node, children, ...props }: any) => (
+    <p className="my-3 leading-relaxed text-gray-200" {...props}>
+      {children}
+    </p>
+  ),
+  blockquote: ({ node, children, ...props }: any) => (
+    <blockquote className="my-4 border-l-4 border-gray-500/50 bg-gray-500/10 pl-4 py-3 rounded-r-lg text-gray-100 italic" {...props}>
+      {children}
+    </blockquote>
   ),
   a: ({ node, ...props }: any) => (
-    <a className="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer" {...props} />
+    <a 
+      className="text-gray-400 hover:text-gray-300 underline underline-offset-2 transition-colors" 
+      target="_blank" 
+      rel="noopener noreferrer" 
+      {...props} 
+    />
   ),
   table: ({ node, ...props }: any) => (
-    <div className="overflow-x-auto my-4 rounded-md border border-gray-700">
-      <table className="min-w-full divide-y divide-gray-700" {...props} />
+    <div className="overflow-x-auto my-4 rounded-lg border border-gray-700/50">
+      <table className="min-w-full divide-y divide-gray-700 bg-gray-900/50" {...props} />
     </div>
   ),
   thead: ({ node, ...props }: any) => <thead className="bg-gray-700/50" {...props} />,
   tbody: ({ node, ...props }: any) => <tbody className="divide-y divide-gray-600" {...props} />,
   tr: ({ node, ...props }: any) => <tr className="hover:bg-gray-700/30" {...props} />,
-  th: ({ node, ...props }: any) => <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" {...props} />,
-  td: ({ node, ...props }: any) => <td className="px-3 py-2 text-sm" {...props} />,
+  th: ({ node, ...props }: any) => <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-300" {...props} />,
+  td: ({ node, ...props }: any) => <td className="px-3 py-2 text-sm text-gray-200" {...props} />,
   pre: ({ node, ...props }: any) => <pre className="overflow-auto p-0 bg-transparent" {...props} />,
-  hr: ({ node, ...props }: any) => <hr className="border-gray-600 my-3" {...props} />,
-  img: ({ node, ...props }: any) => <img className="max-w-full h-auto rounded-md my-3" {...props} />,
+  hr: ({ node, ...props }: any) => (
+    <hr className="border-0 h-px bg-gradient-to-r from-transparent via-gray-600 to-transparent my-6" {...props} />
+  ),
+  strong: ({ node, ...props }: any) => (
+    <strong className="font-semibold text-white" {...props} />
+  ),
+  em: ({ node, ...props }: any) => <em className="italic text-gray-300" {...props} />,
 };
 
 const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSession }) => {
@@ -173,7 +203,7 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSession }) =
   const highlightMentions = (text: string) => {
     return text.split(/(@[\w\-/\\.]+)/g).map((part, i) =>
       part.startsWith('@') ? (
-        <span key={i} className="bg-blue-600/30 text-blue-400 px-1.5 py-0.5 rounded-md font-medium">{part}</span>
+        <span key={i} className="bg-gray-600/30 text-gray-300 px-1.5 py-0.5 rounded-md font-medium">{part}</span>
       ) : (
         part
       )
@@ -193,7 +223,7 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSession }) =
               {session.repoUrl.replace('https://github.com/', '')}
             </p>
             {session.filePath && (
-              <p className="text-xs text-blue-400 mt-1">
+              <p className="text-xs text-gray-400 mt-1">
                 Scoped to: {session.filePath}
               </p>
             )}
@@ -222,9 +252,9 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSession }) =
                     Ask questions about the code, files, or repository structure.
                   </p>
                   <div className="text-left max-w-md mx-auto space-y-2 text-sm text-gray-600">
-                    <p>• <span className="text-blue-400">@filename.ts</span> - Ask about specific files</p>
-                    <p>• <span className="text-green-400">"What does this function do?"</span></p>
-                    <p>• <span className="text-purple-400">"Show me the API endpoints"</span></p>
+                    <p>• <span className="text-gray-400">@filename.ts</span> - Ask about specific files</p>
+                    <p>• <span className="text-gray-300">"What does this function do?"</span></p>
+                    <p>• <span className="text-gray-400">"Show me the API endpoints"</span></p>
                   </div>
                 </div>
               ) : (
@@ -236,13 +266,13 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSession }) =
                     <div 
                       className={`max-w-[80%] rounded-2xl ${
                         message.role === 'user' 
-                          ? 'bg-blue-600 text-white px-4 py-3' 
+                          ? 'bg-gray-700 text-white px-4 py-3' 
                           : 'bg-gray-800/60 text-gray-100 border border-gray-700/30'
                       }`}
                     >
                       {message.role === 'assistant' && (
                         <div className="px-4 py-3 border-b border-gray-700/30 flex items-center">
-                          <div className="mr-3 flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600">
+                          <div className="mr-3 flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-gray-500 to-gray-600">
                             <span className="text-xs font-semibold">AI</span>
                           </div>
                           <span className="text-sm font-medium">Assistant</span>
@@ -251,7 +281,7 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSession }) =
                       
                       <div className={`${message.role === 'assistant' ? 'px-4 py-4' : ''}`}>
                         {message.role === 'assistant' ? (
-                          <div className="prose prose-invert max-w-none prose-headings:text-gray-100 prose-p:text-gray-200 prose-a:text-blue-400 prose-code:text-green-400 prose-pre:bg-transparent prose-pre:p-0 prose-pre:m-0 prose-li:my-0 prose-ul:my-2 prose-ol:my-2">
+                          <div className="prose prose-invert max-w-none prose-headings:text-gray-100 prose-p:text-gray-200 prose-a:text-gray-400 prose-code:text-gray-400 prose-pre:bg-transparent prose-pre:p-0 prose-pre:m-0 prose-li:my-0 prose-ul:my-2 prose-ol:my-2">
                             <ReactMarkdown 
                               components={MarkdownComponents}
                               remarkPlugins={[remarkGfm]}
@@ -272,16 +302,16 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSession }) =
                 <div className="flex justify-start">
                   <div className="bg-gray-800/60 border border-gray-700/30 rounded-2xl">
                     <div className="px-4 py-3 border-b border-gray-700/30 flex items-center">
-                      <div className="mr-3 flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600">
+                      <div className="mr-3 flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-gray-500 to-gray-600">
                         <span className="text-xs font-semibold">AI</span>
                       </div>
                       <span className="text-sm font-medium text-gray-200">Assistant</span>
                     </div>
                     <div className="px-4 py-4 flex items-center">
                       <div className="flex space-x-1">
-                        <div className="h-2 w-2 animate-bounce rounded-full bg-blue-400 delay-0"></div>
-                        <div className="h-2 w-2 animate-bounce rounded-full bg-blue-400 delay-100"></div>
-                        <div className="h-2 w-2 animate-bounce rounded-full bg-blue-400 delay-200"></div>
+                        <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400 delay-0"></div>
+                        <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400 delay-100"></div>
+                        <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400 delay-200"></div>
                       </div>
                       <span className="ml-3 text-sm text-gray-400">Thinking...</span>
                     </div>
@@ -298,7 +328,7 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSession }) =
       {/* Input Area */}
       <div className="border-t border-gray-700 bg-gray-800/50 p-4">
         <div className="mx-auto max-w-3xl">
-          <div className="flex items-end gap-3 rounded-xl bg-gray-700/50 border border-gray-600/50 p-3 focus-within:border-blue-500/50 focus-within:ring-1 focus-within:ring-blue-500/20 transition-all duration-200">
+          <div className="flex items-end gap-3 rounded-xl bg-gray-700/50 border border-gray-600/50 p-3 focus-within:border-gray-500/50 focus-within:ring-1 focus-within:ring-gray-500/20 transition-all duration-200">
             <Textarea
               ref={textareaRef}
               value={input}
@@ -313,7 +343,7 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSession }) =
               onClick={handleSend} 
               disabled={isLoading || !input.trim()}
               size="sm"
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600"
+              className="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-600"
             >
               <Send className="h-4 w-4" />
             </Button>
