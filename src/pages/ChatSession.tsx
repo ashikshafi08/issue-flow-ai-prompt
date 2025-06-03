@@ -17,6 +17,7 @@ import Fuse from 'fuse.js';
 interface ChatMessage {
   role: string;
   content: string;
+  timestamp?: number; // Added timestamp
 }
 
 // Helper functions for enhanced markdown rendering
@@ -108,17 +109,32 @@ const enhanceTextWithLinks = (children: React.ReactNode): React.ReactNode => {
 // Enhanced markdown components with better formatting
 const MarkdownComponents = {
   code({ node, inline, className, children, ...props }: any) {
-    const [copied, setCopied] = useState(false);
     const match = /language-(\w+)/.exec(className || '');
     const language = match ? match[1] : 'text';
-    
-    const copyToClipboard = () => {
-      navigator.clipboard.writeText(String(children).replace(/\n$/, ''));
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    };
-    
+    const content = String(children).replace(/\n$/, '');
+
     if (!inline) {
+      // Heuristic: if content is short, single-line, and language is 'text', treat as inline.
+      const isEffectivelyInline = content.length < 50 && !content.includes('\n') && language === 'text';
+
+      if (isEffectivelyInline) {
+        // Render using the minimal inline style
+        return (
+          <code className="font-mono text-emerald-400 px-1" {...props}>
+            {content}
+          </code>
+        );
+      }
+
+      // Otherwise, render as a full code block (conditionally calling hooks)
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const [copied, setCopied] = useState(false);
+      const copyToClipboard = () => {
+        navigator.clipboard.writeText(content);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      };
+
       return (
         <div className="my-4 rounded-lg overflow-hidden border border-gray-700/40 bg-gray-950/60 shadow-lg">
           <div className="flex items-center justify-between bg-gray-800/60 px-4 py-2.5 border-b border-gray-700/40">
@@ -158,15 +174,16 @@ const MarkdownComponents = {
             }}
             {...props}
           >
-            {String(children).replace(/\n$/, '')}
+            {content}
           </SyntaxHighlighter>
         </div>
       );
     }
     
+    // True inline code (`code`)
     return (
-      <code className="bg-gray-800/60 border border-gray-700/40 px-2 py-1 rounded-md text-sm font-mono text-gray-200" {...props}>
-        {children}
+      <code className="font-mono text-emerald-400 px-1" {...props}>
+        {content}
       </code>
     );
   },
@@ -282,6 +299,11 @@ export default function ChatSession() {
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const location = useLocation();
+
+  const formatTimestamp = (timestamp: number): string => {
+    // HH:MM AM/PM format
+    return new Date(timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  };
 
   // Fetch file list when sessionId is available
   useEffect(() => {
@@ -420,7 +442,7 @@ export default function ChatSession() {
   useEffect(() => {
     const initialMessageFromState = location.state?.initialMessage;
     if (initialMessageFromState) {
-      setMessages([{ role: 'assistant', content: initialMessageFromState }]);
+      setMessages([{ role: 'assistant', content: initialMessageFromState, timestamp: Date.now() }]);
       setIsLoading(false);
     } else if (sessionId) {
       console.warn('ChatSession loaded without initial message in state. SessionId:', sessionId);
@@ -437,14 +459,14 @@ export default function ChatSession() {
   const handleSend = async () => {
     if (!input.trim() || !sessionId) return;
     
-    const userMessage = { role: 'user', content: input };
+    const userMessage = { role: 'user', content: input, timestamp: Date.now() };
     setMessages(prev => [...prev, userMessage]);
     const currentInput = input;
     setInput('');
     setIsLoading(true);
 
     try {
-      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: '', timestamp: Date.now() }]);
       setIsStreaming(true);
       setIsLoading(false);
       
@@ -512,11 +534,11 @@ export default function ChatSession() {
         const lastMessageIndex = newMessages.length - 1;
         if (lastMessageIndex >= 0 && newMessages[lastMessageIndex].role === 'assistant') {
           newMessages[lastMessageIndex] = {
-            ...newMessages[lastMessageIndex],
-            content: `Error: Failed to get response. ${error instanceof Error ? error.message : String(error)}`
+            ...newMessages[lastMessageIndex], // This will carry over the timestamp from the placeholder
+            content: `Error: Failed to get response. ${error instanceof Error ? error.message : String(error)}`,
           };
         } else {
-          newMessages.push({ role: 'assistant', content: `Error: Failed to get response. ${error instanceof Error ? error.message : String(error)}` });
+          newMessages.push({ role: 'assistant', content: `Error: Failed to get response. ${error instanceof Error ? error.message : String(error)}`, timestamp: Date.now() });
         }
         return newMessages;
       });
@@ -645,6 +667,11 @@ export default function ChatSession() {
                               <div className="text-[15px] leading-relaxed">
                                 {highlightMentions(msg.content)}
                               </div>
+                              {msg.timestamp && (
+                                <div className="text-xs text-blue-200/80 mt-2 text-right">
+                                  {formatTimestamp(msg.timestamp)}
+                                </div>
+                              )}
                             </div>
                           </div>
                         ) : (
@@ -652,7 +679,7 @@ export default function ChatSession() {
                             <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-semibold shadow-lg border border-emerald-400/30">
                               AI
                             </div>
-                            <div className="flex-1 min-w-0 bg-gray-800/40 border border-gray-700/40 rounded-2xl p-6 shadow-lg backdrop-blur-sm">
+                            <div className="flex-1 min-w-0 bg-gray-800/60 border border-gray-700/50 rounded-2xl p-6 shadow-xl backdrop-blur-md"> {/* MODIFIED STYLING HERE */}
                               <div className="prose prose-invert max-w-none">
                                 <ReactMarkdown
                                   components={MarkdownComponents}
@@ -664,6 +691,11 @@ export default function ChatSession() {
                                   <span className="inline-block w-2 h-5 bg-emerald-400 ml-1 animate-pulse rounded-sm" />
                                 )}
                               </div>
+                              {msg.timestamp && (!isStreaming || index !== messages.length -1) && (
+                                <div className="text-xs text-gray-400/90 mt-4 pt-3 border-t border-gray-700/40 text-right">
+                                  {formatTimestamp(msg.timestamp)}
+                                </div>
+                              )}
                             </div>
                           </div>
                         )}
