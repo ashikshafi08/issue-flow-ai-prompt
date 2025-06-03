@@ -60,13 +60,6 @@ const getBulletIcon = (text: string): string => {
   return '▶️';
 };
 
-const knownFiles = [
-  'agents.py', 'vision_web_browser.py', 'llm_client.py', 'local_rag.py', 
-  'new_rag.py', 'language_config.py', 'main.py', 'local_repo_loader.py',
-  'session_manager.py', 'conversation_memory.py', 'models.py', 
-  'prompt_generator.py', 'repo_context.py', 'config.py', 'github_client.py'
-];
-
 const enhanceTextWithLinks = (children: React.ReactNode): React.ReactNode => {
   if (typeof children === 'string') {
     // Enhanced file detection regex
@@ -75,20 +68,14 @@ const enhanceTextWithLinks = (children: React.ReactNode): React.ReactNode => {
     
     return parts.map((part, index) => {
       if (fileRegex.test(part)) {
-        const isKnownFile = knownFiles.some(file => part.includes(file));
         return (
           <span
             key={index}
-            className={`inline-flex items-center gap-1 px-2 py-1 rounded-md font-mono text-xs border transition-all cursor-pointer ${
-              isKnownFile 
-                ? 'bg-blue-600/20 text-blue-300 border-blue-500/30 hover:bg-blue-600/30' 
-                : 'bg-gray-700/50 text-gray-300 border-gray-600/30 hover:bg-gray-700/70'
-            }`}
-            title={isKnownFile ? 'Click to reference this file' : 'File reference'}
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-md font-mono text-xs border transition-all cursor-pointer bg-blue-600/20 text-blue-300 border-blue-500/30 hover:bg-blue-600/30"
+            title="File reference"
           >
             <span className="text-xs">📄</span>
             {part}
-            {isKnownFile && <span className="text-xs opacity-70">→</span>}
           </span>
         );
       }

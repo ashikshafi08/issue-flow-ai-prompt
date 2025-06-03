@@ -18,7 +18,7 @@ export const createChatSession = async (issueUrl: string, promptType: string) =>
       prompt_type: promptType,
       llm_config: { // Matches PromptRequest model in the backend
         provider: "openrouter", // Default provider
-        name: "openai/o4-mini-high"  // Default model
+        name: "google/gemini-2.5-flash-preview-05-20"  // Default model
       },
       context: {} // Optional, can be empty for now
     }),
