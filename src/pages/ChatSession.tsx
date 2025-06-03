@@ -481,18 +481,24 @@ export default function ChatSession() {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let assistantResponseContent = '';
+      let buffer = ''; // Add buffer to handle partial chunks
       
       try {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
           
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n');
+          // Add new chunk to buffer
+          buffer += decoder.decode(value, { stream: true });
+          
+          // Process complete lines
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || ''; // Keep the last incomplete line in buffer
           
           for (const line of lines) {
             if (line.startsWith('data: ')) {
               const data = line.substring(6).trim();
+              console.log('SSE data received:', data); // Debug log
               if (data === '[DONE]') { 
                 setIsStreaming(false); 
                 return; 
@@ -500,10 +506,14 @@ export default function ChatSession() {
               if (data) {
                 try {
                   const json = JSON.parse(data);
-                  if (json.error) throw new Error(json.error);
+                  if (json.error) {
+                    console.error('LLM API Error:', json.error);
+                    throw new Error(json.error);
+                  }
                   
                   const content = json.choices?.[0]?.delta?.content;
                   if (content) {
+                    console.log('Content extracted:', content); // Debug log
                     assistantResponseContent += content;
                     setMessages(prev => {
                       const newMessages = [...prev];
@@ -519,7 +529,13 @@ export default function ChatSession() {
                   }
                 } catch (parseError) {
                   console.warn('Failed to parse streaming chunk:', data, parseError);
+                  // If we see raw streaming data, it might be a backend formatting issue
+                  if (data.includes('{"choices"')) {
+                    console.error('Received malformed SSE data - check backend SSE formatting');
+                  }
                 }
+              } else if (line.trim()) {
+                console.log('Non-SSE line received:', line); // Debug unexpected content
               }
             }
           }
@@ -534,7 +550,7 @@ export default function ChatSession() {
         const lastMessageIndex = newMessages.length - 1;
         if (lastMessageIndex >= 0 && newMessages[lastMessageIndex].role === 'assistant') {
           newMessages[lastMessageIndex] = {
-            ...newMessages[lastMessageIndex], // This will carry over the timestamp from the placeholder
+            ...newMessages[lastMessageIndex],
             content: `Error: Failed to get response. ${error instanceof Error ? error.message : String(error)}`,
           };
         } else {
