@@ -11,6 +11,8 @@ import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Send, FileText, Search, Copy, Check, FolderTree, Menu, ChevronDown, ChevronRight } from 'lucide-react';
 import CodebaseTree from '@/components/CodebaseTree';
 import FileViewer from '@/components/FileViewer';
+import { getSessionMessages } from '@/lib/api';
+import { useToast } from '@/components/ui/use-toast';
 // @ts-ignore
 import Fuse from 'fuse.js';
 
@@ -299,11 +301,46 @@ export default function ChatSession() {
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const location = useLocation();
+  const { toast } = useToast();
 
   const formatTimestamp = (timestamp: number): string => {
     // HH:MM AM/PM format
     return new Date(timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   };
+
+  // Load conversation history when sessionId changes
+  useEffect(() => {
+    const loadConversationHistory = async () => {
+      if (!sessionId) {
+        setMessages([]);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const response = await getSessionMessages(sessionId);
+        setMessages(response.messages || []);
+      } catch (error) {
+        console.error('Error loading conversation history:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load conversation history",
+          variant: "destructive",
+        });
+        // Fallback to initial message from state if available
+        const initialMessageFromState = location.state?.initialMessage;
+        if (initialMessageFromState) {
+          setMessages([{ role: 'assistant', content: initialMessageFromState, timestamp: Date.now() }]);
+        } else {
+          setMessages([]);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadConversationHistory();
+  }, [sessionId, toast]); // Removed location.state dependency to avoid re-loading on navigation
 
   // Fetch file list when sessionId is available
   useEffect(() => {
@@ -437,18 +474,6 @@ export default function ChatSession() {
     setShowFilePicker(false);
     setFileQuery('');
   };
-
-  // Set initial message from route state
-  useEffect(() => {
-    const initialMessageFromState = location.state?.initialMessage;
-    if (initialMessageFromState) {
-      setMessages([{ role: 'assistant', content: initialMessageFromState, timestamp: Date.now() }]);
-      setIsLoading(false);
-    } else if (sessionId) {
-      console.warn('ChatSession loaded without initial message in state. SessionId:', sessionId);
-      setIsLoading(false);
-    }
-  }, [sessionId, location.state]);
 
   // Scroll to bottom of messages - enhanced for streaming
   useEffect(() => {

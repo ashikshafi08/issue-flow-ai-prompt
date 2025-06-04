@@ -1,14 +1,14 @@
-
 import React from 'react';
-import { Plus, MessageSquare, Trash2, Github } from 'lucide-react';
-import { Session } from '@/pages/Assistant';
+import { Plus, MessageSquare, Trash2, Github, RefreshCw } from 'lucide-react';
+import { SessionInfo } from '@/lib/api';
 
 interface AssistantSidebarProps {
-  sessions: Session[];
+  sessions: SessionInfo[];
   activeSessionId: string | null;
   onSessionSelect: (sessionId: string) => void;
   onNewChat: () => void;
   onDeleteSession: (sessionId: string) => void;
+  onRefresh: () => void;
 }
 
 const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
@@ -16,9 +16,10 @@ const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
   activeSessionId,
   onSessionSelect,
   onNewChat,
-  onDeleteSession
+  onDeleteSession,
+  onRefresh
 }) => {
-  const formatDate = (timestamp: number) => {
+  const formatDate = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
     const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
@@ -27,6 +28,26 @@ const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
     if (diffInDays === 1) return 'Yesterday';
     if (diffInDays < 7) return `${diffInDays} days ago`;
     return date.toLocaleDateString();
+  };
+
+  const getSessionTitle = (session: SessionInfo): string => {
+    if (session.session_name) return session.session_name;
+    if (session.metadata?.owner && session.metadata?.repo) {
+      return `${session.metadata.owner}/${session.metadata.repo}`;
+    }
+    if (session.repo_url) {
+      const urlParts = session.repo_url.split('/');
+      return urlParts.slice(-2).join('/');
+    }
+    return 'Unknown Repository';
+  };
+
+  const getSessionUrl = (session: SessionInfo): string => {
+    if (session.repo_url) return session.repo_url;
+    if (session.metadata?.owner && session.metadata?.repo) {
+      return `${session.metadata.owner}/${session.metadata.repo}`;
+    }
+    return 'Unknown URL';
   };
 
   return (
@@ -51,6 +72,13 @@ const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
             </svg>
           </div>
           <span className="text-white font-semibold">triage.flow</span>
+          <button
+            onClick={onRefresh}
+            className="ml-auto text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-gray-700"
+            title="Refresh sessions"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </button>
         </div>
         
         <button
@@ -89,13 +117,15 @@ const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
                     <div className="flex items-start gap-2">
                       <Github className="h-4 w-4 mt-0.5 flex-shrink-0 text-gray-400" />
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium truncate">{session.title}</p>
+                        <p className="text-sm font-medium truncate">{getSessionTitle(session)}</p>
                         <p className="text-xs text-gray-500 truncate">
-                          {session.repoUrl.replace('https://github.com/', '')}
+                          {getSessionUrl(session).replace('https://github.com/', '')}
                         </p>
-                        <p className="text-xs text-gray-600 mt-1">
-                          {formatDate(session.lastModified)}
-                        </p>
+                        <div className="flex items-center gap-2 mt-1 text-xs text-gray-600">
+                          <span>{session.message_count} messages</span>
+                          <span>•</span>
+                          <span>{formatDate(session.last_accessed)}</span>
+                        </div>
                       </div>
                     </div>
                   </button>
@@ -119,7 +149,7 @@ const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
       {/* Footer */}
       <div className="p-4 border-t border-gray-700">
         <p className="text-xs text-gray-500 text-center">
-          AI-powered repo assistant
+          AI-powered repository assistant
         </p>
       </div>
     </div>
