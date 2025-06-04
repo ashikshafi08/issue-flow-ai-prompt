@@ -387,12 +387,10 @@ export default function ChatSession() {
   // Fuzzy search files when fileQuery changes
   useEffect(() => {
     if (!fileQuery) {
-      // Show both files and folders when no query
-      const combinedResults = [
-        ...allFolders.map(folder => ({ ...folder, type: 'folder' as const })),
-        ...allFiles.map(file => ({ ...file, type: 'file' as const }))
-      ];
-      setFileResults(combinedResults);
+      // Show limited results when no query - folders first, then files
+      const limitedFolders = allFolders.slice(0, 30).map(folder => ({ ...folder, type: 'folder' as const }));
+      const limitedFiles = allFiles.slice(0, 20).map(file => ({ ...file, type: 'file' as const }));
+      setFileResults([...limitedFolders, ...limitedFiles]);
     } else {
       // Search in both files and folders
       const filesFuse = new Fuse(allFiles, { keys: ['path'], threshold: 0.3 });
@@ -401,8 +399,8 @@ export default function ChatSession() {
       const fileMatches = filesFuse.search(fileQuery).map(r => ({ ...r.item, type: 'file' as const }));
       const folderMatches = foldersFuse.search(fileQuery).map(r => ({ ...r.item, type: 'folder' as const }));
       
-      // Combine and sort: folders first, then files
-      const combinedResults = [...folderMatches, ...fileMatches];
+      // Combine and sort: folders first, then files, limit to 100 results for performance
+      const combinedResults = [...folderMatches, ...fileMatches].slice(0, 100);
       setFileResults(combinedResults);
     }
   }, [fileQuery, allFiles, allFolders]);
