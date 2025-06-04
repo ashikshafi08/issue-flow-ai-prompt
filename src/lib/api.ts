@@ -1,6 +1,7 @@
 /**
  * API utilities for connecting to the triage.flow backend
  */
+import type { ChatMessage, AgenticStep } from '@/pages/Assistant'; // Import shared types
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -42,6 +43,19 @@ export interface SessionListResponse {
   sessions: SessionInfo[];
   total: number;
 }
+
+// Interface for streamed agentic responses
+export interface StreamedAgenticResponse {
+    type: 'step' | 'final' | 'error' | 'status';
+    step?: AgenticStep; // For 'step' type
+    final_answer?: string; // For 'final' type
+    steps?: AgenticStep[]; // For 'final' type, all steps
+    suggestions?: string[]; // For 'final' type
+    error?: string; // For 'error' type
+    content?: string; // For 'status' type
+    final?: boolean; // For 'final' and 'error' types
+}
+
 
 // Repository chat session API functions
 export const createRepoSession = async (request: RepoSessionRequest): Promise<RepoSessionResponse> => {
@@ -110,7 +124,7 @@ export const getSessionMetadata = async (sessionId: string) => {
   return response.json();
 };
 
-export const getSessionMessages = async (sessionId: string) => {
+export const getSessionMessages = async (sessionId: string): Promise<{session_id: string, messages: ChatMessage[], total_messages: number}> => {
   const response = await fetch(`${API_BASE_URL}/assistant/sessions/${sessionId}/messages`);
 
   if (!response.ok) {
@@ -121,7 +135,7 @@ export const getSessionMessages = async (sessionId: string) => {
   return response.json();
 };
 
-// Existing chat session API functions
+// Existing chat session API functions (issue-based, might be deprecated or refactored)
 export const createChatSession = async (issueUrl: string, promptType: string = "explain") => {
   const response = await fetch(`${API_BASE_URL}/sessions`, {
     method: 'POST',
@@ -133,7 +147,7 @@ export const createChatSession = async (issueUrl: string, promptType: string = "
       prompt_type: promptType,
       llm_config: {
         provider: "openrouter",
-        name: "anthropic/claude-3.5-sonnet"
+        name: "anthropic/claude-3.5-sonnet" // Consider making this configurable
       }
     }),
   });
@@ -146,17 +160,107 @@ export const createChatSession = async (issueUrl: string, promptType: string = "
   return response.json();
 };
 
-// The getJobStatus function is no longer needed with the new session-based backend.
-// It can be removed or commented out if there's no other part of the app using it.
-/*
-export const getJobStatus = async (jobId: string) => {
-  const response = await fetch(`${API_BASE_URL}/job_status/${jobId}`);
-  
+export const enableAgenticMode = async (sessionId: string): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/assistant/sessions/${sessionId}/enable-agentic`, {
+    method: 'POST',
+  });
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.detail || 'Failed to get job status');
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to enable agentic mode');
   }
-  
-  return response.json();
 };
-*/
+
+// New function to send a message and handle streaming for agentic queries
+export async function* sendMessage(
+  sessionId: string,
+  content: string,
+  agentic: boolean = true // Default to agentic for this function
+): AsyncGenerator<StreamedAgenticResponse> {
+  const url = `${API_BASE_URL}/assistant/sessions/${sessionId}/agentic-query?stream=true`;
+  const payload = { role: 'user', content };
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'text/event-stream',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ detail: 'Unknown API error' }));
+      yield { type: 'error', error: errorData.detail || `API Error: ${response.status}`, final: true };
+      return;
+    }
+
+    if (!response.body) {
+      yield { type: 'error', error: 'Response body is null.', final: true };
+      return;
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        if (buffer.trim()) { // Process any remaining data in buffer
+          try {
+            const jsonChunk = JSON.parse(buffer.trim());
+            yield jsonChunk as StreamedAgenticResponse;
+          } catch (e) {
+            console.error('Error parsing final JSON chunk:', e, buffer);
+            yield { type: 'error', error: `Error parsing final JSON: ${e instanceof Error ? e.message : String(e)}`, final: true };
+          }
+        }
+        break;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+      
+      // Process buffer line by line for SSE events
+      let eolIndex;
+      while ((eolIndex = buffer.indexOf('\n\n')) >= 0) {
+        const line = buffer.substring(0, eolIndex).trim();
+        buffer = buffer.substring(eolIndex + 2); // Skip the two newlines
+
+        if (line.startsWith('data: ')) {
+          const jsonData = line.substring(6);
+          if (jsonData === '[DONE]') {
+            // Backend might send [DONE] separately, or it's part of the final chunk.
+            // The 'final: true' in the 'final' type chunk should be the primary indicator.
+            continue;
+          }
+          try {
+            const parsedChunk = JSON.parse(jsonData);
+            yield parsedChunk as StreamedAgenticResponse;
+            if (parsedChunk.type === 'final' || (parsedChunk.type === 'error' && parsedChunk.final)) {
+              return; // End generation if it's a final chunk
+            }
+          } catch (e) {
+            console.error('Error parsing JSON chunk:', e, jsonData);
+            yield { type: 'error', error: `Error parsing JSON: ${e instanceof Error ? e.message : String(e)}`, final: true };
+            return; // Stop on parsing error
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error('sendMessage stream error:', error);
+    yield { type: 'error', error: error instanceof Error ? error.message : 'Network or unknown error during streaming.', final: true };
+  }
+}
+
+
+export const resetAgenticMemory = async (sessionId: string): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/assistant/sessions/${sessionId}/reset-agentic-memory`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to reset agentic memory');
+  }
+};

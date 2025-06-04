@@ -1,33 +1,117 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AssistantSidebar from '@/components/AssistantSidebar';
 import ChatSession from '@/pages/ChatSession';
 import NewChatModal from '@/components/NewChatModal';
-import { listAssistantSessions, SessionInfo } from '@/lib/api';
+import { listAssistantSessions, SessionInfo, getSessionMessages, getSessionMetadata } from '@/lib/api'; // Added getSessionMessages, getSessionMetadata
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
+
+// Define a more detailed Session type that ChatSessionComponent will use
+export interface AgenticStep {
+  type: 'thought' | 'action' | 'observation' | 'answer' | 'status' | 'error';
+  content: string;
+  step?: number;
+}
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+  agenticSteps?: AgenticStep[];
+  isStreaming?: boolean;
+  error?: string;
+  type?: 'thought' | 'action' | 'observation' | 'answer' | 'status' | 'error' | 'final_answer_chunk';
+}
+
+export interface Session {
+  id: string;
+  title: string;
+  repoUrl: string;
+  filePath?: string;
+  messages: ChatMessage[];
+  type?: string; // 'repo_chat' or 'issue_analysis'
+  created_at?: string;
+  last_accessed?: string;
+  metadata?: any; // Contains owner, repo, session_name, initial_file, storage_path, status
+  message_count?: number;
+  session_name?: string;
+  agentic_enabled?: boolean;
+}
 
 const Assistant = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(sessionId || null);
+  const [detailedActiveSession, setDetailedActiveSession] = useState<Session | null>(null);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSessionLoading, setIsSessionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Load sessions from backend on mount
-  useEffect(() => {
-    loadSessions();
-  }, []);
+  const loadDetailedSession = useCallback(async (sId: string | null) => {
+    if (!sId) {
+      setDetailedActiveSession(null);
+      return;
+    }
+    setIsSessionLoading(true);
+    try {
+      const metadata = await getSessionMetadata(sId);
+      const messagesData = await getSessionMessages(sId);
+      
+      const summarySession = sessions.find(s => s.id === sId);
 
-  const loadSessions = async () => {
+      setDetailedActiveSession({
+        id: sId,
+        title: summarySession?.session_name || `${metadata.metadata?.owner}/${metadata.metadata?.repo}` || 'Chat',
+        repoUrl: metadata.metadata?.repo_url || '',
+        filePath: metadata.metadata?.initial_file,
+        messages: messagesData.messages.map((msg: any) => ({
+          role: msg.role,
+          content: msg.content,
+          timestamp: new Date(msg.timestamp).getTime(),
+          agenticSteps: msg.agenticSteps,
+          isStreaming: msg.isStreaming,
+          error: msg.error,
+          type: msg.type,
+        })),
+        type: metadata.type,
+        created_at: metadata.created_at,
+        last_accessed: metadata.last_accessed,
+        metadata: metadata.metadata,
+        message_count: messagesData.total_messages,
+        session_name: metadata.session_name,
+        agentic_enabled: metadata.metadata?.agentic_enabled,
+      });
+    } catch (err) {
+      console.error('Failed to load detailed session:', err);
+      toast({
+        title: "Error Loading Session",
+        description: err instanceof Error ? err.message : "Could not load session details.",
+        variant: "destructive",
+      });
+      setDetailedActiveSession(null);
+    } finally {
+      setIsSessionLoading(false);
+    }
+  }, [toast, sessions]);
+
+  const loadSessions = useCallback(async (selectSessionId?: string) => {
     try {
       setIsLoading(true);
       setError(null);
       const response = await listAssistantSessions('repo_chat');
       setSessions(response.sessions);
+      if (selectSessionId) {
+        setActiveSessionId(selectSessionId);
+      } else if (sessionId && response.sessions.some(s => s.id === sessionId)) {
+        setActiveSessionId(sessionId);
+      } else if (response.sessions.length > 0 && !activeSessionId) {
+        // Optionally select the first session if none is active and no specific ID in URL
+        // setActiveSessionId(response.sessions[0].id); 
+      }
     } catch (error) {
       console.error('Failed to load sessions:', error);
       setError(error instanceof Error ? error.message : 'Failed to load sessions');
@@ -39,53 +123,75 @@ const Assistant = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast, sessionId, activeSessionId]);
 
-  // Update URL when active session changes
+  useEffect(() => {
+    loadSessions();
+  }, [loadSessions]);
+
   useEffect(() => {
     if (activeSessionId) {
-      navigate(`/assistant/${activeSessionId}`, { replace: true });
+      if (sessionId !== activeSessionId) {
+        navigate(`/assistant/${activeSessionId}`, { replace: true });
+      }
+      loadDetailedSession(activeSessionId);
     } else {
-      navigate('/assistant', { replace: true });
-    }
-  }, [activeSessionId, navigate]);
-
-  // Set active session from URL parameter
-  useEffect(() => {
-    if (sessionId && sessions.length > 0) {
-      const session = sessions.find(s => s.id === sessionId);
-      if (session) {
-        setActiveSessionId(sessionId);
-      } else {
-        // Session not found, redirect to assistant home
-        navigate('/assistant', { replace: true });
-        toast({
-          title: "Session Not Found",
-          description: "The requested session could not be found.",
-          variant: "destructive",
-        });
+      setDetailedActiveSession(null);
+      if (sessionId) { 
+         navigate('/assistant', { replace: true });
       }
     }
-  }, [sessionId, sessions, navigate, toast]);
+  }, [activeSessionId, navigate, loadDetailedSession, sessionId]);
 
-  const createNewSession = (repoUrl: string, filePath?: string) => {
-    // The NewChatModal now handles the backend session creation
-    // and navigation, so we just need to reload sessions
-    loadSessions();
+  useEffect(() => {
+    if (!isLoading && sessions.length > 0) {
+      if (sessionId && sessions.some(s => s.id === sessionId)) {
+        if (activeSessionId !== sessionId) { 
+          setActiveSessionId(sessionId);
+        }
+      } else if (!activeSessionId && sessions.length > 0) {
+        const sessionExists = sessionId && sessions.some(s => s.id === sessionId);
+        if (sessionId && !sessionExists) {
+            navigate('/assistant', { replace: true });
+            toast({
+              title: "Session Not Found",
+              description: "The requested session could not be found.",
+              variant: "destructive",
+            });
+        }
+      }
+    } else if (!isLoading && sessionId && sessions.length === 0) {
+        navigate('/assistant', { replace: true });
+        toast({
+            title: "No Sessions Found",
+            description: "The requested session does not exist.",
+            variant: "destructive",
+        });
+    }
+  }, [sessionId, sessions, isLoading, activeSessionId, navigate, toast]);
+
+  const createNewSession = (repoUrl: string, filePath?: string, newSessionId?: string) => {
+    loadSessions(newSessionId); 
+  };
+  
+  const updateActiveSessionMessages = (updater: (prevMessages: ChatMessage[]) => ChatMessage[]) => {
+    setDetailedActiveSession(prev => {
+      if (!prev) return null;
+      return { ...prev, messages: updater(prev.messages) };
+    });
   };
 
-  const deleteSession = async (sessionId: string) => {
+  const deleteSession = async (sId: string) => {
     try {
-      // Import deleteAssistantSession here to avoid circular dependency
       const { deleteAssistantSession } = await import('@/lib/api');
-      await deleteAssistantSession(sessionId);
+      await deleteAssistantSession(sId);
       
-      // Remove from local state
-      setSessions(prev => prev.filter(session => session.id !== sessionId));
+      setSessions(prev => prev.filter(session => session.id !== sId));
       
-      // If this was the active session, clear it
-      if (activeSessionId === sessionId) {
+      if (activeSessionId === sId) {
         setActiveSessionId(null);
+        setDetailedActiveSession(null); 
+        navigate('/assistant', { replace: true }); 
       }
 
       toast({
@@ -102,9 +208,7 @@ const Assistant = () => {
     }
   };
 
-  const activeSession = sessions.find(session => session.id === activeSessionId);
-
-  if (isLoading) {
+  if (isLoading && sessions.length === 0) { 
     return (
       <div className="flex h-screen bg-black items-center justify-center">
         <div className="text-center">
@@ -122,7 +226,7 @@ const Assistant = () => {
           <h2 className="text-xl font-bold text-white mb-2">Error Loading Sessions</h2>
           <p className="text-gray-400 mb-4">{error}</p>
           <button
-            onClick={loadSessions}
+            onClick={() => loadSessions()}
             className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-4 py-2 rounded-lg transition-all"
           >
             Try Again
@@ -134,20 +238,28 @@ const Assistant = () => {
 
   return (
     <div className="flex h-screen bg-black">
-      {/* Sidebar */}
       <AssistantSidebar
         sessions={sessions}
         activeSessionId={activeSessionId}
         onSessionSelect={setActiveSessionId}
         onNewChat={() => setShowNewChatModal(true)}
         onDeleteSession={deleteSession}
-        onRefresh={loadSessions}
+        onRefresh={() => loadSessions(activeSessionId)} 
       />
 
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col bg-black">
-        {activeSession ? (
+        {isSessionLoading && (
+          <div className="flex-1 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+          </div>
+        )}
+        {!isSessionLoading && detailedActiveSession ? (
           <ChatSession />
+        ) : !isSessionLoading && !detailedActiveSession && activeSessionId ? (
+           <div className="flex-1 flex items-center justify-center">
+             <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+             <p className="text-gray-400 ml-2">Loading session details...</p>
+           </div>
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center max-w-md">
@@ -195,11 +307,10 @@ const Assistant = () => {
         )}
       </div>
 
-      {/* New Chat Modal */}
       {showNewChatModal && (
         <NewChatModal
           onClose={() => setShowNewChatModal(false)}
-          onCreateSession={createNewSession}
+          onCreateSession={(repoUrl, filePath, newSessionId) => createNewSession(repoUrl, filePath, newSessionId)}
         />
       )}
     </div>

@@ -20,6 +20,11 @@ interface ChatMessage {
   role: string;
   content: string;
   timestamp?: number; // Added timestamp
+  steps?: { type: string; content: string }[];
+  final_answer?: string;
+  partial?: boolean;
+  suggestions?: string[];
+  isStreaming?: boolean;
 }
 
 // Helper functions for enhanced markdown rendering
@@ -111,9 +116,42 @@ const enhanceTextWithLinks = (children: React.ReactNode): React.ReactNode => {
 // Enhanced markdown components with better formatting
 const MarkdownComponents = {
   code({ node, inline, className, children, ...props }: any) {
+    // Extract language from className if available
     const match = /language-(\w+)/.exec(className || '');
-    const language = match ? match[1] : 'text';
+    let language = match ? match[1] : '';
     const content = String(children).replace(/\n$/, '');
+
+    // If no language is specified but we have a code block, try to detect language
+    if (!inline && !language) {
+      // Simple language detection heuristics
+      if (/^(import|from|def|class|if __name__)\s/.test(content)) {
+        language = 'python';
+      } else if (/^(const|let|var|function|import|export)\s/.test(content) || /=>/.test(content)) {
+        if (/:\s*[A-Z][\w<>]+/.test(content) || /<[A-Z][\w]+>/.test(content)) {
+          language = 'typescript';
+        } else {
+          language = 'javascript';
+        }
+      } else if (/^(<!DOCTYPE|<html|<div|<body)/.test(content)) {
+        language = 'html';
+      } else if (/^(\.|#|body|html|\*)\s*\{/.test(content)) {
+        language = 'css';
+      } else if (/^(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER)\s/i.test(content)) {
+        language = 'sql';
+      } else if (/^(\$|npm|yarn|sudo|apt|brew)\s/.test(content)) {
+        language = 'bash';
+      } else if (/^\{.*\}$/.test(content.trim()) || /^\[.*\]$/.test(content.trim())) {
+        try {
+          JSON.parse(content.trim());
+          language = 'json';
+        } catch (e) {
+          // Not valid JSON
+          language = 'text';
+        }
+      } else {
+        language = 'text';
+      }
+    }
 
     if (!inline) {
       // Heuristic: if content is short, single-line, and language is 'text', treat as inline.
@@ -146,7 +184,7 @@ const MarkdownComponents = {
                 <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
                 <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
               </div>
-              <span className="text-gray-300 font-mono text-sm ml-2">{language}</span>
+              <span className="text-gray-300 font-mono text-sm ml-2">{language || 'text'}</span>
               {content.split('\n').length > 1 && (
                 <span className="text-gray-400 text-xs">
                   {content.split('\n').length} lines
@@ -164,7 +202,7 @@ const MarkdownComponents = {
           <div className="relative">
             <SyntaxHighlighter
               style={vscDarkPlus}
-              language={language}
+              language={language || 'text'}
               PreTag="div"
               showLineNumbers={true}
               wrapLines={true}
@@ -296,6 +334,53 @@ const AppSidebar = ({ sessionId, onFileSelect }: { sessionId: string; onFileSele
   );
 };
 
+// AgentStepTimeline component for agentic output
+function AgentStepTimeline({ steps, finalAnswer, partial, suggestions }) {
+  const stepIcons = {
+    thought: '💡',
+    action: '⚡',
+    observation: '👀',
+    answer: '✅',
+  };
+  return (
+    <div className="space-y-4">
+      {steps && steps.length > 0 && steps.map((step, idx) => (
+        <div key={idx} className="flex items-start gap-3">
+          <span className="text-2xl">{stepIcons[step.type] || '📝'}</span>
+          <div className="flex-1">
+            <div className="font-semibold capitalize text-gray-300">{step.type}</div>
+            <div className="prose prose-invert">
+              <ReactMarkdown>{step.content}</ReactMarkdown>
+            </div>
+          </div>
+        </div>
+      ))}
+      {finalAnswer ? (
+        <div className="mt-6 p-4 bg-emerald-900/40 border-l-4 border-emerald-400 rounded-lg">
+          <div className="font-bold text-emerald-300 mb-2">Final Answer</div>
+          <ReactMarkdown>{finalAnswer}</ReactMarkdown>
+        </div>
+      ) : steps && steps.length === 0 ? (
+        <div className="p-4 text-gray-400 italic">No agentic steps or answer provided.</div>
+      ) : null}
+      {partial && (
+        <div className="mt-4 p-3 bg-yellow-900/40 border-l-4 border-yellow-400 rounded-lg text-yellow-200">
+          Partial answer. Try asking a more specific question.
+        </div>
+      )}
+      {suggestions && suggestions.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {suggestions.map((s, i) => (
+            <button key={i} className="px-3 py-1 bg-blue-800/60 text-blue-200 rounded hover:bg-blue-700/80 transition">
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ChatSession() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -314,6 +399,8 @@ export default function ChatSession() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const location = useLocation();
   const { toast } = useToast();
+  const [agenticSteps, setAgenticSteps] = useState([]);
+  const [agenticFinal, setAgenticFinal] = useState(null);
 
   const formatTimestamp = (timestamp: number): string => {
     // HH:MM AM/PM format
@@ -485,66 +572,125 @@ export default function ChatSession() {
   // Enhanced send message with real-time streaming
   const handleSend = async () => {
     if (!input.trim() || !sessionId) return;
-    
+
     const userMessage = { role: 'user', content: input, timestamp: Date.now() };
     setMessages(prev => [...prev, userMessage]);
-    const currentInput = input;
     setInput('');
     setIsLoading(true);
 
+    // Reset agentic state
+    setAgenticSteps([]);
+    setAgenticFinal(null);
+
     try {
-      setMessages(prev => [...prev, { role: 'assistant', content: '', timestamp: Date.now() }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: '', timestamp: Date.now(), isStreaming: true }]);
       setIsStreaming(true);
       setIsLoading(false);
-      
-      const response = await fetch(`${API_BASE_URL}/sessions/${sessionId}/messages?stream=true`, {
+
+      const response = await fetch(`${API_BASE_URL}/assistant/sessions/${sessionId}/agentic-query?stream=true`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: 'user', content: currentInput })
+        body: JSON.stringify({ role: 'user', content: input })
       });
-      
+
       if (!response.body) throw new Error('Response body is null');
-      
+
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let assistantResponseContent = '';
-      let buffer = ''; // Add buffer to handle partial chunks
-      
+      let buffer = '';
+      let steps = [];
+
       try {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          
-          // Add new chunk to buffer
+
           buffer += decoder.decode(value, { stream: true });
-          
-          // Process complete lines
           const lines = buffer.split('\n');
-          buffer = lines.pop() || ''; // Keep the last incomplete line in buffer
-          
+          buffer = lines.pop() || '';
+
           for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const data = line.slice(6).trim();
-              
+            const SSE_PREFIX = 'data:';
+            if (line.startsWith(SSE_PREFIX)) {
+              const data = line.slice(SSE_PREFIX.length).trimStart();
               if (data === '[DONE]') {
                 setIsLoading(false);
+                setIsStreaming(false);
+                // Clear streaming flag on the last message
+                setMessages(prev => {
+                  const newMessages = [...prev];
+                  const lastMessageIndex = newMessages.length - 1;
+                  if (lastMessageIndex >= 0 && newMessages[lastMessageIndex].role === 'assistant') {
+                    newMessages[lastMessageIndex] = {
+                      ...newMessages[lastMessageIndex],
+                      isStreaming: false
+                    };
+                  }
+                  return newMessages;
+                });
                 return;
               }
-              
               if (data) {
                 try {
                   const parsed = JSON.parse(data);
-                  const content = parsed.choices?.[0]?.delta?.content || '';
-                  
-                  if (content) {
-                    assistantResponseContent += content;
+                  console.log('[agentic payload]', parsed); // debug log
+                  if (parsed.type === 'step' && parsed.step) {
+                    steps.push(parsed.step);
+                    steps = parsed.steps ?? steps; // keep empty array instead of undefined
                     setMessages(prev => {
                       const newMessages = [...prev];
                       const lastMessageIndex = newMessages.length - 1;
                       if (lastMessageIndex >= 0 && newMessages[lastMessageIndex].role === 'assistant') {
                         newMessages[lastMessageIndex] = {
                           ...newMessages[lastMessageIndex],
-                          content: assistantResponseContent
+                          steps: [...steps],
+                          content: '',
+                        };
+                      }
+                      return newMessages;
+                    });
+                  } else if (parsed.type === 'final') {
+                    setMessages(prev => {
+                      const newMessages = [...prev];
+                      const lastMessageIndex = newMessages.length - 1;
+                      if (lastMessageIndex >= 0 && newMessages[lastMessageIndex].role === 'assistant') {
+                        const existing = newMessages[lastMessageIndex];
+                        const finalAns = parsed.final_answer ?? parsed.answer; // accept either key
+
+                        newMessages[lastMessageIndex] = {
+                          ...existing,
+                          steps: parsed.steps || steps,
+                          final_answer: finalAns ?? existing.content,
+                          partial: parsed.partial,
+                          suggestions: parsed.suggestions,
+                          content: finalAns ? '' : existing.content,
+                        };
+                      }
+                      return newMessages;
+                    });
+                  } else if (parsed.type === 'error') {
+                    setMessages(prev => {
+                      const newMessages = [...prev];
+                      const lastMessageIndex = newMessages.length - 1;
+                      if (lastMessageIndex >= 0 && newMessages[lastMessageIndex].role === 'assistant') {
+                        newMessages[lastMessageIndex] = {
+                          ...newMessages[lastMessageIndex],
+                          content: `Error: ${parsed.error || 'Unknown error.'}`,
+                        };
+                      }
+                      return newMessages;
+                    });
+                  }
+                  // Fallback: handle non-agentic (OpenAI style) streaming
+                  else if (parsed.choices?.[0]?.delta?.content) {
+                    const content = parsed.choices[0].delta.content;
+                    setMessages(prev => {
+                      const newMessages = [...prev];
+                      const lastMessageIndex = newMessages.length - 1;
+                      if (lastMessageIndex >= 0 && newMessages[lastMessageIndex].role === 'assistant') {
+                        newMessages[lastMessageIndex] = {
+                          ...newMessages[lastMessageIndex],
+                          content: (newMessages[lastMessageIndex].content || '') + content,
                         };
                       }
                       return newMessages;
@@ -575,9 +721,6 @@ export default function ChatSession() {
         }
         return newMessages;
       });
-    } finally {
-      setIsLoading(false);
-      setIsStreaming(false);
     }
   };
 
@@ -710,34 +853,31 @@ export default function ChatSession() {
                         ) : (
                           <div className="flex items-start space-x-4 mb-8">
                             <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-semibold shadow-lg border border-emerald-400/30">
-                              {msg.content.includes('🔍') || msg.content.includes('agentic') || msg.content.includes('explored') ? (
-                                <div className="relative">
-                                  AI
-                                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-purple-500 rounded-full animate-pulse"></div>
-                                </div>
-                              ) : (
-                                'AI'
-                              )}
+                              AI
                             </div>
                             <div className="flex-1 min-w-0 bg-gradient-to-br from-gray-800/80 via-gray-800/60 to-gray-900/60 border border-gray-700/50 rounded-2xl p-6 shadow-xl backdrop-blur-md relative overflow-hidden">
                               {/* Enhanced accent line for agentic responses */}
-                              {msg.content.includes('🔍') || msg.content.includes('agentic') || msg.content.includes('explored') ? (
-                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-emerald-500 to-blue-500 animate-pulse"></div>
-                              ) : (
-                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-blue-500 to-purple-500"></div>
-                              )}
+                              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-emerald-500 to-blue-500 animate-pulse"></div>
                               <div className="prose prose-invert max-w-none">
-                                <ReactMarkdown
-                                  components={MarkdownComponents}
-                                  remarkPlugins={[remarkGfm]}
-                                >
-                                  {msg.content}
-                                </ReactMarkdown>
-                                {isStreaming && index === messages.length - 1 && (
-                                  <span className="inline-block w-2 h-5 bg-emerald-400 ml-1 animate-pulse rounded-sm" />
+                                {/* Use AgentStepTimeline if agentic/structured output, else fallback to markdown */}
+                                {msg.isStreaming && !msg.steps && !msg.final_answer ? (
+                                  <div className="flex items-center gap-2 text-gray-400">
+                                    <span className="animate-pulse">Analyzing...</span>
+                                  </div>
+                                ) : msg.steps && (msg.steps.length > 0 || msg.final_answer) ? (
+                                  <AgentStepTimeline
+                                    steps={msg.steps}
+                                    finalAnswer={msg.final_answer}
+                                    partial={msg.partial}
+                                    suggestions={msg.suggestions}
+                                  />
+                                ) : (
+                                  <ReactMarkdown components={MarkdownComponents} remarkPlugins={[remarkGfm]}>
+                                    {msg.content || msg.final_answer || "Agentic analysis complete."}
+                                  </ReactMarkdown>
                                 )}
                               </div>
-                              {msg.timestamp && (!isStreaming || index !== messages.length -1) && (
+                              {msg.timestamp && (
                                 <div className="text-xs text-gray-400/90 mt-4 pt-3 border-t border-gray-700/40 text-right">
                                   {formatTimestamp(msg.timestamp)}
                                 </div>

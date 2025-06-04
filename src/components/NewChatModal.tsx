@@ -5,11 +5,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Label } from '@/components/ui/label';
 import { Github, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { createRepoSession, getSessionStatus } from '@/lib/api';
+import { createRepoSession, getSessionStatus, enableAgenticMode } from '@/lib/api';
 
 interface NewChatModalProps {
   onClose: () => void;
-  onCreateSession: (repoUrl: string, filePath?: string) => void;
+  onCreateSession: (repoUrl: string, filePath?: string, newSessionId?: string) => void;
 }
 
 const NewChatModal: React.FC<NewChatModalProps> = ({ onClose, onCreateSession }) => {
@@ -44,9 +44,13 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ onClose, onCreateSession })
         });
 
         if (status.status === 'ready') {
-          // Session is ready
+          try {
+            await enableAgenticMode(sessionId);
+          } catch (e) {
+            console.warn('Failed to enable agentic mode:', e);
+          }
           setTimeout(() => {
-            onCreateSession(repoUrl, filePath);
+            onCreateSession(repoUrl, filePath, sessionId); // Pass sessionId here
             onClose();
           }, 1000);
           return;
@@ -54,7 +58,6 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ onClose, onCreateSession })
           throw new Error(status.error || 'Repository initialization failed');
         }
 
-        // Wait 2 seconds before next poll
         await new Promise(resolve => setTimeout(resolve, 2000));
         attempts++;
       } catch (error) {
@@ -133,7 +136,6 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ onClose, onCreateSession })
         description: "Cloning and indexing repository...",
       });
 
-      // Start polling for status updates
       await pollSessionStatus(response.session_id);
 
     } catch (error) {
@@ -224,7 +226,6 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ onClose, onCreateSession })
             />
           </div>
 
-          {/* Progress Indicator */}
           {progress && (
             <div className="space-y-3 p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
               <div className="flex items-center gap-3">
@@ -247,7 +248,6 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ onClose, onCreateSession })
                 </div>
               </div>
               
-              {/* Progress Steps */}
               {!progress.error && (
                 <div className="flex items-center gap-2 text-xs text-gray-400">
                   <div className={`w-2 h-2 rounded-full ${
