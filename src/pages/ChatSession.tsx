@@ -138,99 +138,109 @@ const MarkdownComponents = {
       };
 
       return (
-        <div className="my-4 rounded-lg overflow-hidden border border-gray-700/40 bg-gray-950/60 shadow-lg">
-          <div className="flex items-center justify-between bg-gray-800/60 px-4 py-2.5 border-b border-gray-700/40">
-            <div className="flex items-center gap-2">
+        <div className="my-6 rounded-xl overflow-hidden border border-gray-700/40 bg-gray-950/80 shadow-lg backdrop-blur-sm">
+          <div className="flex items-center justify-between bg-gray-800/70 px-5 py-3 border-b border-gray-700/40">
+            <div className="flex items-center gap-3">
               <div className="flex gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
                 <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
                 <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
               </div>
-              <span className="text-gray-400 font-mono text-sm ml-2">{language}</span>
+              <span className="text-gray-300 font-mono text-sm ml-2">{language}</span>
+              {content.split('\n').length > 1 && (
+                <span className="text-gray-400 text-xs">
+                  {content.split('\n').length} lines
+                </span>
+              )}
             </div>
             <button
               onClick={copyToClipboard}
-              className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors px-2 py-1 rounded hover:bg-gray-700/50 text-sm"
+              className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-700/50 text-sm font-medium"
             >
-              {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
               {copied ? 'Copied!' : 'Copy'}
             </button>
           </div>
-          <SyntaxHighlighter
-            style={vscDarkPlus}
-            language={language}
-            PreTag="div"
-            showLineNumbers={true}
-            wrapLines={true}
-            customStyle={{
-              margin: 0,
-              padding: '1rem',
-              background: 'transparent',
-              fontSize: '0.875rem',
-              lineHeight: '1.6',
-            }}
-            codeTagProps={{ 
-              style: { 
-                fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, 'Courier New', monospace"
-              } 
-            }}
-            {...props}
-          >
-            {content}
-          </SyntaxHighlighter>
+          <div className="relative">
+            <SyntaxHighlighter
+              style={vscDarkPlus}
+              language={language}
+              PreTag="div"
+              showLineNumbers={true}
+              wrapLines={true}
+              customStyle={{
+                margin: 0,
+                padding: '1.5rem',
+                background: 'transparent',
+                fontSize: '0.875rem',
+                lineHeight: '1.7',
+                fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, 'Courier New', monospace",
+              }}
+              lineNumberStyle={{
+                color: '#6b7280',
+                backgroundColor: 'transparent',
+                paddingRight: '1rem',
+                minWidth: '3rem',
+                textAlign: 'right',
+              }}
+              {...props}
+            >
+              {content}
+            </SyntaxHighlighter>
+          </div>
         </div>
       );
     }
     
     // True inline code (`code`)
     return (
-      <code className="font-mono text-emerald-400 px-1" {...props}>
+      <code className="font-mono text-emerald-400 bg-gray-800/60 px-2 py-1 rounded-md border border-gray-700/40" {...props}>
         {content}
       </code>
     );
   },
-  h1: ({ node, children, ...props }: any) => (
+  h1: ({ children, ...props }: any) => (
     <h1 className="text-xl font-bold text-white my-4 pb-2 border-b border-gray-700/50" {...props}>
       {children}
     </h1>
   ),
-  h2: ({ node, children, ...props }: any) => (
+  h2: ({ children, ...props }: any) => (
     <h2 className="text-lg font-semibold text-white my-3 pb-1" {...props}>
       {children}
     </h2>
   ),
-  h3: ({ node, children, ...props }: any) => (
+  h3: ({ children, ...props }: any) => (
     <h3 className="text-base font-semibold text-white my-3" {...props}>
       {children}
     </h3>
   ),
-  h4: ({ node, children, ...props }: any) => (
+  h4: ({ children, ...props }: any) => (
     <h4 className="text-sm font-semibold text-white my-2" {...props}>
       {children}
     </h4>
   ),
-  ul: ({ node, ...props }: any) => (
+  ul: ({ ...props }: any) => (
     <ul className="list-disc list-inside my-3 space-y-1 text-gray-200 ml-4" {...props} />
   ),
-  ol: ({ node, ...props }: any) => (
+  ol: ({ ...props }: any) => (
     <ol className="list-decimal list-inside my-3 space-y-1 text-gray-200 ml-4" {...props} />
   ),
-  li: ({ node, children, ...props }: any) => (
+  li: ({ children, ...props }: any) => (
     <li className="leading-relaxed text-gray-200" {...props}>
       {children}
     </li>
   ),
-  p: ({ node, children, ...props }: any) => (
+  p: ({ children, ...props }: any) => (
     <p className="my-3 leading-relaxed text-gray-200" {...props}>
       {children}
     </p>
   ),
-  blockquote: ({ node, children, ...props }: any) => (
+  blockquote: ({ children, ...props }: any) => (
     <blockquote className="my-4 border-l-4 border-blue-500/50 bg-blue-500/10 pl-4 py-3 rounded-r-lg text-blue-100 italic" {...props}>
       {children}
     </blockquote>
   ),
-  a: ({ node, ...props }: any) => (
+  a: ({ ...props }: any) => (
     <a 
       className="text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors" 
       target="_blank" 
@@ -238,28 +248,28 @@ const MarkdownComponents = {
       {...props} 
     />
   ),
-  table: ({ node, ...props }: any) => (
+  table: ({ ...props }: any) => (
     <div className="overflow-x-auto my-4 rounded-lg border border-gray-700/50">
       <table className="min-w-full divide-y divide-gray-700 bg-gray-900/50" {...props} />
     </div>
   ),
-  thead: ({ node, ...props }: any) => <thead className="bg-gray-800/60" {...props} />,
-  tbody: ({ node, ...props }: any) => <tbody className="divide-y divide-gray-700/50" {...props} />,
-  tr: ({ node, ...props }: any) => <tr className="hover:bg-gray-800/40 transition-colors" {...props} />,
-  th: ({ node, ...props }: any) => (
+  thead: ({ ...props }: any) => <thead className="bg-gray-800/60" {...props} />,
+  tbody: ({ ...props }: any) => <tbody className="divide-y divide-gray-700/50" {...props} />,
+  tr: ({ ...props }: any) => <tr className="hover:bg-gray-800/40 transition-colors" {...props} />,
+  th: ({ ...props }: any) => (
     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider" {...props} />
   ),
-  td: ({ node, ...props }: any) => (
+  td: ({ ...props }: any) => (
     <td className="px-4 py-3 text-sm text-gray-200" {...props} />
   ),
-  pre: ({ node, ...props }: any) => <pre className="overflow-auto p-0 bg-transparent" {...props} />,
-  hr: ({ node, ...props }: any) => (
+  pre: ({ ...props }: any) => <pre className="overflow-auto p-0 bg-transparent" {...props} />,
+  hr: ({ ...props }: any) => (
     <hr className="border-0 h-px bg-gradient-to-r from-transparent via-gray-600 to-transparent my-6" {...props} />
   ),
-  strong: ({ node, ...props }: any) => (
+  strong: ({ ...props }: any) => (
     <strong className="font-semibold text-white" {...props} />
   ),
-  em: ({ node, ...props }: any) => <em className="italic text-gray-300" {...props} />,
+  em: ({ ...props }: any) => <em className="italic text-gray-300" {...props} />,
 };
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -700,9 +710,22 @@ export default function ChatSession() {
                         ) : (
                           <div className="flex items-start space-x-4 mb-8">
                             <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-semibold shadow-lg border border-emerald-400/30">
-                              AI
+                              {msg.content.includes('🔍') || msg.content.includes('agentic') || msg.content.includes('explored') ? (
+                                <div className="relative">
+                                  AI
+                                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-purple-500 rounded-full animate-pulse"></div>
+                                </div>
+                              ) : (
+                                'AI'
+                              )}
                             </div>
-                            <div className="flex-1 min-w-0 bg-gray-800/60 border border-gray-700/50 rounded-2xl p-6 shadow-xl backdrop-blur-md"> {/* MODIFIED STYLING HERE */}
+                            <div className="flex-1 min-w-0 bg-gradient-to-br from-gray-800/80 via-gray-800/60 to-gray-900/60 border border-gray-700/50 rounded-2xl p-6 shadow-xl backdrop-blur-md relative overflow-hidden">
+                              {/* Enhanced accent line for agentic responses */}
+                              {msg.content.includes('🔍') || msg.content.includes('agentic') || msg.content.includes('explored') ? (
+                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-emerald-500 to-blue-500 animate-pulse"></div>
+                              ) : (
+                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-blue-500 to-purple-500"></div>
+                              )}
                               <div className="prose prose-invert max-w-none">
                                 <ReactMarkdown
                                   components={MarkdownComponents}
