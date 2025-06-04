@@ -174,10 +174,16 @@ export const enableAgenticMode = async (sessionId: string): Promise<void> => {
 export async function* sendMessage(
   sessionId: string,
   content: string,
-  agentic: boolean = true // Default to agentic for this function
+  agentic: boolean = true, // Default to agentic for this function
+  contextFiles?: string[] // Add context files parameter
 ): AsyncGenerator<StreamedAgenticResponse> {
   const url = `${API_BASE_URL}/assistant/sessions/${sessionId}/agentic-query?stream=true`;
-  const payload = { role: 'user', content };
+  const payload: any = { role: 'user', content };
+  
+  // Add context files if provided
+  if (contextFiles && contextFiles.length > 0) {
+    payload.context_files = contextFiles;
+  }
 
   try {
     const response = await fetch(url, {
