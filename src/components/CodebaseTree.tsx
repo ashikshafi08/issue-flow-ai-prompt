@@ -3,6 +3,8 @@ import { ChevronRight, ChevronDown, File, Folder, FolderOpen, Search, Filter } f
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 interface FileNode {
   name: string;
   path: string;
@@ -29,10 +31,10 @@ const CodebaseTree: React.FC<CodebaseTreeProps> = ({ sessionId, onFileSelect }) 
         setLoading(true);
         setError(null);
         
-        let response = await fetch(`http://localhost:8000/api/tree?session_id=${sessionId}`);
+        let response = await fetch(`${API_BASE_URL}/api/tree?session_id=${sessionId}`);
         
         if (response.status === 404) {
-          response = await fetch(`http://localhost:8000/api/files?session_id=${sessionId}`);
+          response = await fetch(`${API_BASE_URL}/api/files?session_id=${sessionId}`);
           if (response.ok) {
             const filesData = await response.json();
             const treeStructure = buildTreeFromFiles(filesData);
@@ -173,7 +175,7 @@ const CodebaseTree: React.FC<CodebaseTreeProps> = ({ sessionId, onFileSelect }) 
     return (
       <div key={node.path}>
         <div
-          className={`flex items-center py-1 px-2 hover:bg-gray-700/50 cursor-pointer transition-all duration-150 group ${
+          className={`flex items-center py-1.5 px-2 hover:bg-gray-800/60 cursor-pointer transition-all duration-150 group ${
             isHighlighted ? 'bg-blue-600/20 border-r-2 border-blue-500' : ''
           } ${node.type === 'file' ? 'text-gray-300' : 'text-gray-200'}`}
           style={{ paddingLeft }}
@@ -209,7 +211,7 @@ const CodebaseTree: React.FC<CodebaseTreeProps> = ({ sessionId, onFileSelect }) 
         </div>
         
         {node.type === 'directory' && isExpanded && node.children && (
-          <div>
+          <div className="bg-gray-950">
             {node.children.map(child => renderNode(child, level + 1))}
           </div>
         )}
@@ -244,7 +246,7 @@ const CodebaseTree: React.FC<CodebaseTreeProps> = ({ sessionId, onFileSelect }) 
 
   if (loading) {
     return (
-      <div className="p-6 text-center">
+      <div className="p-6 text-center bg-gray-950 h-full">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-3"></div>
         <p className="text-sm text-gray-400">Loading repository structure...</p>
       </div>
@@ -253,7 +255,7 @@ const CodebaseTree: React.FC<CodebaseTreeProps> = ({ sessionId, onFileSelect }) 
 
   if (error) {
     return (
-      <div className="p-6 text-center">
+      <div className="p-6 text-center bg-gray-950 h-full">
         <div className="text-red-400 mb-3 text-2xl">⚠️</div>
         <p className="text-sm text-gray-400 mb-4">{error}</p>
         <Button 
@@ -269,9 +271,9 @@ const CodebaseTree: React.FC<CodebaseTreeProps> = ({ sessionId, onFileSelect }) 
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-gray-950">
       {/* Enhanced Search Header */}
-      <div className="p-4 space-y-3">
+      <div className="p-3 space-y-3 bg-gray-950 border-b border-gray-800">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
@@ -279,7 +281,7 @@ const CodebaseTree: React.FC<CodebaseTreeProps> = ({ sessionId, onFileSelect }) 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search files and folders..."
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-700/50 border border-gray-600/50 rounded-lg text-sm text-gray-100 placeholder:text-gray-400 focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/20 transition-all"
+            className="w-full pl-10 pr-4 py-2.5 bg-gray-900/80 border border-gray-700/50 rounded-lg text-sm text-gray-100 placeholder:text-gray-400 focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/20 transition-all"
           />
           {searchQuery && (
             <button
@@ -297,7 +299,7 @@ const CodebaseTree: React.FC<CodebaseTreeProps> = ({ sessionId, onFileSelect }) 
               onClick={expandAll}
               variant="ghost"
               size="sm"
-              className="h-8 px-3 text-xs text-gray-400 hover:text-white hover:bg-gray-700/50"
+              className="h-8 px-3 text-xs text-gray-400 hover:text-white hover:bg-gray-800/50"
             >
               Expand All
             </Button>
@@ -305,7 +307,7 @@ const CodebaseTree: React.FC<CodebaseTreeProps> = ({ sessionId, onFileSelect }) 
               onClick={collapseAll}
               variant="ghost"
               size="sm"
-              className="h-8 px-3 text-xs text-gray-400 hover:text-white hover:bg-gray-700/50"
+              className="h-8 px-3 text-xs text-gray-400 hover:text-white hover:bg-gray-800/50"
             >
               Collapse
             </Button>
@@ -320,8 +322,8 @@ const CodebaseTree: React.FC<CodebaseTreeProps> = ({ sessionId, onFileSelect }) 
       </div>
 
       {/* Tree Content */}
-      <ScrollArea className="flex-1 px-2">
-        <div className="pb-4">
+      <ScrollArea className="flex-1">
+        <div className="p-2 bg-gray-950">
           {Array.isArray(filteredData) && filteredData.length > 0 ? (
             filteredData.map(node => renderNode(node))
           ) : searchQuery ? (

@@ -51,9 +51,9 @@ const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
   };
 
   return (
-    <div className="w-64 bg-gray-900 border-r border-gray-700 flex flex-col">
+    <div className="w-64 bg-gray-950 border-r border-gray-800 flex flex-col">
       {/* Header */}
-      <div className="p-4 border-b border-gray-700">
+      <div className="p-4 border-b border-gray-800">
         <div className="flex items-center gap-2 mb-4">
           <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-1.5 rounded">
             <svg
@@ -74,7 +74,7 @@ const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
           <span className="text-white font-semibold">triage.flow</span>
           <button
             onClick={onRefresh}
-            className="ml-auto text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-gray-700"
+            className="ml-auto text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-gray-800"
             title="Refresh sessions"
           >
             <RefreshCw className="h-4 w-4" />
@@ -83,7 +83,7 @@ const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
         
         <button
           onClick={onNewChat}
-          className="w-full flex items-center gap-2 px-3 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors duration-200"
+          className="w-full flex items-center gap-2 px-3 py-2 bg-gray-900 hover:bg-gray-800 text-gray-300 rounded-lg transition-colors duration-200"
         >
           <Plus className="h-4 w-4" />
           <span className="text-sm font-medium">New Chat</span>
@@ -106,8 +106,8 @@ const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
                   key={session.id}
                   className={`group relative rounded-lg transition-colors duration-200 ${
                     activeSessionId === session.id
-                      ? 'bg-gray-700 text-white'
-                      : 'text-gray-300 hover:bg-gray-800'
+                      ? 'bg-gray-800 text-white'
+                      : 'text-gray-300 hover:bg-gray-900'
                   }`}
                 >
                   <button
@@ -147,7 +147,7 @@ const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
       </div>
 
       {/* Footer */}
-      <div className="p-4 border-t border-gray-700">
+      <div className="p-4 border-t border-gray-800">
         <p className="text-xs text-gray-500 text-center">
           AI-powered repository assistant
         </p>

@@ -262,6 +262,8 @@ const MarkdownComponents = {
   em: ({ node, ...props }: any) => <em className="italic text-gray-300" {...props} />,
 };
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 const AppSidebar = ({ sessionId, onFileSelect }: { sessionId: string; onFileSelect: (filePath: string) => void }) => {
   const handleFileSelect = (filePath: string) => {
     console.log('Selected file:', filePath);
@@ -269,9 +271,9 @@ const AppSidebar = ({ sessionId, onFileSelect }: { sessionId: string; onFileSele
   };
 
   return (
-    <Sidebar className="border-r border-gray-700/50 bg-gray-900/95 backdrop-blur-sm">
-      <SidebarContent className="bg-transparent">
-        <div className="p-4 border-b border-gray-700/50">
+    <Sidebar className="border-r border-gray-800 bg-gray-950">
+      <SidebarContent className="bg-gray-950">
+        <div className="p-4 border-b border-gray-800 bg-gray-950">
           <h2 className="text-lg font-semibold text-white flex items-center gap-2">
             <FolderTree className="h-5 w-5 text-blue-400" />
             Codebase Explorer
@@ -344,25 +346,17 @@ export default function ChatSession() {
 
   // Fetch file list when sessionId is available
   useEffect(() => {
-    if (!sessionId) return; // Don't fetch until sessionId is set
-    
-    // Fetch both files and tree structure for folder support
-    Promise.all([
-      fetch(`http://localhost:8000/api/files?session_id=${sessionId}`).then(res => res.json()),
-      fetch(`http://localhost:8000/api/tree?session_id=${sessionId}`).then(res => res.json())
-    ]).then(([files, tree]) => {
-      setAllFiles(files);
-      // Extract folders from tree structure
-      const folders = extractFoldersFromTree(tree);
-      setAllFolders(folders);
-    }).catch(err => {
-      console.error('Error fetching files/folders:', err);
-      // Fallback to just files
-      fetch(`http://localhost:8000/api/files?session_id=${sessionId}`)
-        .then(res => res.json())
-        .then(data => setAllFiles(data))
-        .catch(err => console.error('Error fetching files:', err));
-    });
+    if (sessionId) {
+      Promise.all([
+        fetch(`${API_BASE_URL}/api/files?session_id=${sessionId}`).then(res => res.json()),
+        fetch(`${API_BASE_URL}/api/tree?session_id=${sessionId}`).then(res => res.json())
+      ]).then(([filesData, treeData]) => {
+        setAllFiles(filesData);
+        // Extract folders from tree structure
+        const folders = extractFoldersFromTree(treeData);
+        setAllFolders(folders);
+      }).catch(console.error);
+    }
   }, [sessionId]);
 
   // Helper function to extract folders from tree structure
@@ -493,7 +487,7 @@ export default function ChatSession() {
       setIsStreaming(true);
       setIsLoading(false);
       
-      const response = await fetch(`http://localhost:8000/sessions/${sessionId}/messages?stream=true`, {
+      const response = await fetch(`${API_BASE_URL}/sessions/${sessionId}/messages?stream=true`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: 'user', content: currentInput })
@@ -520,23 +514,19 @@ export default function ChatSession() {
           
           for (const line of lines) {
             if (line.startsWith('data: ')) {
-              const data = line.substring(6).trim();
-              console.log('SSE data received:', data); // Debug log
-              if (data === '[DONE]') { 
-                setIsStreaming(false); 
-                return; 
+              const data = line.slice(6).trim();
+              
+              if (data === '[DONE]') {
+                setIsLoading(false);
+                return;
               }
+              
               if (data) {
                 try {
-                  const json = JSON.parse(data);
-                  if (json.error) {
-                    console.error('LLM API Error:', json.error);
-                    throw new Error(json.error);
-                  }
+                  const parsed = JSON.parse(data);
+                  const content = parsed.choices?.[0]?.delta?.content || '';
                   
-                  const content = json.choices?.[0]?.delta?.content;
                   if (content) {
-                    console.log('Content extracted:', content); // Debug log
                     assistantResponseContent += content;
                     setMessages(prev => {
                       const newMessages = [...prev];
@@ -550,15 +540,9 @@ export default function ChatSession() {
                       return newMessages;
                     });
                   }
-                } catch (parseError) {
-                  console.warn('Failed to parse streaming chunk:', data, parseError);
-                  // If we see raw streaming data, it might be a backend formatting issue
-                  if (data.includes('{"choices"')) {
-                    console.error('Received malformed SSE data - check backend SSE formatting');
-                  }
+                } catch (e) {
+                  // Ignore parsing errors for non-JSON lines
                 }
-              } else if (line.trim()) {
-                console.log('Non-SSE line received:', line); // Debug unexpected content
               }
             }
           }
@@ -607,7 +591,7 @@ export default function ChatSession() {
 
   if (!sessionId) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
+      <div className="flex items-center justify-center h-screen bg-black text-white">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">No Session ID</h1>
           <p className="text-gray-400">Please provide a valid session ID to continue.</p>
@@ -622,7 +606,7 @@ export default function ChatSession() {
 
   return (
     <SidebarProvider defaultOpen={sidebarOpen}>
-      <div className="min-h-screen flex w-full bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
+      <div className="min-h-screen flex w-full bg-black text-white">
         <AppSidebar sessionId={sessionId} onFileSelect={handleFileView} />
         
         {viewingFile && (
@@ -635,10 +619,10 @@ export default function ChatSession() {
         
         <div className="flex flex-col flex-1 min-w-0">
           {/* Enhanced Header */}
-          <div className="sticky top-0 z-40 border-b border-gray-700/40 bg-gray-800/95 backdrop-blur-xl px-6 py-4 shadow-xl">
+          <div className="sticky top-0 z-40 border-b border-gray-800 bg-gray-950/95 backdrop-blur-xl px-6 py-4 shadow-xl">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <SidebarTrigger className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-gray-700/50 rounded-lg">
+                <SidebarTrigger className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-gray-800 rounded-lg">
                   <Menu className="h-5 w-5" />
                 </SidebarTrigger>
                 <div className="flex items-center gap-3">
@@ -658,7 +642,7 @@ export default function ChatSession() {
               </div>
               
               <div className="flex items-center gap-3">
-                <div className="hidden md:flex items-center gap-2 text-xs text-gray-400 bg-gray-700/30 px-3 py-1.5 rounded-full border border-gray-600/30">
+                <div className="hidden md:flex items-center gap-2 text-xs text-gray-400 bg-gray-800/50 px-3 py-1.5 rounded-full border border-gray-700/50">
                   <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
                   Session: {sessionId?.slice(-8)}
                 </div>
@@ -683,15 +667,15 @@ export default function ChatSession() {
                         Ask questions about your codebase, explore files, or get help with implementation
                       </p>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto text-left">
-                        <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-4 hover:bg-gray-800/70 transition-colors">
+                        <div className="bg-gray-900/70 border border-gray-800 rounded-xl p-4 hover:bg-gray-900 transition-colors">
                           <div className="text-green-400 mb-2">@</div>
                           <p className="text-sm text-gray-300">Reference specific files with @ mentions</p>
                         </div>
-                        <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-4 hover:bg-gray-800/70 transition-colors">
+                        <div className="bg-gray-900/70 border border-gray-800 rounded-xl p-4 hover:bg-gray-900 transition-colors">
                           <div className="text-yellow-400 mb-2">📁</div>
                           <p className="text-sm text-gray-300">Reference folders with @folder/ to query entire directories</p>
                         </div>
-                        <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-4 hover:bg-gray-800/70 transition-colors">
+                        <div className="bg-gray-900/70 border border-gray-800 rounded-xl p-4 hover:bg-gray-900 transition-colors">
                           <div className="text-purple-400 mb-2">💬</div>
                           <p className="text-sm text-gray-300">Ask about code patterns and structure</p>
                         </div>
@@ -768,14 +752,14 @@ export default function ChatSession() {
           </div>
           
           {/* Enhanced Input Area */}
-          <div className="sticky bottom-0 border-t border-gray-700/40 bg-gray-800/95 backdrop-blur-xl p-6 shadow-2xl">
+          <div className="sticky bottom-0 border-t border-gray-800 bg-gray-950/95 backdrop-blur-xl p-6 shadow-2xl">
             <div className="mx-auto max-w-4xl">
               <div className="relative">
                 {/* Enhanced File Picker */}
                 {showFilePicker && (
                   <div className="absolute bottom-full left-0 right-0 mb-4 z-50">
-                    <div className="bg-gray-800/95 backdrop-blur-xl border border-gray-600/50 rounded-2xl shadow-2xl overflow-hidden">
-                      <div className="border-b border-gray-600/50 p-4">
+                    <div className="bg-gray-900/95 backdrop-blur-xl border border-gray-700 rounded-2xl shadow-2xl overflow-hidden">
+                      <div className="border-b border-gray-700 p-4">
                         <div className="flex items-center gap-3 text-sm font-medium text-gray-200 mb-3">
                           <FileText className="h-5 w-5 text-blue-400" />
                           Reference Files & Folders
@@ -899,7 +883,7 @@ export default function ChatSession() {
                 )}
                 
                 {/* Modern Input Field */}
-                <div className="flex items-end gap-4 rounded-2xl bg-gray-700/50 border border-gray-600/50 p-4 focus-within:border-blue-500/60 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all duration-200 backdrop-blur-sm">
+                <div className="flex items-end gap-4 rounded-2xl bg-gray-900/70 border border-gray-700 p-4 focus-within:border-blue-500/60 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all duration-200 backdrop-blur-sm">
                   <Textarea
                     ref={textareaRef}
                     value={input}

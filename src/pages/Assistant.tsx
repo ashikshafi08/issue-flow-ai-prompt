@@ -106,7 +106,7 @@ const Assistant = () => {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen bg-gray-950 items-center justify-center">
+      <div className="flex h-screen bg-black items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-4" />
           <p className="text-gray-400">Loading sessions...</p>
@@ -117,7 +117,7 @@ const Assistant = () => {
 
   if (error && sessions.length === 0) {
     return (
-      <div className="flex h-screen bg-gray-950 items-center justify-center">
+      <div className="flex h-screen bg-black items-center justify-center">
         <div className="text-center max-w-md">
           <h2 className="text-xl font-bold text-white mb-2">Error Loading Sessions</h2>
           <p className="text-gray-400 mb-4">{error}</p>
@@ -133,7 +133,7 @@ const Assistant = () => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-950">
+    <div className="flex h-screen bg-black">
       {/* Sidebar */}
       <AssistantSidebar
         sessions={sessions}
@@ -145,7 +145,7 @@ const Assistant = () => {
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col bg-black">
         {activeSession ? (
           <ChatSession />
         ) : (

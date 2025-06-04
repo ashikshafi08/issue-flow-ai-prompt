@@ -2,7 +2,7 @@
  * API utilities for connecting to the triage.flow backend
  */
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export interface RepoSessionRequest {
   repo_url: string;
