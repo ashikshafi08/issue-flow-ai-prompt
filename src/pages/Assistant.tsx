@@ -26,6 +26,8 @@ export interface ChatMessage {
   error?: string;
   type?: 'thought' | 'action' | 'observation' | 'answer' | 'status' | 'error' | 'final_answer_chunk';
   issueContext?: any;
+  processingType?: string;
+  suggestions?: string[];
 }
 
 export interface Session {
@@ -120,6 +122,9 @@ const Assistant = () => {
             isStreaming: msg.isStreaming,
             error: msg.error,
             type: msg.type,
+            issueContext: msg.issueContext,
+            processingType: msg.processingType,
+            suggestions: msg.suggestions,
           })),
           type: metadata.type,
           created_at: metadata.created_at,
@@ -212,7 +217,7 @@ const Assistant = () => {
       console.error("Failed to reset agent memory:", error);
       toast({
         title: "Error",
-        description: "Could not reset agent memory.",
+        description: "Failed to reset agent memory. Please try again.",
         variant: "destructive",
       });
     }
@@ -220,23 +225,28 @@ const Assistant = () => {
 
   const deleteSession = useCallback(async (sId: string) => {
     try {
-      const { deleteAssistantSession } = await import('@/lib/api');
-      await deleteAssistantSession(sId);
-      
-      setSessions(prev => prev.filter(session => session.id !== sId));
-      
-      if (activeSessionId === sId) {
-        setActiveSessionId(null);
-        setDetailedActiveSession(null); 
-        navigate('/assistant', { replace: true }); 
-      }
-
-      toast({
-        title: "Session Deleted",
-        description: "The session has been deleted successfully.",
+      const response = await fetch(`http://localhost:8000/assistant/sessions/${sId}`, {
+        method: 'DELETE'
       });
+
+      if (response.ok) {
+        setSessions(prev => prev.filter(session => session.id !== sId));
+        
+        if (activeSessionId === sId) {
+          setActiveSessionId(null);
+          setDetailedActiveSession(null); 
+          navigate('/assistant', { replace: true }); 
+        }
+        
+        toast({
+          title: "Session Deleted",
+          description: "The session has been successfully deleted.",
+        });
+      } else {
+        throw new Error('Failed to delete session');
+      }
     } catch (error) {
-      console.error('Failed to delete session:', error);
+      console.error('Error deleting session:', error);
       toast({
         title: "Error",
         description: "Failed to delete session. Please try again.",
@@ -249,6 +259,10 @@ const Assistant = () => {
     try {
       const response = await listAssistantSessions('repo_chat');
       setSessions(response.sessions);
+      toast({
+        title: "Sessions Refreshed",
+        description: "Session list has been updated.",
+      });
     } catch (error) {
       console.error('Failed to refresh sessions:', error);
       toast({
@@ -269,21 +283,11 @@ const Assistant = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          number: issue.number,
-          title: issue.title,
-          body: issue.body,
-          state: issue.state,
-          labels: issue.labels,
-          assignees: issue.assignees,
-          comments: issue.comments,
-          created_at: issue.created_at,
-          url: issue.url
-        })
+        body: JSON.stringify({ issue })
       });
 
       if (!response.ok) {
-        throw new Error('Failed to add issue context to session');
+        throw new Error('Failed to add issue to context');
       }
 
       // Create a compact issue card message for the chat
@@ -291,16 +295,9 @@ const Assistant = () => {
         role: 'assistant',
         content: `📋 **Issue #${issue.number} Added to Context**
 
-\`\`\`
-┌─ ${issue.state === 'open' ? '🟢 OPEN' : '🟣 CLOSED'} ─────────────────────────────────────┐
-│ #${issue.number}: ${issue.title}                    │
-├──────────────────────────────────────────────────────┤
-│ Created: ${new Date(issue.created_at).toLocaleDateString()}${issue.comments.length > 0 ? ` • ${issue.comments.length} comments` : ''}              │
-${issue.labels.length > 0 ? `│ Labels: ${issue.labels.join(', ')}                     │` : ''}
-├──────────────────────────────────────────────────────┤
-│ ${issue.body ? issue.body.substring(0, 100).replace(/\n/g, ' ') + (issue.body.length > 100 ? '...' : '') : 'No description provided'}              │
-└──────────────────────────────────────────────────────┘
-\`\`\`
+**${issue.title}**
+
+*State:* ${issue.state} | *Created:* ${new Date(issue.created_at).toLocaleDateString()}
 
 *This issue is now available in the conversation context. Ask me anything about it!*`,
         timestamp: Date.now(),
@@ -329,28 +326,18 @@ ${issue.labels.length > 0 ? `│ Labels: ${issue.labels.join(', ')}             
           currentIssueContext: {
             number: issue.number,
             title: issue.title,
-            body: issue.body,
-            state: issue.state,
-            labels: issue.labels,
-            assignees: issue.assignees,
-            comments: issue.comments,
-            created_at: issue.created_at,
             url: issue.url
           }
         };
       }
 
-      // Close the issues pane
-      setShowIssuesPane(false);
-
-      // Show success toast
       toast({
-        title: "Issue Added to Context",
-        description: `Issue #${issue.number} is now available in your conversation context.`,
+        title: "Issue Added",
+        description: `Issue #${issue.number} has been added to the conversation context.`,
       });
 
     } catch (error) {
-      console.error('Error adding issue to context:', error);
+      console.error('Failed to add issue to context:', error);
       toast({
         title: "Error",
         description: "Failed to add issue to context. Please try again.",
@@ -370,23 +357,6 @@ ${issue.labels.length > 0 ? `│ Labels: ${issue.labels.join(', ')}             
     );
   }
 
-  if (error && sessions.length === 0) {
-    return (
-      <div className="flex h-screen bg-black items-center justify-center">
-        <div className="text-center max-w-md">
-          <h2 className="text-xl font-bold text-white mb-2">Error Loading Sessions</h2>
-          <p className="text-gray-400 mb-4">{error}</p>
-          <button
-            onClick={handleRefresh}
-            className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-4 py-2 rounded-lg transition-all"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex h-screen bg-black">
       <AssistantSidebar
@@ -395,9 +365,9 @@ ${issue.labels.length > 0 ? `│ Labels: ${issue.labels.join(', ')}             
         onSessionSelect={setActiveSessionId}
         onNewChat={() => setShowNewChatModal(true)}
         onDeleteSession={deleteSession}
-        onRefresh={handleRefresh} 
+        onRefresh={handleRefresh}
       />
-
+      
       <div className="flex-1 flex bg-black min-h-0">
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col bg-black min-w-0">
@@ -410,7 +380,7 @@ ${issue.labels.length > 0 ? `│ Labels: ${issue.labels.join(', ')}             
             </div>
           ) : detailedActiveSession ? (
             <>
-              {/* Chat Header with Tree Toggle */}
+              {/* Chat Header */}
               <div className="border-b border-gray-700 bg-gray-800/60 px-4 py-3 shadow-md">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -455,10 +425,10 @@ ${issue.labels.length > 0 ? `│ Labels: ${issue.labels.join(', ')}             
                   </div>
                 </div>
               </div>
-              
+
               {/* Chat Content */}
               <div className="flex-1 overflow-hidden">
-                <ChatSession 
+                <ChatSession
                   session={detailedActiveSession}
                   onUpdateSessionMessages={updateActiveSessionMessages}
                   selectedFile={selectedFile}
@@ -483,7 +453,7 @@ ${issue.labels.length > 0 ? `│ Labels: ${issue.labels.join(', ')}             
                     Repository Chat Assistant
                   </h1>
                   <p className="text-gray-400 mb-6">
-                    Clone any GitHub repository and start chatting with your code. Use @file mentions to reference specific files or @folder/ for directories.
+                    Clone any GitHub repository and start chatting with your code. Enhanced with AgenticRAG for intelligent analysis and context-aware responses.
                   </p>
                 </div>
                 <button
@@ -547,6 +517,7 @@ ${issue.labels.length > 0 ? `│ Labels: ${issue.labels.join(', ')}             
         )}
       </div>
 
+      {/* Modal for creating new chat */}
       {showNewChatModal && (
         <NewChatModal
           onClose={() => setShowNewChatModal(false)}
