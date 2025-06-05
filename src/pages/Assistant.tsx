@@ -4,9 +4,10 @@ import AssistantSidebar from '@/components/AssistantSidebar';
 import ChatSession from '@/components/ChatSession';
 import CodebaseTree from '@/components/CodebaseTree';
 import NewChatModal from '@/components/NewChatModal';
+import IssuesPane from '@/components/IssuesPane';
 import { listAssistantSessions, SessionInfo, getSessionMessages, getSessionMetadata, resetAgenticMemory } from '@/lib/api';
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2, PanelLeft, FolderTree, RefreshCw } from 'lucide-react';
+import { Loader2, PanelLeft, FolderTree, RefreshCw, GitBranch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 // Define a more detailed Session type that ChatSessionComponent will use
@@ -48,6 +49,7 @@ const Assistant = () => {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [detailedActiveSession, setDetailedActiveSession] = useState<Session | null>(null);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
+  const [showIssuesPane, setShowIssuesPane] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSessionLoading, setIsSessionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -339,6 +341,16 @@ const Assistant = () => {
                     >
                       <RefreshCw className="h-4 w-4" />
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowIssuesPane(true)}
+                      className="text-gray-400 border-gray-600 hover:bg-gray-700 hover:text-gray-200"
+                      title="View Repository Issues"
+                    >
+                      <GitBranch className="h-4 w-4" />
+                      Issues
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -438,6 +450,14 @@ const Assistant = () => {
         <NewChatModal
           onClose={() => setShowNewChatModal(false)}
           onCreateSession={createNewSession}
+        />
+      )}
+
+      {detailedActiveSession && (
+        <IssuesPane
+          open={showIssuesPane}
+          onClose={() => setShowIssuesPane(false)}
+          repoUrl={detailedActiveSession.repoUrl}
         />
       )}
     </div>
