@@ -24,9 +24,10 @@ interface IssuesPaneProps {
   open: boolean;
   onClose: () => void;
   repoUrl: string;
+  onAddIssueToContext?: (issue: Issue) => void;
 }
 
-const IssuesPane: React.FC<IssuesPaneProps> = ({ open, onClose, repoUrl }) => {
+const IssuesPane: React.FC<IssuesPaneProps> = ({ open, onClose, repoUrl, onAddIssueToContext }) => {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
   const [loading, setLoading] = useState(false);
@@ -290,6 +291,22 @@ const IssuesPane: React.FC<IssuesPaneProps> = ({ open, onClose, repoUrl }) => {
                       >
                         View on GitHub <ExternalLink className="h-3 w-3" />
                       </a>
+                    </div>
+                    
+                    {/* Add as Context Button */}
+                    <div className="mt-3">
+                      <Button
+                        onClick={() => {
+                          if (onAddIssueToContext && selectedIssue) {
+                            onAddIssueToContext(selectedIssue);
+                          }
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700 text-white text-sm"
+                        size="sm"
+                      >
+                        <MessageCircle className="h-4 w-4 mr-2" />
+                        Add as Context
+                      </Button>
                     </div>
                   </div>
                 )}

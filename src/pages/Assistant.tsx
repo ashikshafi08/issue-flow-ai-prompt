@@ -25,6 +25,7 @@ export interface ChatMessage {
   isStreaming?: boolean;
   error?: string;
   type?: 'thought' | 'action' | 'observation' | 'answer' | 'status' | 'error' | 'final_answer_chunk';
+  issueContext?: any;
 }
 
 export interface Session {
@@ -258,6 +259,106 @@ const Assistant = () => {
     }
   }, [toast]);
 
+  const handleAddIssueToContext = useCallback(async (issue: any) => {
+    if (!detailedActiveSession) return;
+
+    try {
+      // First, call backend to store issue context in session metadata
+      const response = await fetch(`http://localhost:8000/assistant/sessions/${detailedActiveSession.id}/add-issue-context`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          number: issue.number,
+          title: issue.title,
+          body: issue.body,
+          state: issue.state,
+          labels: issue.labels,
+          assignees: issue.assignees,
+          comments: issue.comments,
+          created_at: issue.created_at,
+          url: issue.url
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add issue context to session');
+      }
+
+      // Create a compact issue card message for the chat
+      const issueMessage: ChatMessage = {
+        role: 'assistant',
+        content: `📋 **Issue #${issue.number} Added to Context**
+
+\`\`\`
+┌─ ${issue.state === 'open' ? '🟢 OPEN' : '🟣 CLOSED'} ─────────────────────────────────────┐
+│ #${issue.number}: ${issue.title}                    │
+├──────────────────────────────────────────────────────┤
+│ Created: ${new Date(issue.created_at).toLocaleDateString()}${issue.comments.length > 0 ? ` • ${issue.comments.length} comments` : ''}              │
+${issue.labels.length > 0 ? `│ Labels: ${issue.labels.join(', ')}                     │` : ''}
+├──────────────────────────────────────────────────────┤
+│ ${issue.body ? issue.body.substring(0, 100).replace(/\n/g, ' ') + (issue.body.length > 100 ? '...' : '') : 'No description provided'}              │
+└──────────────────────────────────────────────────────┘
+\`\`\`
+
+*This issue is now available in the conversation context. Ask me anything about it!*`,
+        timestamp: Date.now(),
+        type: 'status',
+        // Store the full issue data for AI access
+        issueContext: {
+          number: issue.number,
+          title: issue.title,
+          body: issue.body,
+          state: issue.state,
+          labels: issue.labels,
+          assignees: issue.assignees,
+          comments: issue.comments,
+          created_at: issue.created_at,
+          url: issue.url
+        }
+      };
+
+      // Add the message to the chat
+      updateActiveSessionMessages(prev => [...prev, issueMessage]);
+
+      // Also update local session metadata
+      if (detailedActiveSession) {
+        detailedActiveSession.metadata = {
+          ...detailedActiveSession.metadata,
+          currentIssueContext: {
+            number: issue.number,
+            title: issue.title,
+            body: issue.body,
+            state: issue.state,
+            labels: issue.labels,
+            assignees: issue.assignees,
+            comments: issue.comments,
+            created_at: issue.created_at,
+            url: issue.url
+          }
+        };
+      }
+
+      // Close the issues pane
+      setShowIssuesPane(false);
+
+      // Show success toast
+      toast({
+        title: "Issue Added to Context",
+        description: `Issue #${issue.number} is now available in your conversation context.`,
+      });
+
+    } catch (error) {
+      console.error('Error adding issue to context:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add issue to context. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [detailedActiveSession, updateActiveSessionMessages, toast]);
+
   if (isLoading && sessions.length === 0) { 
     return (
       <div className="flex h-screen bg-black items-center justify-center">
@@ -458,6 +559,7 @@ const Assistant = () => {
           open={showIssuesPane}
           onClose={() => setShowIssuesPane(false)}
           repoUrl={detailedActiveSession.repoUrl}
+          onAddIssueToContext={handleAddIssueToContext}
         />
       )}
     </div>
