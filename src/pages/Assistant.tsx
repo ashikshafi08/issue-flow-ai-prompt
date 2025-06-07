@@ -5,16 +5,20 @@ import ChatSession from '@/components/ChatSession';
 import CodebaseTree from '@/components/CodebaseTree';
 import NewChatModal from '@/components/NewChatModal';
 import IssuesPane from '@/components/IssuesPane';
-import { listAssistantSessions, SessionInfo, getSessionMessages, getSessionMetadata, resetAgenticMemory } from '@/lib/api';
+import FileViewer from '@/components/FileViewer';
+import UnifiedContextPanel from '@/components/UnifiedContextPanel';
+import { listAssistantSessions, SessionInfo, getSessionMessages, getSessionMetadata, resetAgenticMemory, syncRepository } from '@/lib/api'; // Added syncRepository
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2, PanelLeft, FolderTree, RefreshCw, GitBranch } from 'lucide-react';
+import { Loader2, PanelLeft, FolderTree, RefreshCw, GitBranch, Zap as SyncIcon } from 'lucide-react'; // Changed RefreshCw to Zap for Sync & added Zap
 import { Button } from '@/components/ui/button';
+import { useKeyboardShortcuts, createChatShortcuts } from '@/hooks/useKeyboardShortcuts';
+import KeyboardShortcutsIndicator from '@/components/KeyboardShortcutsIndicator';
 
 // Define a more detailed Session type that ChatSessionComponent will use
 export interface AgenticStep {
   type: 'thought' | 'action' | 'observation' | 'answer' | 'status' | 'error';
   content: string;
-  step?: number;
+  step: number; // Make step required to align with backend and EnhancedChatMessage
 }
 
 export interface ChatMessage {
@@ -57,7 +61,14 @@ const Assistant = () => {
   const [isSessionLoading, setIsSessionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCodebaseTree, setShowCodebaseTree] = useState(true);
+  const [showUnifiedContext, setShowUnifiedContext] = useState(true);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false); // New state for sync status
+  const [currentContext, setCurrentContext] = useState<{
+    discussingFiles?: string[];
+    relatedIssues?: number[];
+    activeThread?: string;
+  }>({});
   const { toast } = useToast();
 
   // Load sessions only once on mount
@@ -346,6 +357,60 @@ const Assistant = () => {
     }
   }, [detailedActiveSession, updateActiveSessionMessages, toast]);
 
+  const handleSyncRepository = async () => {
+    if (!activeSessionId) return;
+    setIsSyncing(true);
+    toast({
+      title: "Syncing Repository",
+      description: "Starting full data synchronization with GitHub. This may take a few minutes...",
+    });
+    try {
+      const result = await syncRepository(activeSessionId);
+      toast({
+        title: "Sync Started",
+        description: result.message,
+      });
+      // Optionally, you could add a system message to the chat here
+      // Or update session metadata display if it shows sync status
+    } catch (error) {
+      console.error("Failed to sync repository:", error);
+      toast({
+        title: "Sync Error",
+        description: error instanceof Error ? error.message : "Could not start repository sync.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSyncing(false);
+      // After a sync, you might want to re-fetch session status or even messages
+      // to reflect any changes, or wait for polling to update.
+    }
+  };
+
+  // Setup keyboard shortcuts
+  const chatShortcuts = createChatShortcuts({
+    toggleContextPanel: () => setShowUnifiedContext(!showUnifiedContext),
+    focusInput: () => {
+      // Find and focus the chat input
+      const inputElement = document.querySelector('textarea[placeholder*="Ask anything"]') as HTMLTextAreaElement;
+      if (inputElement) {
+        inputElement.focus();
+      }
+    },
+    openFileSearch: () => {
+      // Trigger file search in SmartChatInput
+      const event = new KeyboardEvent('keydown', { key: '@' });
+      document.dispatchEvent(event);
+    },
+    newChat: () => setShowNewChatModal(true),
+    clearContext: () => {
+      if (detailedActiveSession) {
+        handleResetMemory();
+      }
+    }
+  });
+
+  useKeyboardShortcuts({ shortcuts: chatShortcuts, enabled: true });
+
   if (isLoading && sessions.length === 0) { 
     return (
       <div className="flex h-screen bg-black items-center justify-center">
@@ -387,9 +452,9 @@ const Assistant = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setShowCodebaseTree(!showCodebaseTree)}
+                      onClick={() => setShowUnifiedContext(!showUnifiedContext)}
                       className="text-gray-400 border-gray-600 hover:bg-gray-700 hover:text-gray-200"
-                      title="Toggle File Tree"
+                      title="Toggle Context Panel"
                     >
                       <FolderTree className="h-4 w-4" />
                     </Button>
@@ -403,6 +468,7 @@ const Assistant = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    <KeyboardShortcutsIndicator />
                     <Button
                       variant="outline"
                       size="sm"
@@ -422,6 +488,17 @@ const Assistant = () => {
                       <GitBranch className="h-4 w-4" />
                       Issues
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSyncRepository}
+                      className="text-gray-400 border-gray-600 hover:bg-gray-700 hover:text-gray-200"
+                      title="Sync Repository Data"
+                      disabled={isSyncing || !detailedActiveSession?.metadata?.repo_url} // Disable if no repo_url or already syncing
+                    >
+                      {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <SyncIcon className="h-4 w-4 mr-2" />}
+                      {isSyncing ? 'Syncing...' : 'Sync Repo'}
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -433,6 +510,7 @@ const Assistant = () => {
                   onUpdateSessionMessages={updateActiveSessionMessages}
                   selectedFile={selectedFile}
                   onCloseFileViewer={() => setSelectedFile(null)}
+                  onFileSelect={(filePath) => setSelectedFile(filePath)}
                 />
               </div>
             </>
@@ -489,33 +567,43 @@ const Assistant = () => {
           )}
         </div>
 
-        {/* Codebase Tree Sidebar */}
-        {showCodebaseTree && detailedActiveSession && (
-          <div className="w-80 border-l border-gray-700 bg-gray-900/50 flex flex-col">
-            <div className="border-b border-gray-700 px-4 py-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-white">File Explorer</h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowCodebaseTree(false)}
-                  className="text-gray-400 hover:text-gray-200 h-auto p-1"
-                >
-                  <PanelLeft className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <CodebaseTree 
-                sessionId={detailedActiveSession.id}
-                onFileSelect={(filePath) => {
-                  setSelectedFile(filePath);
-                }}
-              />
-            </div>
-          </div>
+        {/* Unified Context Panel */}
+        {showUnifiedContext && detailedActiveSession && (
+          <UnifiedContextPanel
+            sessionId={detailedActiveSession.id}
+            currentContext={currentContext}
+            onFileSelect={(filePath) => {
+              setSelectedFile(filePath);
+              // Update context tracking
+              setCurrentContext(prev => ({
+                ...prev,
+                discussingFiles: [...(prev.discussingFiles || []), filePath].slice(-3)
+              }));
+            }}
+            onIssueSelect={(issue) => {
+              handleAddIssueToContext(issue);
+              setCurrentContext(prev => ({
+                ...prev,
+                relatedIssues: [...(prev.relatedIssues || []), issue.number].slice(-3)
+              }));
+            }}
+            onPRSelect={(pr) => {
+              console.log('PR selected:', pr);
+              // Handle PR selection logic here
+            }}
+            repoUrl={detailedActiveSession.repoUrl}
+          />
         )}
       </div>
+
+      {/* FileViewer - Render as overlay when file is selected */}
+      {selectedFile && detailedActiveSession && (
+        <FileViewer
+          filePath={selectedFile}
+          sessionId={detailedActiveSession.id}
+          onClose={() => setSelectedFile(null)}
+        />
+      )}
 
       {/* Modal for creating new chat */}
       {showNewChatModal && (
@@ -525,6 +613,7 @@ const Assistant = () => {
         />
       )}
 
+      {/* Issues Pane */}
       {detailedActiveSession && (
         <IssuesPane
           open={showIssuesPane}

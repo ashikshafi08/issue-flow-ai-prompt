@@ -13,17 +13,9 @@ export interface RepoSessionRequest {
 
 export interface RepoSessionResponse {
   session_id: string;
-  repo_metadata: {
-    repo_url: string;
-    owner: string;
-    repo: string;
-    session_name: string;
-    initial_file?: string;
-    status: string;
-    error?: string;
-  };
+  repo_metadata: any; // Consider defining a more specific type
   status: string;
-  message?: string;
+  message: string;
 }
 
 export interface SessionInfo {
@@ -31,7 +23,24 @@ export interface SessionInfo {
   type: string;
   created_at: string;
   last_accessed: string;
-  metadata: any;
+  metadata: {
+    repo_url?: string;
+    owner?: string;
+    repo?: string;
+    session_name?: string;
+    initial_file?: string;
+    storage_path?: string;
+    status?: string;
+    core_status_achieved_at?: string | null;
+    full_status_achieved_at?: string | null;
+    patch_linkage_status?: string;
+    patch_linkage_progress?: number;
+    patch_linkage_message?: string;
+    patch_linkage_error?: string;
+    tools_ready?: string[];
+    error?: string;
+    [key: string]: any;
+  };
   message_count: number;
   repo_url?: string;
   session_name?: string;
@@ -44,18 +53,16 @@ export interface SessionListResponse {
   total: number;
 }
 
-// Interface for streamed agentic responses
 export interface StreamedAgenticResponse {
     type: 'step' | 'final' | 'error' | 'status';
-    step?: AgenticStep; // For 'step' type
-    final_answer?: string; // For 'final' type
-    steps?: AgenticStep[]; // For 'final' type, all steps
-    suggestions?: string[]; // For 'final' type
-    error?: string; // For 'error' type
+    step?: AgenticStep;
+    final_answer?: string;
+    steps?: AgenticStep[];
+    suggestions?: string[];
+    error?: string;
     content?: string; // For 'status' type
-    final?: boolean; // For 'final' and 'error' types
+    final?: boolean;
 }
-
 
 // Repository chat session API functions
 export const createRepoSession = async (request: RepoSessionRequest): Promise<RepoSessionResponse> => {
@@ -170,17 +177,15 @@ export const enableAgenticMode = async (sessionId: string): Promise<void> => {
   }
 };
 
-// New function to send a message and handle streaming for agentic queries
 export async function* sendMessage(
   sessionId: string,
   content: string,
-  agentic: boolean = true, // Default to agentic for this function
-  contextFiles?: string[] // Add context files parameter
+  agentic: boolean = true,
+  contextFiles?: string[]
 ): AsyncGenerator<StreamedAgenticResponse> {
   const url = `${API_BASE_URL}/assistant/sessions/${sessionId}/agentic-query?stream=true`;
   const payload: any = { role: 'user', content };
   
-  // Add context files if provided
   if (contextFiles && contextFiles.length > 0) {
     payload.context_files = contextFiles;
   }
@@ -213,7 +218,7 @@ export async function* sendMessage(
     while (true) {
       const { done, value } = await reader.read();
       if (done) {
-        if (buffer.trim()) { // Process any remaining data in buffer
+        if (buffer.trim()) {
           try {
             const jsonChunk = JSON.parse(buffer.trim());
             yield jsonChunk as StreamedAgenticResponse;
@@ -227,29 +232,26 @@ export async function* sendMessage(
 
       buffer += decoder.decode(value, { stream: true });
       
-      // Process buffer line by line for SSE events
       let eolIndex;
       while ((eolIndex = buffer.indexOf('\n\n')) >= 0) {
         const line = buffer.substring(0, eolIndex).trim();
-        buffer = buffer.substring(eolIndex + 2); // Skip the two newlines
+        buffer = buffer.substring(eolIndex + 2);
 
         if (line.startsWith('data: ')) {
           const jsonData = line.substring(6);
           if (jsonData === '[DONE]') {
-            // Backend might send [DONE] separately, or it's part of the final chunk.
-            // The 'final: true' in the 'final' type chunk should be the primary indicator.
             continue;
           }
           try {
             const parsedChunk = JSON.parse(jsonData);
             yield parsedChunk as StreamedAgenticResponse;
             if (parsedChunk.type === 'final' || (parsedChunk.type === 'error' && parsedChunk.final)) {
-              return; // End generation if it's a final chunk
+              return;
             }
           } catch (e) {
             console.error('Error parsing JSON chunk:', e, jsonData);
             yield { type: 'error', error: `Error parsing JSON: ${e instanceof Error ? e.message : String(e)}`, final: true };
-            return; // Stop on parsing error
+            return;
           }
         }
       }
@@ -260,13 +262,51 @@ export async function* sendMessage(
   }
 }
 
-
 export const resetAgenticMemory = async (sessionId: string): Promise<void> => {
   const response = await fetch(`${API_BASE_URL}/assistant/sessions/${sessionId}/reset-agentic-memory`, {
     method: 'POST',
   });
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to reset agentic memory');
+    const errorData = await response.json().catch(() => ({ detail: 'Failed to reset agent memory' }));
+    throw new Error(errorData.detail || 'Failed to reset agent memory');
   }
+  // No explicit return here, but it's a Promise<void>
+};
+
+export const syncRepository = async (sessionId: string): Promise<{ session_id: string; message: string }> => {
+  const response = await fetch(`${API_BASE_URL}/assistant/sessions/${sessionId}/sync-repository`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: 'Failed to start repository sync' }));
+    throw new Error(errorData.detail || 'Failed to start repository sync');
+  }
+  return response.json();
+};
+
+export interface PullRequestInfo {
+  number: number;
+  title: string;
+  merged_at?: string | null; // Merged PRs will have this
+  files_changed: string[];
+  issue_id?: number | null; // PRs might be linked to issues
+  // Add other relevant PR fields as needed by the UI
+  url?: string; // Optional: URL to the PR on GitHub
+  user?: { login: string }; // Optional: User who created the PR
+  body?: string; // Optional: PR description
+}
+
+export const listPullRequests = async (repoUrl: string, sessionId?: string, state: string = "merged"): Promise<PullRequestInfo[]> => {
+  const url = new URL(`${API_BASE_URL}/api/prs`);
+  url.searchParams.append('repo_url', repoUrl);
+  url.searchParams.append('state', state);
+  if (sessionId) {
+    url.searchParams.append('session_id', sessionId);
+  }
+  const response = await fetch(url.toString());
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: `Failed to fetch ${state} pull requests` }));
+    throw new Error(errorData.detail || `Failed to fetch ${state} pull requests`);
+  }
+  return response.json();
 };

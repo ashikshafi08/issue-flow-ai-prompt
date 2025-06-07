@@ -11,6 +11,7 @@ import BlogPost from "./pages/BlogPost";
 import Results from "./pages/Results";
 import ChatSession from "./pages/ChatSession";
 import Assistant from "./pages/Assistant";
+import IssueContextSpike from "./pages/IssueContextSpike"; // Import the new page
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/chat/:sessionId" element={<ChatSession />} />
           <Route path="/assistant" element={<Assistant />} />
           <Route path="/assistant/:sessionId" element={<Assistant />} />
+          <Route path="/spike/issue-context" element={<IssueContextSpike />} /> {/* Add route for the spike page */}
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

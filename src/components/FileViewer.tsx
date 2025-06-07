@@ -16,6 +16,7 @@ interface FileContent {
   size: number;
   type: 'text' | 'image' | 'binary';
   encoding?: string;
+  error?: string;
 }
 
 const FileViewer: React.FC<FileViewerProps> = ({ filePath, sessionId, onClose }) => {
@@ -166,7 +167,16 @@ const FileViewer: React.FC<FileViewerProps> = ({ filePath, sessionId, onClose })
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div 
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      role="dialog"
+      aria-labelledby="file-viewer-title"
+      aria-describedby="file-viewer-description"
+    >
+      <div className="sr-only" id="file-viewer-description">
+        File viewer dialog showing contents of {filePath}. Use Escape key or close button to exit.
+      </div>
+      
       <style>{`
         .file-viewer-scroll::-webkit-scrollbar {
           width: 8px;
@@ -183,13 +193,14 @@ const FileViewer: React.FC<FileViewerProps> = ({ filePath, sessionId, onClose })
           background: #6B7280;
         }
       `}</style>
+      
       <div className="bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl max-w-6xl w-full h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-700 flex-shrink-0">
           <div className="flex items-center gap-3">
             {getFileIcon(filePath)}
             <div>
-              <h2 className="text-lg font-semibold text-white truncate">
+              <h2 id="file-viewer-title" className="text-lg font-semibold text-white truncate">
                 {filePath.split('/').pop()}
               </h2>
               <p className="text-sm text-gray-400 truncate">{filePath}</p>
@@ -210,6 +221,7 @@ const FileViewer: React.FC<FileViewerProps> = ({ filePath, sessionId, onClose })
                   variant="ghost"
                   size="sm"
                   className="text-gray-400 hover:text-white"
+                  aria-label="Copy file content to clipboard"
                 >
                   {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   {copied ? 'Copied!' : 'Copy'}
@@ -220,6 +232,7 @@ const FileViewer: React.FC<FileViewerProps> = ({ filePath, sessionId, onClose })
                   variant="ghost"
                   size="sm"
                   className="text-gray-400 hover:text-white"
+                  aria-label="Download file"
                 >
                   <Download className="h-4 w-4" />
                   Download
@@ -232,6 +245,7 @@ const FileViewer: React.FC<FileViewerProps> = ({ filePath, sessionId, onClose })
               variant="ghost"
               size="sm"
               className="text-gray-400 hover:text-white"
+              aria-label="Close file viewer"
             >
               <X className="h-4 w-4" />
             </Button>

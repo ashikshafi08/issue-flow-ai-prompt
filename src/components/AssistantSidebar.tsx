@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, MessageSquare, Trash2, Github, RefreshCw } from 'lucide-react';
+import { Plus, MessageSquare, Trash2, Github, RefreshCw, Loader2, CheckCircle, AlertCircle, Zap, Link, AlertTriangle } from 'lucide-react'; // Added AlertTriangle
 import { SessionInfo } from '@/lib/api';
 
 interface AssistantSidebarProps {
@@ -49,6 +49,46 @@ const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
     }
     return 'Unknown URL';
   };
+
+  const getSessionStatusIndicator = (session: SessionInfo) => {
+    const status = session.metadata?.status;
+    const message = session.metadata?.message || '';
+    const patchLinkageStatus = session.metadata?.patch_linkage_status; // Still useful for founder flow or specific details
+
+    if (status === 'error') {
+      return { icon: <AlertCircle className="h-3 w-3 text-red-400" />, text: session.metadata?.error || 'Error', color: 'text-red-400' };
+    }
+    if (status === 'ready') {
+      return { icon: <CheckCircle className="h-3 w-3 text-green-400" />, text: 'Ready', color: 'text-green-400' };
+    }
+    if (status === 'core_ready') {
+      // Core is ready, chat for code is usable. Issue linking is happening in background.
+      // The message field from backend for 'core_ready' is "Core repository indexed. Chat ready for code analysis. Issue context loading in background..."
+      return { icon: <Zap className="h-3 w-3 text-blue-400" />, text: 'Core Ready, Linking Issues...', color: 'text-blue-400' };
+    }
+    if (status === 'issue_linking') {
+      // This status is set when initialize_issue_rag_async starts.
+      return { icon: <Loader2 className="h-3 w-3 text-blue-400 animate-spin" />, text: message || 'Linking Issues & Patches...', color: 'text-blue-400' };
+    }
+    if (status === 'cloning' || status === 'initializing') { // Removed 'indexing' as it's less specific now
+      return { icon: <Loader2 className="h-3 w-3 text-yellow-400 animate-spin" />, text: message || status || 'Processing...', color: 'text-yellow-400' };
+    }
+    if (status === 'warning_issue_rag_failed') {
+        return { icon: <AlertTriangle className="h-3 w-3 text-yellow-500" />, text: message || 'Issue Context Failed', color: 'text-yellow-500' };
+    }
+    
+    // Fallback for other specific statuses like patch_linkage_status if they are primary for some reason
+    // (e.g. if main status hasn't updated yet but a sub-status has)
+    if (patchLinkageStatus === 'pending' || patchLinkageStatus === 'in_progress') {
+        return { icon: <Loader2 className="h-3 w-3 text-blue-400 animate-spin" />, text: session.metadata?.patch_linkage_message || 'Linking Issues (Patch)...', color: 'text-blue-400' };
+    }
+    if (patchLinkageStatus === 'error') {
+      return { icon: <AlertCircle className="h-3 w-3 text-red-400" />, text: session.metadata?.patch_linkage_error || 'Issue Link Error', color: 'text-red-400' };
+    }
+
+    return { icon: <MessageSquare className="h-3 w-3 text-gray-500" />, text: status || 'Unknown Status', color: 'text-gray-500' };
+  };
+
 
   return (
     <div className="w-64 bg-gray-950 border-r border-gray-800 flex flex-col">
@@ -113,11 +153,17 @@ const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
                   <button
                     onClick={() => onSessionSelect(session.id)}
                     className="w-full text-left px-3 py-2 pr-8"
+                    title={getSessionStatusIndicator(session).text} // Add tooltip for detailed status
                   >
                     <div className="flex items-start gap-2">
-                      <Github className="h-4 w-4 mt-0.5 flex-shrink-0 text-gray-400" />
+                      {/* Status Indicator */}
+                      <div className="mt-1 flex-shrink-0" title={getSessionStatusIndicator(session).text}>
+                        {getSessionStatusIndicator(session).icon}
+                      </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium truncate">{getSessionTitle(session)}</p>
+                        <p className={`text-sm font-medium truncate ${activeSessionId === session.id ? 'text-white' : getSessionStatusIndicator(session).color}`}>
+                          {getSessionTitle(session)}
+                        </p>
                         <p className="text-xs text-gray-500 truncate">
                           {getSessionUrl(session).replace('https://github.com/', '')}
                         </p>
@@ -125,6 +171,15 @@ const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
                           <span>{session.message_count} messages</span>
                           <span>•</span>
                           <span>{formatDate(session.last_accessed)}</span>
+                           {/* Display patch linkage icon if in progress and not error */}
+                           {session.metadata?.status === 'core_ready' && session.metadata?.patch_linkage_status === 'in_progress' && (
+                            <>
+                              <span>•</span>
+                              <span title="Linking Issues & PRs">
+                                <Link className="h-3 w-3 text-blue-400 animate-pulse" />
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>

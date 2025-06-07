@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, FileText, RotateCcw, AlertTriangle, RefreshCw, Brain, Zap, Eye, MessageSquare, AlertCircleIcon, X, Download, Copy, Check, Image, Code, File, Loader2 } from 'lucide-react';
+import { Send, FileText, RotateCcw, AlertTriangle, RefreshCw, Brain, Zap, Eye, MessageSquare, AlertCircleIcon, X, Download, Copy, Check, Image, Code, File, Loader2, FolderTree, Search, Info, Link2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -8,8 +8,10 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark, vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { sendMessage, resetAgenticMemory as apiResetAgenticMemory } from '@/lib/api'; // Import API functions
+import { sendMessage, resetAgenticMemory as apiResetAgenticMemory } from '@/lib/api'; // Removed getSessionStatus as it's no longer polled here
 import { useToast } from '@/components/ui/use-toast';
+import EnhancedChatMessage from './EnhancedChatMessage';
+import SmartChatInput from './SmartChatInput';
 
 interface ChatSessionProps {
   session: Session;
@@ -793,7 +795,7 @@ const MarkdownComponents = {
     if (inline || isFilePath || isFolderPath || isShortCommand || isSimpleValue) {
       // Enhanced inline code with better contrast
       return (
-        <code className="font-mono text-emerald-400 bg-gray-800/60 px-1.5 py-0.5 rounded text-[0.9em] font-medium" {...props}>
+        <code className="font-mono text-emerald-400 bg-gray-800/60 px-2 py-1 rounded-md text-sm font-medium" {...props}>
           {content}
         </code>
       );
@@ -807,7 +809,7 @@ const MarkdownComponents = {
     if (!hasMultipleLines && !isSubstantialCode && !hasCodePatterns) {
       // Treat as inline code even if marked as block
       return (
-        <code className="font-mono text-emerald-400 bg-gray-800/60 px-1.5 py-0.5 rounded text-[0.9em] font-medium" {...props}>
+        <code className="font-mono text-emerald-400 bg-gray-800/60 px-2 py-1 rounded-md text-sm font-medium" {...props}>
           {content}
         </code>
       );
@@ -826,127 +828,147 @@ const MarkdownComponents = {
       else if (/^\{.*\}$/.test(content.trim()) && content.length > 20) detectedLang = 'json';
     }
     
-    return (
-      <div className="my-3 rounded-lg overflow-hidden border border-gray-600/30 bg-gray-900/80 shadow-md">
-        {/* Compact Code Block Header */}
-        <div className="flex items-center justify-between bg-gray-800/50 px-3 py-2 border-b border-gray-600/20">
-          <div className="flex items-center gap-2">
-            <div className="flex gap-1">
-              <div className="w-2 h-2 rounded-full bg-red-500/70"></div>
-              <div className="w-2 h-2 rounded-full bg-yellow-500/70"></div>
-              <div className="w-2 h-2 rounded-full bg-green-500/70"></div>
+          return (
+        <div className="my-6 rounded-xl overflow-hidden border border-gray-600 bg-[#0d1117] shadow-lg">
+          {/* GitHub-style Code Block Header */}
+          <div className="flex items-center justify-between bg-[#161b22] px-4 py-3 border-b border-gray-600">
+            <div className="flex items-center gap-3">
+              <div className="flex gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
+                <div className="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
+                <div className="w-3 h-3 rounded-full bg-[#27ca3f]"></div>
+              </div>
+              <span className="text-gray-300 font-mono text-sm font-medium">{detectedLang}</span>
+              {content.split('\n').length > 5 && (
+                <span className="text-gray-500 text-xs bg-gray-800 px-2 py-1 rounded-md">
+                  {content.split('\n').length} lines
+                </span>
+              )}
             </div>
-            <span className="text-gray-400 font-mono text-xs">{detectedLang}</span>
-            {content.split('\n').length > 5 && (
-              <span className="text-gray-500 text-xs bg-gray-700/30 px-1.5 py-0.5 rounded">
-                {content.split('\n').length} lines
-              </span>
-            )}
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigator.clipboard.writeText(content)}
+              className="text-gray-300 hover:text-white hover:bg-gray-700 px-3 py-1.5 text-sm border border-gray-600 hover:border-gray-500 rounded-md transition-all duration-200"
+            >
+              <Copy className="w-4 h-4 mr-2" />
+              Copy
+            </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigator.clipboard.writeText(content)}
-            className="text-gray-400 hover:text-gray-200 p-1 h-auto text-xs"
-          >
-            <Copy className="w-3 h-3" />
-          </Button>
+          
+          {/* Enhanced Syntax Highlighter */}
+          <div className="relative bg-[#0d1117]">
+            <SyntaxHighlighter
+              style={{
+                ...vscDarkPlus,
+                'hljs': {
+                  ...vscDarkPlus['hljs'],
+                  background: '#0d1117',
+                  color: '#e6edf3'
+                }
+              }}
+              language={detectedLang}
+              PreTag="div"
+              showLineNumbers={content.split('\n').length > 3}
+              wrapLines={true}
+              customStyle={{
+                margin: 0,
+                padding: '20px',
+                background: '#0d1117',
+                fontSize: '14px',
+                lineHeight: '1.5',
+                fontFamily: '"SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace',
+                borderRadius: '0',
+              }}
+              lineNumberStyle={{
+                color: '#7d8590',
+                backgroundColor: 'transparent',
+                paddingRight: '12px',
+                minWidth: '40px',
+                textAlign: 'right',
+                fontSize: '13px',
+                borderRight: '1px solid #30363d',
+                marginRight: '16px',
+                userSelect: 'none',
+              }}
+              {...props}
+            >
+              {content}
+            </SyntaxHighlighter>
+          </div>
         </div>
-        
-        {/* Compact Syntax Highlighter */}
-        <div className="relative">
-          <SyntaxHighlighter
-            style={vscDarkPlus}
-            language={detectedLang}
-            PreTag="div"
-            showLineNumbers={content.split('\n').length > 8}
-            wrapLines={true}
-            customStyle={{
-              margin: 0,
-              padding: '0.75rem',
-              background: 'linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%)',
-              fontSize: '0.75rem',
-              lineHeight: '1.4',
-              fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace",
-              borderRadius: '0',
-            }}
-            lineNumberStyle={{
-              color: '#64748b',
-              backgroundColor: 'transparent',
-              paddingRight: '0.75rem',
-              minWidth: '2rem',
-              textAlign: 'right',
-              fontSize: '0.7rem',
-            }}
-            {...props}
-          >
-            {content}
-          </SyntaxHighlighter>
-        </div>
-      </div>
-    );
+      );
   },
 
   // Enhanced Headers with better visual hierarchy
   h1: ({ node, children, ...props }: any) => (
-    <div className="my-8">
-      <h1 className="text-3xl font-bold text-white mb-4 pb-3 border-b-2 border-gradient-to-r from-blue-500 to-purple-600 bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent" {...props}>
-        {children}
-      </h1>
-    </div>
+    <h1 className="text-lg font-bold text-white mt-8 mb-4 pb-3 border-b border-gray-600/50" {...props}>
+      {children}
+    </h1>
   ),
   h2: ({ node, children, ...props }: any) => (
-    <div className="my-6">
-      <h2 className="text-2xl font-semibold text-white mb-3 pb-2 border-b border-gray-700/70 flex items-center gap-3" {...props}>
-        <span className="w-1 h-6 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></span>
-        {children}
-      </h2>
-    </div>
+    <h2 className="text-base font-semibold text-white mt-6 mb-3" {...props}>
+      {children}
+    </h2>
   ),
   h3: ({ node, children, ...props }: any) => (
-    <div className="my-5">
-      <h3 className="text-xl font-semibold text-white mb-2 flex items-center gap-2" {...props}>
-        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-        {children}
-      </h3>
-    </div>
+    <h3 className="text-sm font-semibold text-white mt-5 mb-2" {...props}>
+      {children}
+    </h3>
   ),
   h4: ({ node, children, ...props }: any) => (
-    <h4 className="text-lg font-medium text-gray-200 my-4 flex items-center gap-2" {...props}>
-      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full"></span>
+    <h4 className="text-sm font-medium text-gray-200 my-2" {...props}>
       {children}
     </h4>
   ),
 
-  // Enhanced Lists with better spacing and bullets
-  ul: ({ node, ...props }: any) => (
-    <ul className="list-none my-4 space-y-2 text-gray-200" {...props} />
+  // Enhanced Lists with proper hierarchy and spacing
+  ul: ({ node, depth = 0, ...props }: any) => (
+    <ul className={`space-y-2 my-4 ${depth > 0 ? 'ml-6' : ''}`} {...props} />
   ),
-  ol: ({ node, ...props }: any) => (
-    <ol className="list-none my-4 space-y-2 text-gray-200" {...props} />
+  ol: ({ node, depth = 0, ...props }: any) => (
+    <ol className={`space-y-2 my-4 ${depth > 0 ? 'ml-6' : ''}`} {...props} />
   ),
-  li: ({ node, children, ordered, ...props }: any) => (
-    <li className="leading-relaxed text-gray-200 flex items-start gap-3" {...props}>
-      <span className="text-blue-400 mt-2 flex-shrink-0">
-        {ordered ? '•' : '▸'}
-      </span>
-      <div className="flex-1">{children}</div>
-    </li>
-  ),
+  li: ({ node, children, ordered, index, ...props }: any) => {
+    // Determine bullet style based on nesting level
+    const getBullet = (isOrdered: boolean, idx: number) => {
+      if (isOrdered) {
+        return <span className="text-blue-400 font-medium min-w-[24px]">{idx + 1}.</span>;
+      }
+      return <span className="text-blue-400 text-lg leading-none">•</span>;
+    };
+
+         return (
+       <li className="flex items-start gap-3 leading-relaxed text-gray-200 text-sm" {...props}>
+         <div className="flex-shrink-0 mt-0.5">
+           {getBullet(ordered, index || 0)}
+         </div>
+         <div className="flex-1 min-w-0">{children}</div>
+       </li>
+     );
+  },
 
   // Enhanced Paragraphs with better spacing
-  p: ({ node, children, ...props }: any) => (
-    <p className="my-4 leading-relaxed text-gray-200 text-[15px]" {...props}>
-      {children}
-    </p>
-  ),
+  p: ({ node, children, ...props }: any) => {
+    // Check if the paragraph contains code blocks to avoid nesting issues
+    const hasCodeBlock = React.Children.toArray(children).some((child: any) => 
+      React.isValidElement(child) && child.type === 'code'
+    );
+    
+    if (hasCodeBlock) {
+      return <div className="mb-4 leading-relaxed text-gray-200 text-sm" {...props}>{children}</div>;
+    }
+    
+    return <p className="mb-4 leading-relaxed text-gray-200 text-sm" {...props}>{children}</p>;
+  },
 
   // Enhanced Blockquotes for callouts and important info
   blockquote: ({ node, children, ...props }: any) => (
-    <div className="my-6 relative">
-      <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full"></div>
-      <blockquote className="ml-6 pl-6 py-4 bg-gradient-to-r from-blue-900/20 to-purple-900/20 rounded-r-lg border border-blue-500/20 backdrop-blur-sm" {...props}>
-        <div className="text-blue-100 italic font-medium">{children}</div>
+    <div className="my-8 relative">
+      <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-full"></div>
+      <blockquote className="ml-6 pl-6 py-5 bg-blue-950/30 border border-blue-500/30 rounded-r-lg" {...props}>
+        <div className="text-blue-100 italic leading-relaxed text-base">{children}</div>
       </blockquote>
     </div>
   ),
@@ -990,9 +1012,21 @@ const MarkdownComponents = {
   hr: ({ node, ...props }: any) => (
     <hr className="border-0 h-px bg-gradient-to-r from-transparent via-gray-500 to-transparent my-8" {...props} />
   ),
-  strong: ({ node, ...props }: any) => (
-    <strong className="font-semibold text-white bg-gray-800/40 px-1.5 py-0.5 rounded-md" {...props} />
-  ),
+  strong: ({ node, children, ...props }: any) => {
+    // Check if this strong element looks like a section header (ends with colon)
+    const text = React.Children.toArray(children).join('');
+    const isHeader = text.endsWith(':') || text.match(/^\d+\.\s/);
+    
+    if (isHeader) {
+      return (
+        <strong className="block font-bold text-white mt-6 mb-3 text-base" {...props}>
+          {children}
+        </strong>
+      );
+    }
+    
+    return <strong className="font-semibold text-white" {...props} />;
+  },
   em: ({ node, ...props }: any) => (
     <em className="italic text-gray-300 font-medium" {...props} />
   ),
@@ -1001,17 +1035,130 @@ const MarkdownComponents = {
 const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSessionMessages, selectedFile, onCloseFileViewer, onFileSelect }) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  
-  // Autocomplete state
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+
+  // File autocomplete state
   const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [autocompleteQuery, setAutocompleteQuery] = useState('');
   const [autocompleteItems, setAutocompleteItems] = useState<Array<{path: string, type: 'file' | 'folder'}>>([]);
-  const [filteredItems, setFilteredItems] = useState<Array<{path: string, type: 'file' | 'folder'}>>([]);
-  const [selectedAutocompleteIndex, setSelectedAutocompleteIndex] = useState(0);
-  const [currentMentionStart, setCurrentMentionStart] = useState<number>(-1);
-  const [fileTreeData, setFileTreeData] = useState<Array<{path: string, type: 'file' | 'folder'}>>([]);
+  const [filteredAutocompleteItems, setFilteredAutocompleteItems] = useState<Array<{path: string, type: 'file' | 'folder'}>>([]);
+  const [autocompleteHighlight, setAutocompleteHighlight] = useState(0);
+
+  // Format timestamp helper
+  const formatTimestamp = (timestamp: number): string => {
+    return new Date(timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  };
+
+  // Handle autocomplete key navigation
+  const handleAutocompleteKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setAutocompleteHighlight(h => Math.min(h + 1, filteredAutocompleteItems.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setAutocompleteHighlight(h => Math.max(h - 1, 0));
+    } else if (e.key === 'Enter' && filteredAutocompleteItems[autocompleteHighlight]) {
+      e.preventDefault();
+      handleAutocompleteSelect(filteredAutocompleteItems[autocompleteHighlight]);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setShowAutocomplete(false);
+    }
+  };
+
+  // Handle autocomplete selection
+  const handleAutocompleteSelect = (item: {path: string, type: 'file' | 'folder'}) => {
+    if (textareaRef.current) {
+      const textarea = textareaRef.current;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const before = input.slice(0, start);
+      const after = input.slice(end);
+      
+      const mention = item.type === 'folder' ? `@folder/${item.path}` : `@${item.path}`;
+      const newValue = before + mention + after;
+      setInput(newValue);
+      
+      setTimeout(() => {
+        textarea.focus();
+        textarea.selectionStart = textarea.selectionEnd = start + mention.length;
+      }, 0);
+    } else {
+      const mention = item.type === 'folder' ? `@folder/${item.path}` : `@${item.path}`;
+      setInput(prev => prev + mention);
+    }
+    setShowAutocomplete(false);
+    setAutocompleteQuery('');
+  };
+
+  // Handle input changes
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setInput(value);
+    
+    // Check if user is typing @ to trigger autocomplete
+    const cursorPos = e.target.selectionStart;
+    const textBeforeCursor = value.slice(0, cursorPos);
+    const lastAtSymbol = textBeforeCursor.lastIndexOf('@');
+    
+    if (lastAtSymbol !== -1 && lastAtSymbol === cursorPos - 1) {
+      // Just typed @, show autocomplete
+      setShowAutocomplete(true);
+      setAutocompleteQuery('');
+      setFilteredAutocompleteItems(autocompleteItems.slice(0, 20));
+    } else if (lastAtSymbol !== -1) {
+      // Currently in a mention, filter based on what's typed after @
+      const queryAfterAt = textBeforeCursor.slice(lastAtSymbol + 1);
+      if (queryAfterAt && !queryAfterAt.includes(' ')) {
+        setShowAutocomplete(true);
+        setAutocompleteQuery(queryAfterAt);
+        const filtered = autocompleteItems.filter(item =>
+          item.path.toLowerCase().includes(queryAfterAt.toLowerCase()) ||
+          item.path.split('/').pop()?.toLowerCase().includes(queryAfterAt.toLowerCase())
+        ).slice(0, 20);
+        setFilteredAutocompleteItems(filtered);
+      } else {
+        setShowAutocomplete(false);
+      }
+    } else {
+      setShowAutocomplete(false);
+    }
+    
+    setAutocompleteHighlight(0);
+  };
+
+  // Handle autocomplete search input changes
+  const handleAutocompleteQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setAutocompleteQuery(query);
+    
+    if (!query) {
+      setFilteredAutocompleteItems(autocompleteItems.slice(0, 20));
+    } else {
+      const filtered = autocompleteItems.filter(item =>
+        item.path.toLowerCase().includes(query.toLowerCase()) ||
+        item.path.split('/').pop()?.toLowerCase().includes(query.toLowerCase())
+      ).slice(0, 20);
+      setFilteredAutocompleteItems(filtered);
+    }
+    
+    setAutocompleteHighlight(0);
+  };
+
+  // Enhanced key handling
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (showAutocomplete && filteredAutocompleteItems.length > 0) {
+      handleAutocompleteKeyDown(e);
+      return;
+    }
+    
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
 
   // Fetch file tree data on session change
   useEffect(() => {
@@ -1042,8 +1189,8 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSessionMessa
           };
           
           const items = flattenItems(Array.isArray(data) ? data : []);
-          setFileTreeData(items);
           setAutocompleteItems(items);
+          setFilteredAutocompleteItems(items.slice(0, 20));
         }
       } catch (error) {
         console.error('Failed to fetch file tree:', error);
@@ -1064,106 +1211,6 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSessionMessa
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [session.messages]);
 
-  // Handle input changes for autocomplete
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const value = e.target.value;
-    const cursorPosition = e.target.selectionStart;
-    
-    setInput(value);
-    
-    // Check if we should show autocomplete
-    const beforeCursor = value.substring(0, cursorPosition);
-    const mentionMatch = beforeCursor.match(/@([^@\s]*)$/);
-    
-    if (mentionMatch) {
-      const mentionText = mentionMatch[1];
-      const mentionStart = beforeCursor.lastIndexOf('@');
-      
-      setCurrentMentionStart(mentionStart);
-      setShowAutocomplete(true);
-      setSelectedAutocompleteIndex(0);
-      
-      // Filter items based on the typed text
-      const filtered = fileTreeData.filter(item => 
-        item.path.toLowerCase().includes(mentionText.toLowerCase()) ||
-        item.path.split('/').pop()?.toLowerCase().includes(mentionText.toLowerCase())
-      ).slice(0, 10); // Limit to 10 items
-      
-      setFilteredItems(filtered);
-    } else {
-      setShowAutocomplete(false);
-      setCurrentMentionStart(-1);
-    }
-  };
-
-  const insertMention = (item: {path: string, type: 'file' | 'folder'}) => {
-    if (currentMentionStart === -1) return;
-    
-    const prefix = item.type === 'folder' ? '@folder/' : '@';
-    const mention = `${prefix}${item.path}`;
-    
-    const beforeMention = input.substring(0, currentMentionStart);
-    const afterCursor = input.substring(textareaRef.current?.selectionStart || input.length);
-    
-    const newValue = beforeMention + mention + ' ' + afterCursor;
-    setInput(newValue);
-    setShowAutocomplete(false);
-    setCurrentMentionStart(-1);
-    
-    // Focus back to textarea
-    setTimeout(() => {
-      if (textareaRef.current) {
-        const newCursorPosition = beforeMention.length + mention.length + 1;
-        textareaRef.current.focus();
-        textareaRef.current.setSelectionRange(newCursorPosition, newCursorPosition);
-      }
-    }, 0);
-  };
-
-  const extractMentionedFiles = (text: string): string[] => {
-    const mentionRegex = /@(?:folder\/)?([^\s@]+)/g;
-    const matches = [];
-    let match;
-    
-    while ((match = mentionRegex.exec(text)) !== null) {
-      matches.push(match[1]);
-    }
-    
-    return matches;
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (showAutocomplete && filteredItems.length > 0) {
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setSelectedAutocompleteIndex(prev => 
-          prev < filteredItems.length - 1 ? prev + 1 : 0
-        );
-        return;
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setSelectedAutocompleteIndex(prev => 
-          prev > 0 ? prev - 1 : filteredItems.length - 1
-        );
-        return;
-      } else if (e.key === 'Enter' || e.key === 'Tab') {
-        e.preventDefault();
-        insertMention(filteredItems[selectedAutocompleteIndex]);
-        return;
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        setShowAutocomplete(false);
-        setCurrentMentionStart(-1);
-        return;
-      }
-    }
-    
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
   const handleSend = useCallback(async () => {
     if (!input.trim() || !session?.id) return;
 
@@ -1172,9 +1219,6 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSessionMessa
       content: input.trim(),
       timestamp: Date.now(),
     };
-
-    // Extract context files from the input
-    const mentionedFiles = extractMentionedFiles(input.trim());
 
     // Add user message immediately
     onUpdateSessionMessages(prevSessionMessages => [...prevSessionMessages, userMessage]);
@@ -1189,7 +1233,7 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSessionMessa
     let isAgenticQuery = false;
     
     try {
-      const stream = sendMessage(session.id, currentInput, true, mentionedFiles.length > 0 ? mentionedFiles : undefined); 
+      const stream = sendMessage(session.id, currentInput, true); 
       let accumulatedContent = ""; // To accumulate content from 'answer' type steps
       let finalAnswerFromStream: string | null = null;
       let allSteps: AgenticStep[] = [];
@@ -1327,7 +1371,7 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSessionMessa
           }}
           className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md font-medium text-sm transition-all duration-200 border
             ${selectedFile === part.substring(part.startsWith('@folder/') ? 8 : 1)
-              ? 'bg-blue-500/20 text-blue-300 border-blue-400/50 ring-1 ring-blue-400/30' // Active state
+              ? 'bg-blue-500/20 text-blue-300 border border-blue-400/50 ring-1 ring-blue-400/30' // Active state
               : 'bg-gray-600/30 hover:bg-gray-600/50 text-blue-300 hover:text-blue-200 border-gray-500/30 hover:border-blue-400/40'
             } cursor-pointer hover:scale-105 hover:shadow-md`}
           title={`Click to view ${part.substring(part.startsWith('@folder/') ? 8 : 1)} in file explorer`}
@@ -1350,244 +1394,168 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSessionMessa
 
   return (
     <div className="flex flex-col h-full w-full bg-gray-900 text-gray-100">
+      {/* Background Progress Indicator based on session.metadata.status */}
+      {session?.metadata?.status && (session.metadata.status === 'core_ready' || session.metadata.status === 'issue_linking' || session.metadata.status === 'warning_issue_rag_failed') && (
+        <div className={`px-4 py-2 text-xs border-b border-gray-700 flex items-center gap-2 transition-all duration-300
+          ${session.metadata.status === 'warning_issue_rag_failed' ? 'bg-yellow-900/50 text-yellow-300' : 
+            session.metadata.status === 'core_ready' || session.metadata.status === 'issue_linking' ? 'bg-blue-900/30 text-blue-300' : ''}`}>
+          
+          {session.metadata.status === 'warning_issue_rag_failed' ? <AlertTriangle className="h-4 w-4 flex-shrink-0" /> :
+           (session.metadata.status === 'core_ready' || session.metadata.status === 'issue_linking') ? <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" /> :
+           null}
+
+          <span className="font-medium">
+            {session.metadata.status === 'core_ready' ? "Context Status:" :
+             session.metadata.status === 'issue_linking' ? "Issue Linking:" :
+             session.metadata.status === 'warning_issue_rag_failed' ? "Context Warning:" :
+             "Status:"}
+          </span>
+          <span>{session.metadata.message || (session.metadata.status === 'core_ready' ? 'Issue context loading...' : 'Processing...')}</span>
+          
+          {/* Progress bar could be added here if session.metadata provides progress for issue_linking */}
+        </div>
+      )}
+
+      {/* File Tree and Messages Container */}
       <div className="flex-1 overflow-hidden flex">
-        {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col min-w-0">
+        {/* Messages Area */}
+        <div className="flex-1 flex flex-col bg-black min-w-0">
+          {/* Messages Content */}
           <div className="flex-1 overflow-hidden">
             <ScrollArea className="h-full">
               <div className="px-6 py-8">
-                <div className="mx-auto max-w-4xl space-y-10">
+                <div className="mx-auto max-w-4xl space-y-8">
                   {session.messages.length === 0 ? (
                     <div className="text-center py-16">
-                      <FileText className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-300 mb-2">Ready to chat!</h3>
-                      <p className="text-gray-500 text-sm mb-6">
+                      <div className="w-20 h-20 bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-2xl">
+                        <FileText className="h-10 w-10 text-white" />
+                      </div>
+                      <h2 className="text-2xl font-bold text-white mb-3">
+                        Ready to chat!
+                      </h2>
+                      <p className="text-gray-400 text-lg mb-8 max-w-md mx-auto">
                         Ask questions about the code, files, or repository structure.
                       </p>
-                      <div className="text-left max-w-md mx-auto space-y-3 text-sm text-gray-600">
-                        <p>• <span className="text-gray-400">@filename.ts</span> - Ask about specific files</p>
-                        <p>• <span className="text-gray-400">@folder/path</span> - Explore a directory</p>
-                        <p>• <span className="text-gray-300">"What does this function do?"</span></p>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto text-left">
+                        <div className="bg-gray-900/70 border border-gray-800 rounded-xl p-4 hover:bg-gray-900 transition-colors">
+                          <div className="text-green-400 mb-2">@</div>
+                          <p className="text-sm text-gray-300">Reference specific files with @ mentions</p>
+                        </div>
+                        <div className="bg-gray-900/70 border border-gray-800 rounded-xl p-4 hover:bg-gray-900 transition-colors">
+                          <div className="text-yellow-400 mb-2">📁</div>
+                          <p className="text-sm text-gray-300">Reference folders with @folder/ to query entire directories</p>
+                        </div>
+                        <div className="bg-gray-900/70 border border-gray-800 rounded-xl p-4 hover:bg-gray-900 transition-colors">
+                          <div className="text-purple-400 mb-2">💬</div>
+                          <p className="text-sm text-gray-300">Ask about code patterns and structure</p>
+                        </div>
                       </div>
                     </div>
                   ) : (
-                    session.messages.map((message, index) => (
-                      <div 
-                        key={`${session.id}-msg-${index}-${message.timestamp}`}
-                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                      >
-                        <div 
-                          className={`max-w-[95%] sm:max-w-[85%] lg:max-w-[80%] rounded-2xl shadow-lg ${
-                            message.role === 'user' 
-                              ? 'bg-gradient-to-br from-blue-600 to-indigo-700 text-white px-3 sm:px-4 py-3' 
-                              : 'bg-gray-800/90 text-gray-100 border border-gray-700/50 backdrop-blur-sm'
-                          }`}
-                        >
-                          {message.role === 'assistant' && (
-                            <div className="px-3 sm:px-4 py-3 border-b border-gray-700/30 flex items-center justify-between bg-gray-800/40">
-                              <div className="flex items-center gap-3">
-                                <div className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md">
-                                  <span className="text-xs sm:text-sm font-bold text-white">AI</span>
-                                </div>
-                                <span className="text-sm font-medium text-gray-100">Assistant</span>
-                              </div>
-                              {/* Show processing strategy indicator */}
-                              <ProcessingIndicator 
-                                strategy={(message as any).processingType || (message as any).agenticSteps?.length > 0 ? 'agentic_deep' : 'rag_only'}
-                                isStreaming={message.isStreaming}
-                              />
-                            </div>
-                          )}
-                          
-                          <div className={`${message.role === 'assistant' ? 'px-3 sm:px-4 py-4' : ''}`}>
-                            {message.error && (
-                              <div className="my-3 p-3 bg-red-900/20 border border-red-700/40 rounded-lg text-red-300 text-sm">
-                                <div className="flex items-start gap-2">
-                                  <AlertTriangle className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
-                                  <div>
-                                    <div className="font-medium mb-1">Analysis Error</div>
-                                    <div className="text-red-200">
-                                      {message.error.includes("reasoning steps") || message.error.includes("max iterations") 
-                                        ? "The analysis was more complex than expected. Try asking a more specific question or breaking it down into smaller parts."
-                                        : message.error
-                                      }
-                                    </div>
-                                    {(message.error.includes("reasoning steps") || message.error.includes("max iterations")) && (
-                                      <div className="mt-2 text-xs text-red-300">
-                                        💡 Try: "Show me files in src/" or "What's in the main directory?"
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                            
-                            {/* User messages */}
-                            {message.role === 'user' && (
-                              <div className="leading-relaxed">{highlightMentions(message.content)}</div>
-                            )}
-                            
-                            {/* Assistant messages */}
-                            {message.role === 'assistant' && !message.error && message.content && (
-                              <div className="prose prose-sm prose-invert max-w-none prose-headings:text-gray-100 prose-p:text-gray-200 prose-a:text-blue-400 prose-code:text-pink-400 prose-pre:bg-transparent prose-pre:p-0 prose-pre:m-0 prose-li:my-0.5 prose-ul:my-2 prose-ol:my-2">
-                                <ReactMarkdown 
-                                  components={MarkdownComponents}
-                                  remarkPlugins={[remarkGfm]}
-                                >
-                                  {message.content}
-                                </ReactMarkdown>
-                              </div>
-                            )}
-                            
-                            {message.isStreaming && !message.content && !message.error && (
-                              <div className="flex items-center py-2">
-                                <div className="flex space-x-1">
-                                  <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400 delay-0"></div>
-                                  <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400 delay-100"></div>
-                                  <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400 delay-200"></div>
-                                </div>
-                                <span className="ml-3 text-sm text-gray-400">Generating response...</span>
-                              </div>
-                            )}
-                            
-                            {message.agenticSteps && message.agenticSteps.length > 0 && (
-                              <AgenticTracePanel 
-                                steps={message.agenticSteps} 
-                                isStreaming={message.isStreaming}
-                              />
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))
+                    session.messages.map((message, index) => {
+                      // Extract context cards from message
+                      const contextCards = [];
+                      
+                      // Add file context cards based on @ mentions
+                      const fileMentions = message.content.match(/@[^\s@]+/g);
+                      if (fileMentions) {
+                        fileMentions.forEach(mention => {
+                          const filePath = mention.substring(1);
+                          contextCards.push({
+                            type: 'file' as const,
+                            title: filePath.split('/').pop() || filePath,
+                            subtitle: filePath,
+                            path: filePath
+                          });
+                        });
+                      }
+                      
+                      // Add issue context cards if available
+                      if (message.issueContext) {
+                        contextCards.push({
+                          type: 'issue' as const,
+                          title: `Issue #${message.issueContext.number}`,
+                          subtitle: message.issueContext.title,
+                          number: message.issueContext.number,
+                          url: message.issueContext.url,
+                          preview: message.issueContext.body?.substring(0, 150)
+                        });
+                      }
+                      
+                      return (
+                        <EnhancedChatMessage
+                          key={index}
+                          role={message.role}
+                          content={message.content}
+                          timestamp={message.timestamp}
+                          contextCards={contextCards}
+                          agenticSteps={message.agenticSteps}
+                          suggestions={message.suggestions}
+                          onFileSelect={onFileSelect}
+                          onIssueSelect={(issueNumber) => {
+                            // Handle issue selection
+                            console.log('Issue selected:', issueNumber);
+                          }}
+                        />
+                      );
+                    })
                   )}
                   
-                  {isLoading && !session.messages.some(m => m.isStreaming) && (
-                    <div className="flex justify-start">
-                      <div className="bg-gray-800/60 border border-gray-700/30 rounded-2xl">
-                        <div className="px-4 py-3 border-b border-gray-700/30 flex items-center">
-                          <div className="mr-3 flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-gray-500 to-gray-600">
-                            <span className="text-xs font-semibold">AI</span>
-                          </div>
-                          <span className="text-sm font-medium text-gray-200">Assistant</span>
-                        </div>
-                        <div className="px-4 py-4 flex items-center">
+                  {/* Loading Indicator */}
+                  {isLoading && (
+                    <div className="flex items-start space-x-4 mb-6">
+                      <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-semibold shadow-lg">
+                        AI
+                      </div>
+                      <div className="flex-1 min-w-0 bg-gray-800/40 border border-gray-700/40 rounded-2xl p-6 shadow-lg backdrop-blur-sm">
+                        <div className="flex items-center space-x-4">
                           <div className="flex space-x-1">
-                            <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400 delay-0"></div>
-                            <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400 delay-100"></div>
-                            <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400 delay-200"></div>
+                            <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                            <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                            <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                           </div>
-                          <span className="ml-3 text-sm text-gray-400">Thinking...</span>
+                          <span className="text-gray-300 text-sm">Analyzing your request...</span>
                         </div>
                       </div>
                     </div>
                   )}
+                  
                   <div ref={messagesEndRef} />
                 </div>
               </div>
             </ScrollArea>
           </div>
-
-          <div className="border-t border-gray-700 bg-gray-800/60 p-3 sm:p-4 shadow-inner">
-            <div className="mx-auto max-w-4xl relative">
-              <div className="flex items-end gap-2 sm:gap-3 rounded-xl bg-gray-700/60 border border-gray-600/70 p-2 sm:p-3 focus-within:border-blue-500/70 focus-within:ring-1 focus-within:ring-blue-500/30 transition-all duration-200 shadow-md">
-                <div className="flex-1 relative">
-                  <Textarea
-                    ref={textareaRef}
-                    value={input}
-                    onChange={handleInputChange}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Ask about the code... Use @filename or @folder/path"
-                    className="flex-1 min-h-[24px] max-h-[120px] bg-transparent border-0 resize-none text-gray-100 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
-                    disabled={isLoading}
-                    rows={1}
-                  />
-                  
-                  {/* Autocomplete Dropdown - Make it more mobile friendly */}
-                  {showAutocomplete && filteredItems.length > 0 && (
-                    <div className="absolute bottom-full left-0 right-0 mb-2 bg-gray-800 border border-gray-600 rounded-lg shadow-lg max-h-48 sm:max-h-60 overflow-y-auto z-50">
-                      <div className="p-2 border-b border-gray-700">
-                        <p className="text-xs text-gray-400">Select a file or folder</p>
-                      </div>
-                      <div className="py-1">
-                        {filteredItems.map((item, index) => (
-                          <button
-                            key={item.path}
-                            className={`w-full text-left px-3 py-3 sm:py-2 text-sm hover:bg-gray-700 flex items-center gap-2 transition-colors ${
-                              index === selectedAutocompleteIndex ? 'bg-gray-700 border-r-2 border-blue-500' : ''
-                            }`}
-                            onClick={() => insertMention(item)}
-                            onMouseEnter={() => setSelectedAutocompleteIndex(index)}
-                          >
-                            <span className="text-xs">
-                              {item.type === 'folder' ? '📁' : '📄'}
-                            </span>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-gray-200 truncate">
-                                {item.path.split('/').pop()}
-                              </p>
-                              <p className="text-xs text-gray-500 truncate">
-                                {item.path}
-                              </p>
-                            </div>
-                            <span className="text-xs text-gray-500 bg-gray-700 px-1.5 py-0.5 rounded">
-                              {item.type === 'folder' ? '@folder/' : '@'}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                      <div className="p-2 border-t border-gray-700 bg-gray-800/50">
-                        <p className="text-xs text-gray-500">
-                          Use ↑↓ to navigate, Enter/Tab to select, Esc to cancel
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex items-center gap-1 sm:gap-2">
-                  {/* AgenticRAG indicator - Hide text on small screens */}
-                  <div className="flex items-center gap-1 px-2 py-1 bg-purple-500/10 border border-purple-500/30 rounded-lg">
-                    <Brain className="h-3 w-3 text-purple-400" />
-                    <span className="text-xs text-purple-300 hidden sm:inline">Enhanced</span>
-                  </div>
-                  
-                  <Button 
-                    onClick={handleSend} 
-                    disabled={isLoading || !input.trim()}
-                    size="sm"
-                    className="bg-gradient-to-br from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white disabled:opacity-60 disabled:bg-gray-600"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* File Viewer Pane */}
-        {selectedFile && (
-          <div className="w-2/5 border-l border-gray-700 bg-gray-900/50 flex flex-col">
-            <div className="border-b border-gray-700 px-4 py-3 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-white">File Viewer</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onCloseFileViewer}
-                className="text-gray-400 hover:text-gray-200 h-auto p-1"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <FileViewerPane 
-                filePath={selectedFile}
+          
+          {/* Enhanced Input Area */}
+          <div className="sticky bottom-0 border-t border-gray-800 bg-gray-950/95 backdrop-blur-xl p-6 shadow-2xl">
+            <div className="mx-auto max-w-4xl">
+              <SmartChatInput
+                value={input}
+                onChange={setInput}
+                onSubmit={handleSend}
+                onFileSelect={onFileSelect}
+                disabled={isLoading}
                 sessionId={session.id}
+                currentContext={{
+                  discussingFiles: session.messages
+                    .flatMap(m => {
+                      const mentions = m.content.match(/@[^\s@]+/g);
+                      return mentions ? mentions.map(m => m.substring(1)) : [];
+                    })
+                    .slice(-3), // Last 3 mentioned files
+                  relatedIssues: session.messages
+                    .filter(m => m.issueContext)
+                    .map(m => m.issueContext!.number)
+                    .slice(-3), // Last 3 related issues
+                  lastUserQuery: session.messages
+                    .filter(m => m.role === 'user')
+                    .slice(-1)[0]?.content
+                }}
               />
             </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
