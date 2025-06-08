@@ -230,6 +230,38 @@ const MarkdownComponents = {
       );
     }
     
+    // File path detection for inline code (or when inline is undefined)
+    const isFilePathPattern = /[\w\-\/\.]+\.(js|jsx|ts|tsx|py|java|cpp|c|h|hpp|rs|go|php|rb|css|scss|html|xml|json|yaml|yml|md|sh|sql|txt)$/i;
+    
+    if ((inline || inline === undefined) && isFilePathPattern.test(content.trim()) && !content.includes('\n') && content.length < 100) {
+      console.log('🔍 File path detected in ChatSession:', content.trim());
+      
+      return (
+        <span className="relative group inline-block">
+          <code className="cursor-pointer text-blue-400 hover:text-blue-300 hover:underline bg-gray-800/60 px-1.5 py-0.5 rounded text-sm font-mono transition-colors">
+            {content.trim()}
+          </code>
+          
+          <div className="absolute bottom-full left-0 mb-2 w-96 max-w-[90vw] p-0 bg-gray-900 border border-gray-700 shadow-xl rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+            <div className="p-3 border-b border-gray-700">
+              <div className="flex items-center gap-2">
+                <svg className="h-4 w-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span className="text-sm font-medium text-white truncate">{content.trim()}</span>
+              </div>
+            </div>
+            
+            <div className="max-h-64 overflow-auto p-4">
+              <div className="text-sm text-gray-400">
+                🚧 File preview will load here soon...
+              </div>
+            </div>
+          </div>
+        </span>
+      );
+    }
+
     // True inline code (`code`)
     return (
       <code className="font-mono text-emerald-400 bg-gray-800/60 px-2 py-1 rounded-md border border-gray-700/40" {...props}>
@@ -872,7 +904,45 @@ export default function ChatSession() {
                                     suggestions={msg.suggestions}
                                   />
                                 ) : (
-                                  <ReactMarkdown components={MarkdownComponents} remarkPlugins={[remarkGfm]}>
+                                  <ReactMarkdown components={{
+                                    ...MarkdownComponents,
+                                    code: ({ node, inline, className, children, ...props }: any) => {
+                                      const content = String(children).replace(/\n$/, '');
+                                      
+                                      // File path detection for inline code
+                                      if (inline && /[\w\-\/\.]+\.(js|jsx|ts|tsx|py|java|cpp|c|h|hpp|rs|go|php|rb|css|scss|html|xml|json|yaml|yml|md|sh|sql|txt)$/i.test(content.trim())) {
+                                        console.log('🔍 File path detected:', content.trim());
+                                        
+                                        return (
+                                          <span className="relative group inline-block">
+                                            <code className="cursor-pointer text-blue-400 hover:text-blue-300 hover:underline bg-gray-800/60 px-1.5 py-0.5 rounded text-sm font-mono transition-colors">
+                                              {content.trim()}
+                                            </code>
+                                            
+                                            <div className="absolute bottom-full left-0 mb-2 w-96 max-w-[90vw] p-0 bg-gray-900 border border-gray-700 shadow-xl rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                                              <div className="p-3 border-b border-gray-700">
+                                                <div className="flex items-center gap-2">
+                                                  <svg className="h-4 w-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                  </svg>
+                                                  <span className="text-sm font-medium text-white truncate">{content.trim()}</span>
+                                                </div>
+                                              </div>
+                                              
+                                              <div className="max-h-64 overflow-auto p-4">
+                                                <div className="text-sm text-gray-400">
+                                                  🚧 File preview will load here soon...
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </span>
+                                        );
+                                      }
+
+                                      // Fallback to original code component
+                                      return MarkdownComponents.code({ node, inline, className, children, ...props });
+                                    }
+                                  }} remarkPlugins={[remarkGfm]}>
                                     {msg.content || msg.final_answer || "Agentic analysis complete."}
                                   </ReactMarkdown>
                                 )}

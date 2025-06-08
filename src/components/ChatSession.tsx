@@ -255,6 +255,155 @@ const FileViewerPane: React.FC<FileViewerPaneProps> = ({ filePath, sessionId }) 
   );
 };
 
+// File Path Inline Preview Component
+const FilePathInlinePreview: React.FC<{ 
+  filePath: string; 
+  sessionId: string; 
+  children: React.ReactNode;
+  prNumber?: number;
+}> = ({ filePath, sessionId, children, prNumber }) => {
+  const [previewData, setPreviewData] = useState<any>(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isLoading, setIsLoading] = useState(false);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const leaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnter = (e: React.MouseEvent) => {
+    // Clear any existing leave timeout
+    if (leaveTimeoutRef.current) {
+      clearTimeout(leaveTimeoutRef.current);
+      leaveTimeoutRef.current = null;
+    }
+
+    // Capture position immediately
+    const rect = e.currentTarget.getBoundingClientRect();
+    setPosition({
+      x: rect.left + rect.width / 2,
+      y: rect.top - 10
+    });
+
+    // Set hover timeout
+    hoverTimeoutRef.current = setTimeout(() => {
+      setIsHovered(true);
+      fetchPreview();
+    }, 300);
+  };
+
+  const handleMouseLeave = () => {
+    // Clear hover timeout if still pending
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+
+    // Set leave timeout
+    leaveTimeoutRef.current = setTimeout(() => {
+      setIsHovered(false);
+      setPreviewData(null);
+      setIsLoading(false);
+    }, 150);
+  };
+
+  const fetchPreview = async () => {
+    if (previewData) return; // Already loaded
+    
+    setIsLoading(true);
+    try {
+      // Use the enhanced file-snippet endpoint with RAG support
+      const params = new URLSearchParams({
+        session_id: sessionId,
+        file_path: filePath,
+        lines: '15',
+        ...(prNumber && { pr_number: prNumber.toString(), show_diff: 'true' })
+      });
+      
+      const response = await fetch(`http://localhost:8000/api/file-snippet?${params}`);
+      if (response.ok) {
+        const data = await response.json();
+        setPreviewData(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch file preview:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <span
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className="relative"
+      >
+        {children}
+      </span>
+      
+      {isHovered && (
+        <div
+          className="fixed z-50 pointer-events-none"
+          style={{
+            left: position.x,
+            top: position.y,
+            transform: 'translate(-50%, -100%)'
+          }}
+        >
+          <div className="bg-gray-900 border border-gray-600 rounded-lg shadow-xl p-4 max-w-md">
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm text-gray-300">Loading preview...</span>
+              </div>
+            ) : previewData ? (
+              <div>
+                <div className="text-xs text-gray-400 mb-2 font-mono">
+                  {previewData.file_path}
+                  {previewData.type === 'diff' && previewData.pr_number && (
+                    <span className="ml-2 bg-blue-600 text-white px-2 py-0.5 rounded">
+                      PR #{previewData.pr_number}
+                    </span>
+                  )}
+                </div>
+                <pre className="text-xs text-gray-200 font-mono bg-gray-800 p-2 rounded overflow-hidden">
+                  <code
+                    className={previewData.type === 'diff' ? 'diff-content' : ''}
+                    dangerouslySetInnerHTML={{
+                      __html: previewData.type === 'diff' 
+                        ? formatDiffForDisplay(previewData.snippet)
+                        : previewData.snippet.substring(0, 500)
+                    }}
+                  />
+                  {previewData.truncated && <span className="text-gray-500">...</span>}
+                </pre>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
+// Helper function to format diff content for HTML display
+const formatDiffForDisplay = (diff: string): string => {
+  return diff
+    .split('\n')
+    .map(line => {
+      if (line.startsWith('+') && !line.startsWith('+++')) {
+        return `<span style="color: #22c55e; background-color: rgba(34, 197, 94, 0.1);">${line}</span>`;
+      } else if (line.startsWith('-') && !line.startsWith('---')) {
+        return `<span style="color: #ef4444; background-color: rgba(239, 68, 68, 0.1);">${line}</span>`;
+      } else if (line.startsWith('@@')) {
+        return `<span style="color: #a855f7; background-color: rgba(168, 85, 247, 0.1);">${line}</span>`;
+      } else if (line.startsWith('+++') || line.startsWith('---')) {
+        return `<span style="color: #94a3b8;">${line}</span>`;
+      }
+      return line;
+    })
+    .join('\n');
+};
+
 // Enhanced Agent Trace Panel - Showcasing AI Intelligence with Style
 const AgenticTracePanel: React.FC<{ steps: AgenticStep[], isStreaming?: boolean }> = ({ steps, isStreaming }) => {
   const [visibleSteps, setVisibleSteps] = useState<AgenticStep[]>([]);
@@ -786,13 +935,27 @@ const MarkdownComponents = {
     const language = match ? match[1] : 'plaintext';
     const content = String(children).replace(/\n$/, '');
     
-    // Force inline for specific cases
-    const isFilePath = /^[\w\-./]+\.(js|jsx|ts|tsx|py|json|md|txt|yml|yaml|css|html|php|rb|go|rs|java|cpp|c|h|sh|sql)$/i.test(content.trim());
-    const isFolderPath = /^[@]?folder\/[\w\-./]+$/i.test(content.trim()) || /^[@][\w\-./]+$/i.test(content.trim());
-    const isShortCommand = content.length < 50 && !content.includes('\n') && /^(npm|yarn|git|sudo|apt|brew|pip|docker)\s/.test(content.trim());
-    const isSimpleValue = content.length < 30 && !content.includes('\n') && !/[{}[\]();]/.test(content);
+    // Check if this is diff content
+    const isDiff = language === 'diff' || content.includes('diff --git') || 
+                   /^[@]{2}.*[@]{2}$/m.test(content) || 
+                   content.split('\n').some(line => line.match(/^[+-]{1}[^+-]/));
+    
+    // Force inline for specific cases (but not for diffs)
+    const isFilePath = !isDiff && /^[\w\-./]+\.(js|jsx|ts|tsx|py|json|md|txt|yml|yaml|css|html|php|rb|go|rs|java|cpp|c|h|sh|sql)$/i.test(content.trim());
+    const isFolderPath = !isDiff && (/^[@]?folder\/[\w\-./]+$/i.test(content.trim()) || /^[@][\w\-./]+$/i.test(content.trim()));
+    const isShortCommand = !isDiff && content.length < 50 && !content.includes('\n') && /^(npm|yarn|git|sudo|apt|brew|pip|docker)\s/.test(content.trim());
+    const isSimpleValue = !isDiff && content.length < 30 && !content.includes('\n') && !/[{}[\]();]/.test(content);
     
     if (inline || isFilePath || isFolderPath || isShortCommand || isSimpleValue) {
+      // Enhanced inline code with better contrast (file paths will be handled by the enhanced MarkdownComponents)
+      if (isFilePath) {
+        return (
+          <code className="font-mono text-blue-400 bg-gray-800/60 px-2 py-1 rounded-md text-sm font-medium hover:bg-blue-900/40 cursor-pointer transition-colors" {...props}>
+            {content}
+          </code>
+        );
+      }
+      
       // Enhanced inline code with better contrast
       return (
         <code className="font-mono text-emerald-400 bg-gray-800/60 px-2 py-1 rounded-md text-sm font-medium" {...props}>
@@ -1492,6 +1655,7 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSessionMessa
                           contextCards={contextCards}
                           agenticSteps={message.agenticSteps}
                           suggestions={message.suggestions}
+                          sessionId={session.id}
                           onFileSelect={onFileSelect}
                           onIssueSelect={(issueNumber) => {
                             // Handle issue selection
