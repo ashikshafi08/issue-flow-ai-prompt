@@ -8,7 +8,17 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Send, FileText, Search, Copy, Check, FolderTree, Menu, ChevronDown, ChevronRight } from 'lucide-react';
+import { 
+  Send, 
+  FileText, 
+  Search, 
+  Copy, 
+  Check, 
+  FolderTree, 
+  Menu, 
+  ChevronDown, 
+  ChevronRight
+} from 'lucide-react';
 import CodebaseTree from '@/components/CodebaseTree';
 import FileViewer from '@/components/FileViewer';
 import { getSessionMessages } from '@/lib/api';
@@ -238,23 +248,39 @@ const MarkdownComponents = {
       
       return (
         <span className="relative group inline-block">
-          <code className="cursor-pointer text-blue-400 hover:text-blue-300 hover:underline bg-gray-800/60 px-1.5 py-0.5 rounded text-sm font-mono transition-colors">
+          <code className="cursor-pointer text-blue-400 hover:text-blue-300 hover:underline bg-gray-800/60 px-1.5 py-0.5 rounded text-sm font-mono transition-colors duration-200">
             {content.trim()}
           </code>
           
-          <div className="absolute bottom-full left-0 mb-2 w-96 max-w-[90vw] p-0 bg-gray-900 border border-gray-700 shadow-xl rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
-            <div className="p-3 border-b border-gray-700">
-              <div className="flex items-center gap-2">
-                <svg className="h-4 w-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <span className="text-sm font-medium text-white truncate">{content.trim()}</span>
+          <div className="absolute bottom-full left-0 mb-3 w-[800px] max-w-[90vw] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 ease-out z-50 pointer-events-none transform -translate-y-2 group-hover:translate-y-0">
+            <div className="bg-black/50 backdrop-blur-2xl border border-white/20 shadow-2xl rounded-2xl overflow-hidden ring-1 ring-white/10">
+              <div className="px-4 py-3 bg-gradient-to-r from-gray-900/90 via-gray-800/90 to-gray-900/90 backdrop-blur-xl border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="flex gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-500/80 shadow-sm"></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80 shadow-sm"></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-green-500/80 shadow-sm"></div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="p-1 bg-blue-500/20 rounded-md ring-1 ring-blue-400/30">
+                      <svg className="h-3.5 w-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <span className="text-sm font-medium text-white/90 truncate">{content.trim()}</span>
+                  </div>
+                </div>
               </div>
-            </div>
-            
-            <div className="max-h-64 overflow-auto p-4">
-              <div className="text-sm text-gray-400">
-                🚧 File preview will load here soon...
+              
+              <div className="p-4 text-center">
+                <div className="inline-flex items-center justify-center w-10 h-10 bg-white/5 rounded-full mb-2 ring-1 ring-white/10">
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                </div>
+                <div className="text-sm text-gray-300/90 font-medium">Enhanced File Preview</div>
+                <div className="text-xs text-gray-400/70 mt-1">Hover for advanced diff and content preview</div>
               </div>
             </div>
           </div>
@@ -344,7 +370,13 @@ const MarkdownComponents = {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-const AppSidebar = ({ sessionId, onFileSelect }: { sessionId: string; onFileSelect: (filePath: string) => void }) => {
+const AppSidebar = ({ 
+  sessionId, 
+  onFileSelect
+}: { 
+  sessionId: string; 
+  onFileSelect: (filePath: string) => void;
+}) => {
   const handleFileSelect = (filePath: string) => {
     console.log('Selected file:', filePath);
     onFileSelect(filePath);
@@ -360,7 +392,10 @@ const AppSidebar = ({ sessionId, onFileSelect }: { sessionId: string; onFileSele
           </h2>
           <p className="text-sm text-gray-400 mt-1">Browse repository structure</p>
         </div>
-        <CodebaseTree sessionId={sessionId} onFileSelect={handleFileSelect} />
+        <CodebaseTree 
+          sessionId={sessionId} 
+          onFileSelect={handleFileSelect}
+        />
       </SidebarContent>
     </Sidebar>
   );
@@ -792,7 +827,10 @@ export default function ChatSession() {
   return (
     <SidebarProvider defaultOpen={sidebarOpen}>
       <div className="min-h-screen flex w-full bg-black text-white">
-        <AppSidebar sessionId={sessionId} onFileSelect={handleFileView} />
+                    <AppSidebar 
+              sessionId={sessionId} 
+              onFileSelect={handleFileView}
+            />
         
         {viewingFile && (
           <FileViewer
@@ -915,23 +953,39 @@ export default function ChatSession() {
                                         
                                         return (
                                           <span className="relative group inline-block">
-                                            <code className="cursor-pointer text-blue-400 hover:text-blue-300 hover:underline bg-gray-800/60 px-1.5 py-0.5 rounded text-sm font-mono transition-colors">
+                                            <code className="cursor-pointer text-blue-400 hover:text-blue-300 hover:underline bg-gray-800/60 px-1.5 py-0.5 rounded text-sm font-mono transition-colors duration-200">
                                               {content.trim()}
                                             </code>
                                             
-                                            <div className="absolute bottom-full left-0 mb-2 w-96 max-w-[90vw] p-0 bg-gray-900 border border-gray-700 shadow-xl rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
-                                              <div className="p-3 border-b border-gray-700">
-                                                <div className="flex items-center gap-2">
-                                                  <svg className="h-4 w-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                  </svg>
-                                                  <span className="text-sm font-medium text-white truncate">{content.trim()}</span>
+                                            <div className="absolute bottom-full left-0 mb-3 w-[800px] max-w-[90vw] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 ease-out z-50 pointer-events-none transform -translate-y-2 group-hover:translate-y-0">
+                                              <div className="bg-black/50 backdrop-blur-2xl border border-white/20 shadow-2xl rounded-2xl overflow-hidden ring-1 ring-white/10">
+                                                <div className="px-4 py-3 bg-gradient-to-r from-gray-900/90 via-gray-800/90 to-gray-900/90 backdrop-blur-xl border-b border-white/10">
+                                                  <div className="flex items-center gap-3">
+                                                    <div className="flex gap-1.5">
+                                                      <div className="w-2.5 h-2.5 rounded-full bg-red-500/80 shadow-sm"></div>
+                                                      <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80 shadow-sm"></div>
+                                                      <div className="w-2.5 h-2.5 rounded-full bg-green-500/80 shadow-sm"></div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                      <div className="p-1 bg-blue-500/20 rounded-md ring-1 ring-blue-400/30">
+                                                        <svg className="h-3.5 w-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                        </svg>
+                                                      </div>
+                                                      <span className="text-sm font-medium text-white/90 truncate">{content.trim()}</span>
+                                                    </div>
+                                                  </div>
                                                 </div>
-                                              </div>
-                                              
-                                              <div className="max-h-64 overflow-auto p-4">
-                                                <div className="text-sm text-gray-400">
-                                                  🚧 File preview will load here soon...
+                                                
+                                                <div className="p-4 text-center">
+                                                  <div className="inline-flex items-center justify-center w-10 h-10 bg-white/5 rounded-full mb-2 ring-1 ring-white/10">
+                                                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                    </svg>
+                                                  </div>
+                                                  <div className="text-sm text-gray-300/90 font-medium">Enhanced File Preview</div>
+                                                  <div className="text-xs text-gray-400/70 mt-1">Hover for advanced diff and content preview</div>
                                                 </div>
                                               </div>
                                             </div>

@@ -9,7 +9,7 @@ import FileViewer from '@/components/FileViewer';
 import UnifiedContextPanel from '@/components/UnifiedContextPanel';
 import { listAssistantSessions, SessionInfo, getSessionMessages, getSessionMetadata, resetAgenticMemory, syncRepository } from '@/lib/api'; // Added syncRepository
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2, PanelLeft, FolderTree, RefreshCw, GitBranch, Zap as SyncIcon } from 'lucide-react'; // Changed RefreshCw to Zap for Sync & added Zap
+import { Loader2, PanelLeft, FolderTree, RefreshCw, GitBranch, Zap as SyncIcon } from 'lucide-react'; // Removed Clock
 import { Button } from '@/components/ui/button';
 import { useKeyboardShortcuts, createChatShortcuts } from '@/hooks/useKeyboardShortcuts';
 import KeyboardShortcutsIndicator from '@/components/KeyboardShortcutsIndicator';
@@ -99,8 +99,11 @@ const Assistant = () => {
   useEffect(() => {
     if (sessionId && sessionId !== activeSessionId) {
       setActiveSessionId(sessionId);
+      // Clear any open file viewer when switching sessions
+      setSelectedFile(null);
     } else if (!sessionId && activeSessionId) {
       setActiveSessionId(null);
+      setSelectedFile(null);
     }
   }, [sessionId]); // Only depend on sessionId
 
@@ -614,11 +617,12 @@ const Assistant = () => {
       )}
 
       {/* Issues Pane */}
-      {detailedActiveSession && (
+      {showIssuesPane && detailedActiveSession && (
         <IssuesPane
           open={showIssuesPane}
-          onClose={() => setShowIssuesPane(false)}
+          sessionId={detailedActiveSession.id}
           repoUrl={detailedActiveSession.repoUrl}
+          onClose={() => setShowIssuesPane(false)}
           onAddIssueToContext={handleAddIssueToContext}
         />
       )}

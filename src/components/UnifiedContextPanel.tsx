@@ -1,27 +1,37 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Search, File, GitBranch, GitMerge, Bug, Code, Folder, ChevronRight, ChevronDown, Plus, ExternalLink } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { 
+  File, 
+  GitCommit,
+  Clock,
+  User,
+  Hash,
+  TrendingUp,
+  Activity,
+  ArrowRight,
+  Zap,
+  X,
+  Copy,
+  Check,
+  ExternalLink,
+  ChevronRight,
+  FileText,
+  Plus,
+  Minus
+} from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import CodebaseTree from './CodebaseTree';
 
-interface FileNode {
-  name: string;
-  path: string;
-  type: 'file' | 'folder';
-  children?: FileNode[];
-}
-
-interface Issue {
-  number: number;
-  title: string;
-  state: string;
-  labels: string[];
-}
-
-interface PullRequest {
-  number: number;
-  title: string;
-  merged_at?: string;
-  files_changed?: string[];
+interface CommitInfo {
+  sha: string;
+  subject: string;
+  author_name: string;
+  author_email: string;
+  commit_date: string;
+  files_changed: string[];
+  insertions: number;
+  deletions: number;
+  is_merge: boolean;
+  pr_number?: number;
 }
 
 interface UnifiedContextPanelProps {
@@ -32,8 +42,8 @@ interface UnifiedContextPanelProps {
     activeThread?: string;
   };
   onFileSelect: (filePath: string) => void;
-  onIssueSelect: (issue: Issue) => void;
-  onPRSelect: (pr: PullRequest) => void;
+  onIssueSelect: (issue: any) => void;
+  onPRSelect: (pr: any) => void;
   repoUrl?: string;
 }
 
@@ -41,377 +51,445 @@ const UnifiedContextPanel: React.FC<UnifiedContextPanelProps> = ({
   sessionId,
   currentContext,
   onFileSelect,
-  onIssueSelect,
-  onPRSelect,
   repoUrl
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'smart' | 'files' | 'issues' | 'prs'>('smart');
-  const [fileTree, setFileTree] = useState<FileNode[]>([]);
-  const [issues, setIssues] = useState<Issue[]>([]);
-  const [pullRequests, setPullRequests] = useState<PullRequest[]>([]);
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'files' | 'commits'>('files');
+  const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
+  const [commits, setCommits] = useState<CommitInfo[]>([]);
+  const [commitsLoading, setCommitsLoading] = useState(false);
+  const [commitsError, setCommitsError] = useState<string | null>(null);
+  const [selectedCommit, setSelectedCommit] = useState<CommitInfo | null>(null);
+  const [copiedSha, setCopiedSha] = useState<string | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Smart context determination based on current conversation
-  const smartContext = useMemo(() => {
-    const context = {
-      primaryType: 'files' as 'files' | 'issues' | 'prs',
-      suggestions: [] as Array<{type: string, item: any, reason: string}>
-    };
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-    // Analyze current context to determine what to show
-    if (currentContext?.discussingFiles?.length) {
-      context.primaryType = 'files';
-      context.suggestions = currentContext.discussingFiles.map(file => ({
-        type: 'file',
-        item: { path: file, name: file.split('/').pop() },
-        reason: 'Currently discussing'
-      }));
-    } else if (currentContext?.relatedIssues?.length) {
-      context.primaryType = 'issues';
-    }
-
-    return context;
-  }, [currentContext]);
-
-  const fetchFileTree = async () => {
+  // Fetch commits with better error handling and more comprehensive data
+  const fetchCommits = async () => {
     try {
-      setLoading(true);
-      const response = await fetch(`http://localhost:8000/api/tree?session_id=${sessionId}`);
-      if (response.ok) {
-        const data = await response.json();
-        
-        // Transform the flat array structure to hierarchical tree structure
-        const transformToTree = (nodes: any[]): FileNode[] => {
-          if (!Array.isArray(nodes)) return [];
-          
-          return nodes.map((node: any) => ({
-            name: node.name || node.path.split('/').pop() || node.path,
-            path: node.path,
-            type: node.type === 'directory' ? 'folder' : 'file',
-            children: node.children ? transformToTree(node.children) : undefined
-          }));
-        };
-        
-        setFileTree(transformToTree(Array.isArray(data) ? data : []));
-      } else {
-        console.error('Failed to fetch file tree:', response.status);
+      setCommitsLoading(true);
+      setCommitsError(null);
+      
+      console.log(`UnifiedContextPanel: Fetching commits for session ${sessionId}`);
+      
+      // Try to get more commits and handle different response formats
+      const response = await fetch(`${API_BASE_URL}/api/commits?session_id=${sessionId}&limit=100`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
+      
+      const data = await response.json();
+      
+      // Handle different response formats
+      let commitsData = [];
+      if (data.commits) {
+        commitsData = data.commits;
+      } else if (Array.isArray(data)) {
+        commitsData = data;
+      } else {
+        console.warn('Unexpected commits response format:', data);
+        commitsData = [];
+      }
+      
+      console.log(`UnifiedContextPanel: Fetched ${commitsData.length} commits for session ${sessionId}`);
+      
+      if (commitsData.length === 0) {
+        console.warn('UnifiedContextPanel: No commits returned, repository may not be properly indexed');
+        setCommitsError('No commits found. Repository may still be indexing.');
+      } else if (commitsData.length < 5) {
+        console.warn(`UnifiedContextPanel: Suspiciously low commit count (${commitsData.length}) for session ${sessionId}`);
+      }
+      
+      setCommits(commitsData);
+      
     } catch (error) {
-      console.error('Failed to fetch file tree:', error);
+      console.error('Error fetching commits:', error);
+      setCommitsError(error instanceof Error ? error.message : 'Failed to load commits');
+      setCommits([]);
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchIssues = async () => {
-    if (!repoUrl) return;
-    try {
-      const response = await fetch(`http://localhost:8000/api/issues?repo_url=${encodeURIComponent(repoUrl)}&state=all`);
-      const data = await response.json();
-      setIssues(data.slice(0, 10)); // Limit for performance
-    } catch (error) {
-      console.error('Failed to fetch issues:', error);
-    }
-  };
-
-  const fetchPullRequests = async () => {
-    if (!repoUrl) return;
-    try {
-      const response = await fetch(`http://localhost:8000/api/prs?repo_url=${encodeURIComponent(repoUrl)}&state=merged`);
-      const data = await response.json();
-      setPullRequests(data.slice(0, 10)); // Limit for performance
-    } catch (error) {
-      console.error('Failed to fetch PRs:', error);
+      setCommitsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (sessionId) {
-      fetchFileTree();
+    if (sessionId && activeTab === 'commits') {
+      fetchCommits();
     }
-    if (repoUrl) {
-      fetchIssues();
-      fetchPullRequests();
-    }
-  }, [sessionId, repoUrl]);
+  }, [sessionId, activeTab]);
 
-  const toggleFolder = (path: string) => {
-    const newExpanded = new Set(expandedFolders);
-    if (newExpanded.has(path)) {
-      newExpanded.delete(path);
-    } else {
-      newExpanded.add(path);
+  const formatTimeAgo = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diff = now.getTime() - date.getTime();
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor(diff / (1000 * 60));
+
+      if (days > 7) return date.toLocaleDateString();
+      if (days > 0) return `${days}d ago`;
+      if (hours > 0) return `${hours}h ago`;
+      if (minutes > 0) return `${minutes}m ago`;
+      return 'Just now';
+    } catch {
+      return 'Unknown';
     }
-    setExpandedFolders(newExpanded);
   };
 
-  const renderFileNode = (node: FileNode, depth = 0) => {
-    const isExpanded = expandedFolders.has(node.path);
-    const isCurrentlyDiscussed = currentContext?.discussingFiles?.includes(node.path);
+  const copyToClipboard = async (text: string, type: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      if (type === 'sha') {
+        setCopiedSha(text);
+        setTimeout(() => setCopiedSha(null), 2000);
+      }
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  const getFileChangeIcon = (fileName: string) => {
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    if (['js', 'jsx', 'ts', 'tsx'].includes(ext || '')) return '🟨';
+    if (['py'].includes(ext || '')) return '🐍';
+    if (['java'].includes(ext || '')) return '☕';
+    if (['css', 'scss'].includes(ext || '')) return '🎨';
+    if (['html'].includes(ext || '')) return '🌐';
+    if (['md'].includes(ext || '')) return '📝';
+    if (['json', 'yaml', 'yml'].includes(ext || '')) return '📋';
+    return '📄';
+  };
+
+  const renderCommitDetail = () => {
+    if (!selectedCommit) return null;
 
     return (
-      <div key={node.path} className="select-none">
-        <div
-          className={`flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-all duration-200 ${
-            isCurrentlyDiscussed 
-              ? 'bg-blue-500/20 border border-blue-500/30 text-blue-300' 
-              : 'hover:bg-gray-700/50 text-gray-300 hover:text-white'
-          }`}
-          style={{ paddingLeft: `${depth * 12 + 8}px` }}
-          onClick={() => {
-            if (node.type === 'folder') {
-              toggleFolder(node.path);
-            } else {
-              onFileSelect(node.path);
-            }
-          }}
-        >
-          {node.type === 'folder' ? (
-            <>
-              {isExpanded ? (
-                <ChevronDown className="h-3 w-3 text-gray-500" />
-              ) : (
-                <ChevronRight className="h-3 w-3 text-gray-500" />
-              )}
-              <Folder className="h-4 w-4 text-blue-400" />
-            </>
-          ) : (
-            <>
-              <div className="w-3" /> {/* Spacer for alignment */}
-              <File className="h-4 w-4 text-gray-400" />
-            </>
-          )}
-          <span className="text-sm font-medium truncate flex-1">{node.name}</span>
-          {isCurrentlyDiscussed && (
-            <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
-          )}
-        </div>
-        {node.type === 'folder' && isExpanded && node.children && (
-          <div>
-            {node.children.map(child => renderFileNode(child, depth + 1))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const renderSmartContext = () => (
-    <div className="space-y-4">
-      {/* Context-aware suggestions */}
-      <div className="space-y-2">
-        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-          Contextual Resources
-        </h3>
-        
-        {smartContext.suggestions.length > 0 ? (
-          <div className="space-y-1">
-            {smartContext.suggestions.map((suggestion, idx) => (
-              <div 
-                key={idx}
-                className="flex items-center gap-2 p-2 rounded-md bg-blue-500/10 border border-blue-500/20 cursor-pointer hover:bg-blue-500/15 transition-colors"
-                onClick={() => {
-                  if (suggestion.type === 'file') {
-                    onFileSelect(suggestion.item.path);
-                  }
-                }}
-              >
-                <Code className="h-4 w-4 text-blue-400" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate">
-                    {suggestion.item.name}
-                  </p>
-                  <p className="text-xs text-blue-300">{suggestion.reason}</p>
+      <div 
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setSelectedCommit(null);
+          }
+        }}
+      >
+        <div className="bg-black/90 backdrop-blur-xl border border-white/10 rounded-2xl max-w-4xl w-full max-h-[85vh] flex flex-col shadow-2xl">
+          {/* Header */}
+          <div className="px-6 py-5 border-b border-white/10 flex items-start justify-between">
+            <div className="flex items-start gap-4 flex-1 min-w-0">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center flex-shrink-0">
+                <GitCommit className="w-5 h-5 text-blue-400" />
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <h3 className="text-[16px] font-semibold text-white/95 leading-tight mb-2">
+                  {selectedCommit.subject}
+                </h3>
+                
+                <div className="flex items-center gap-4 text-[12px] text-white/60">
+                  <span className="font-medium">{selectedCommit.author_name}</span>
+                  <span>•</span>
+                  <span>{formatTimeAgo(selectedCommit.commit_date)}</span>
+                  <span>•</span>
+                  <button
+                    onClick={() => copyToClipboard(selectedCommit.sha, 'sha')}
+                    className="font-mono hover:text-white/80 transition-colors flex items-center gap-1"
+                  >
+                    {selectedCommit.sha.slice(0, 7)}
+                    {copiedSha === selectedCommit.sha ? (
+                      <Check className="w-3 h-3 text-emerald-400" />
+                    ) : (
+                      <Copy className="w-3 h-3" />
+                    )}
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-4 text-gray-500">
-            <Code className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Start chatting to see relevant context</p>
-          </div>
-        )}
-      </div>
-
-      {/* Quick access to recent items */}
-      <div className="space-y-2">
-        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-          Quick Access
-        </h3>
-        
-        <div className="grid grid-cols-3 gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-auto p-2 flex flex-col items-center gap-1 text-gray-400 hover:text-white hover:bg-gray-700/50"
-            onClick={() => setActiveTab('files')}
-          >
-            <File className="h-4 w-4" />
-            <span className="text-xs">Files</span>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-auto p-2 flex flex-col items-center gap-1 text-gray-400 hover:text-white hover:bg-gray-700/50"
-            onClick={() => setActiveTab('issues')}
-          >
-            <Bug className="h-4 w-4" />
-            <span className="text-xs">Issues</span>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-auto p-2 flex flex-col items-center gap-1 text-gray-400 hover:text-white hover:bg-gray-700/50"
-            onClick={() => setActiveTab('prs')}
-          >
-            <GitMerge className="h-4 w-4" />
-            <span className="text-xs">PRs</span>
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderFiles = () => {
-    const filteredFiles = searchQuery 
-      ? fileTree.filter(node => 
-          node.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          node.path.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-      : fileTree;
-
-    return (
-      <div className="space-y-1">
-        {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-400 mx-auto mb-2"></div>
-              <p className="text-sm text-gray-400">Loading files...</p>
             </div>
+            
+            <button
+              onClick={() => setSelectedCommit(null)}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/60 hover:text-white/80"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-        ) : filteredFiles.length > 0 ? (
-          filteredFiles.map(node => renderFileNode(node))
-        ) : fileTree.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <Folder className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No files found</p>
-            <p className="text-xs text-gray-600 mt-1">Make sure the session is properly initialized</p>
+
+          {/* Content */}
+          <div className="flex-1 overflow-hidden">
+            <ScrollArea className="h-full">
+              <div className="p-6 space-y-6">
+                {/* Stats */}
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-2 text-[13px]">
+                    <span className="flex items-center gap-1.5 text-emerald-400">
+                      <Plus className="w-3.5 h-3.5" />
+                      {selectedCommit.insertions} additions
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-[13px]">
+                    <span className="flex items-center gap-1.5 text-red-400">
+                      <Minus className="w-3.5 h-3.5" />
+                      {selectedCommit.deletions} deletions
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-[13px] text-white/60">
+                    <FileText className="w-3.5 h-3.5" />
+                    {selectedCommit.files_changed?.length || 0} file{(selectedCommit.files_changed?.length || 0) !== 1 ? 's' : ''} changed
+                  </div>
+
+                  {selectedCommit.is_merge && (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-purple-500/15 text-purple-300 rounded-lg text-[12px] font-medium">
+                      <ArrowRight className="w-3 h-3" />
+                      Merge commit
+                    </span>
+                  )}
+
+                  {selectedCommit.pr_number && (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-blue-500/15 text-blue-300 rounded-lg text-[12px] font-medium">
+                      #{selectedCommit.pr_number}
+                    </span>
+                  )}
+                </div>
+
+                {/* Files Changed */}
+                {selectedCommit.files_changed && selectedCommit.files_changed.length > 0 && (
+                  <div>
+                    <h4 className="text-[14px] font-semibold text-white/90 mb-3">Files changed</h4>
+                    <div className="space-y-1">
+                      {selectedCommit.files_changed.map((file, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center gap-3 p-3 hover:bg-white/[0.03] rounded-lg cursor-pointer transition-all duration-200 group"
+                          onClick={() => {
+                            onFileSelect(file);
+                            setSelectedCommit(null);
+                          }}
+                        >
+                          <span className="text-sm">{getFileChangeIcon(file)}</span>
+                          <span className="text-[13px] text-white/80 group-hover:text-white transition-colors flex-1 font-mono">
+                            {file}
+                          </span>
+                          <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-white/60 transition-colors" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="flex items-center gap-3 pt-4 border-t border-white/10">
+                  <button
+                    onClick={() => copyToClipboard(selectedCommit.sha, 'sha')}
+                    className="flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[12px] text-white/70 hover:text-white/90 transition-colors"
+                  >
+                    {copiedSha === selectedCommit.sha ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        Copy SHA
+                      </>
+                    )}
+                  </button>
+                  
+                  {repoUrl && (
+                    <button
+                      onClick={() => {
+                        const url = `${repoUrl}/commit/${selectedCommit.sha}`;
+                        window.open(url, '_blank');
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[12px] text-white/70 hover:text-white/90 transition-colors"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      View on GitHub
+                    </button>
+                  )}
+                </div>
+              </div>
+            </ScrollArea>
           </div>
-        ) : (
-          <div className="text-center py-4 text-gray-500">
-            <p className="text-sm">No files match "{searchQuery}"</p>
-          </div>
-        )}
+        </div>
       </div>
     );
   };
 
-  const renderIssues = () => (
-    <div className="space-y-2">
-      {issues.map(issue => (
-        <div
-          key={issue.number}
-          className="p-3 rounded-md border border-gray-700/30 hover:border-gray-600/50 hover:bg-gray-800/40 cursor-pointer transition-all duration-200"
-          onClick={() => onIssueSelect(issue)}
-        >
-          <div className="flex items-center gap-2 mb-1">
-            <Bug className={`h-3 w-3 ${issue.state === 'open' ? 'text-green-400' : 'text-purple-400'}`} />
-            <span className="text-sm font-medium text-white truncate">#{issue.number}</span>
-          </div>
-          <p className="text-sm text-gray-300 line-clamp-2 mb-2">{issue.title}</p>
-          {issue.labels.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {issue.labels.slice(0, 2).map(label => (
-                <span key={label} className="px-1.5 py-0.5 bg-gray-700/50 text-xs text-gray-400 rounded">
-                  {label}
-                </span>
-              ))}
-            </div>
-          )}
+  const renderCommitItem = (commit: CommitInfo) => (
+    <div 
+      key={commit.sha} 
+      className="group p-4 hover:bg-white/[0.02] transition-all duration-200 border-b border-white/[0.06] last:border-b-0 cursor-pointer"
+      onClick={() => setSelectedCommit(commit)}
+    >
+      <div className="flex items-start gap-3">
+        {/* Avatar placeholder */}
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <GitCommit className="w-3.5 h-3.5 text-blue-400" />
         </div>
-      ))}
+        
+        <div className="flex-1 min-w-0">
+          {/* Commit message */}
+          <p className="text-[13px] font-medium text-white/90 leading-tight mb-1.5 group-hover:text-white transition-colors">
+            {commit.subject}
+          </p>
+          
+          {/* Metadata */}
+          <div className="flex items-center gap-3 text-[11px] text-white/50 mb-2">
+            <span className="font-medium">{commit.author_name}</span>
+            <span>•</span>
+            <span>{formatTimeAgo(commit.commit_date)}</span>
+            <span>•</span>
+            <span className="font-mono">{commit.sha.slice(0, 7)}</span>
+          </div>
+          
+          {/* Stats */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-[11px]">
+              <span className="flex items-center gap-1 text-emerald-400">
+                <span className="w-1 h-1 rounded-full bg-emerald-400"></span>
+                +{commit.insertions}
+              </span>
+              <span className="flex items-center gap-1 text-red-400">
+                <span className="w-1 h-1 rounded-full bg-red-400"></span>
+                -{commit.deletions}
+              </span>
+            </div>
+            
+            <span className="text-[11px] text-white/40">
+              {commit.files_changed?.length || 0} file{(commit.files_changed?.length || 0) !== 1 ? 's' : ''}
+            </span>
+            
+            {commit.is_merge && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-purple-500/10 text-purple-300 rounded text-[10px] font-medium">
+                <ArrowRight className="w-2.5 h-2.5" />
+                merge
+              </span>
+            )}
+            
+            {commit.pr_number && (
+              <span className="inline-flex items-center px-1.5 py-0.5 bg-blue-500/10 text-blue-300 rounded text-[10px] font-medium">
+                #{commit.pr_number}
+              </span>
+            )}
+          </div>
+        </div>
+        
+        <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-white/40 transition-colors flex-shrink-0 mt-1" />
+      </div>
     </div>
   );
 
-  const renderPRs = () => (
-    <div className="space-y-2">
-      {pullRequests.map(pr => (
-        <div
-          key={pr.number}
-          className="p-3 rounded-md border border-gray-700/30 hover:border-gray-600/50 hover:bg-gray-800/40 cursor-pointer transition-all duration-200"
-          onClick={() => onPRSelect(pr)}
-        >
-          <div className="flex items-center gap-2 mb-1">
-            <GitMerge className="h-3 w-3 text-purple-400" />
-            <span className="text-sm font-medium text-white">PR #{pr.number}</span>
-          </div>
-          <p className="text-sm text-gray-300 line-clamp-2 mb-2">{pr.title}</p>
-          {pr.files_changed && (
-            <p className="text-xs text-gray-500">{pr.files_changed.length} files changed</p>
-          )}
+  const renderCommits = () => {
+    if (commitsLoading) {
+      return (
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="w-6 h-6 border-2 border-white/20 border-t-white/60 rounded-full animate-spin mb-3"></div>
+          <p className="text-[13px] text-white/50">Loading commits...</p>
         </div>
-      ))}
-    </div>
-  );
+      );
+    }
+
+    if (commitsError) {
+      return (
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center mb-3">
+            <Zap className="w-5 h-5 text-red-400" />
+          </div>
+          <p className="text-[13px] text-white/70 mb-1">Failed to load commits</p>
+          <p className="text-[11px] text-white/40 text-center max-w-[200px]">{commitsError}</p>
+          <button 
+            onClick={fetchCommits}
+            className="mt-3 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[11px] text-white/70 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      );
+    }
+
+    if (commits.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mb-3">
+            <GitCommit className="w-5 h-5 text-white/30" />
+          </div>
+          <p className="text-[13px] text-white/50">No commits found</p>
+          <p className="text-[11px] text-white/30 mt-1">Commit history will appear here</p>
+        </div>
+      );
+    }
+
+    return (
+      <ScrollArea className="h-full">
+        <div className="divide-y divide-white/[0.06]">
+          {commits.map(commit => renderCommitItem(commit))}
+        </div>
+      </ScrollArea>
+    );
+  };
 
   const getTabContent = () => {
     switch (activeTab) {
-      case 'smart': return renderSmartContext();
-      case 'files': return renderFiles();
-      case 'issues': return renderIssues();
-      case 'prs': return renderPRs();
-      default: return renderSmartContext();
+      case 'files':
+        return (
+          <div className="h-full">
+            <CodebaseTree 
+              sessionId={sessionId} 
+              onFileSelect={(filePath) => {
+                onFileSelect(filePath);
+                setSelectedFilePath(filePath);
+              }}
+            />
+          </div>
+        );
+      case 'commits':
+        return renderCommits();
+      default:
+        return null;
     }
   };
 
   return (
-    <div className="w-80 bg-gray-900/95 border-l border-gray-700/50 flex flex-col h-full">
-      {/* Header */}
-      <div className="p-4 border-b border-gray-700/30">
-        <h2 className="text-lg font-semibold text-white mb-3">Context</h2>
-        
-        {/* Search */}
-        <div className="relative mb-3">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search files, issues, PRs..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-gray-800/50 border-gray-700/50 text-white placeholder:text-gray-500"
-          />
+    <>
+      <div className="w-80 bg-black/40 backdrop-blur-xl border-l border-white/[0.08] flex flex-col h-full">
+        {/* Header */}
+        <div className="px-5 py-4 border-b border-white/[0.08]">
+          <h2 className="text-[15px] font-semibold text-white/90 mb-4">Context</h2>
+          
+          {/* Tab Navigation */}
+          <div className="flex p-0.5 bg-white/[0.04] rounded-lg">
+                          {[
+                { key: 'files' as const, label: 'Files', icon: File },
+                { key: 'commits' as const, label: 'Commits', icon: GitCommit },
+              ].map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key as any)}
+                className={`flex-1 flex items-center justify-center gap-1 px-2 py-2 rounded-md text-[12px] font-medium transition-all duration-200 ${
+                  activeTab === tab.key
+                    ? 'bg-white text-black shadow-sm'
+                    : 'text-white/60 hover:text-white/80 hover:bg-white/[0.06]'
+                }`}
+              >
+                <tab.icon className="w-3.5 h-3.5" />
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex gap-1 p-1 bg-gray-800/50 rounded-md">
-          {[
-            { id: 'smart', label: 'Smart', icon: Plus },
-            { id: 'files', label: 'Files', icon: File },
-            { id: 'issues', label: 'Issues', icon: Bug },
-            { id: 'prs', label: 'PRs', icon: GitMerge }
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded text-xs font-medium transition-all duration-200 ${
-                activeTab === tab.id
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'
-              }`}
-            >
-              <tab.icon className="h-3 w-3" />
-              {tab.label}
-            </button>
-          ))}
+        {/* Content */}
+        <div className="flex-1 overflow-hidden">
+          {getTabContent()}
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4">
-        {getTabContent()}
-      </div>
-    </div>
+      {/* Commit Detail Modal */}
+      {renderCommitDetail()}
+    </>
   );
 };
 

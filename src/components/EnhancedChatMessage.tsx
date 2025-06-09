@@ -68,6 +68,7 @@ const FileHoverPreview = ({ filePath, sessionId, messageContent }: { filePath: s
   const [hasLoaded, setHasLoaded] = useState(false);
   const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
   const [leaveTimeout, setLeaveTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   console.log('🎨 FileHoverPreview render:', { filePath, showPreview, hasLoaded, loading });
 
@@ -78,6 +79,16 @@ const FileHoverPreview = ({ filePath, sessionId, messageContent }: { filePath: s
       if (leaveTimeout) clearTimeout(leaveTimeout);
     };
   }, [hoverTimeout, leaveTimeout]);
+
+  const copyToClipboard = async (text: string, id: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedCode(id);
+      setTimeout(() => setCopiedCode(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err);
+    }
+  };
 
   const fetchPreview = useCallback(async () => {
     if (loading || hasLoaded) {
@@ -277,14 +288,24 @@ const FileHoverPreview = ({ filePath, sessionId, messageContent }: { filePath: s
 
     const isDiff = previewData?.type === 'diff';
     const diffLines = isDiff ? parseDiff(previewData.snippet) : [];
+    
+    // Calculate GitHub-style diff statistics
+    const diffStats = diffLines.reduce(
+      (acc, line) => {
+        if (line.type === 'addition') acc.additions++;
+        if (line.type === 'deletion') acc.deletions++;
+        return acc;
+      },
+      { additions: 0, deletions: 0 }
+    );
 
     return (
       <div 
-        className="fixed bg-gray-900/98 backdrop-blur-xl border border-gray-700/50 shadow-2xl rounded-xl overflow-hidden z-[9999] max-w-3xl w-[700px]"
+        className="fixed z-[9999] max-w-4xl w-[800px] transform transition-all duration-300 ease-out"
         style={{
-          left: Math.min(position.x, window.innerWidth - 720),
-          top: Math.max(position.y - 300, 20),
-          maxHeight: '80vh'
+          left: Math.min(position.x, window.innerWidth - 820),
+          top: Math.max(position.y - 350, 20),
+          maxHeight: '85vh'
         }}
         onMouseEnter={() => {
           console.log('🖱️ Mouse enter on DiffViewer');
@@ -295,119 +316,225 @@ const FileHoverPreview = ({ filePath, sessionId, messageContent }: { filePath: s
         }}
         onMouseLeave={handleMouseLeave}
       >
-        {/* Header */}
-        <div className="px-4 py-3 bg-gray-800/90 border-b border-gray-700/50">
-          <div className="flex items-center gap-2">
-            <div className="flex gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
-              <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
-              <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
+        {/* Glassmorphism container with enhanced design */}
+        <div className="bg-black/40 backdrop-blur-2xl border border-white/10 shadow-2xl rounded-2xl overflow-hidden ring-1 ring-white/5">
+          {/* Enhanced Header with GitHub-style stats */}
+          <div className="px-5 py-4 bg-gradient-to-r from-gray-900/90 via-gray-800/90 to-gray-900/90 backdrop-blur-xl border-b border-white/10">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {/* macOS-style window controls */}
+                <div className="flex gap-2">
+                  <div className="w-3 h-3 rounded-full bg-red-500/90 shadow-lg ring-1 ring-red-400/50"></div>
+                  <div className="w-3 h-3 rounded-full bg-yellow-500/90 shadow-lg ring-1 ring-yellow-400/50"></div>
+                  <div className="w-3 h-3 rounded-full bg-green-500/90 shadow-lg ring-1 ring-green-400/50"></div>
+                </div>
+                
+                <div className="flex items-center gap-3 ml-1">
+                  <div className="p-1.5 bg-blue-500/20 rounded-lg ring-1 ring-blue-400/30">
+                    <svg className="h-4 w-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-semibold text-white/90 tracking-tight">{filePath}</span>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {isDiff && (
+                        <>
+                          <span className="inline-flex items-center gap-1.5 text-xs bg-emerald-500/20 text-emerald-300 px-2.5 py-1 rounded-full font-medium ring-1 ring-emerald-400/30">
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd"/>
+                            </svg>
+                            DIFF {previewData.pr_number ? `#${previewData.pr_number}` : ''}
+                          </span>
+                          {/* GitHub-style diff statistics */}
+                          <div className="flex items-center gap-2 text-xs">
+                            <span className="inline-flex items-center gap-1 text-emerald-400 font-mono font-medium">
+                              <span className="text-emerald-400">+{diffStats.additions}</span>
+                            </span>
+                            <span className="inline-flex items-center gap-1 text-red-400 font-mono font-medium">
+                              <span className="text-red-400">-{diffStats.deletions}</span>
+                            </span>
+                            {(diffStats.additions > 0 || diffStats.deletions > 0) && (
+                              <div className="flex items-center bg-white/10 rounded-full px-2 py-1">
+                                <div className="flex h-2 w-16 overflow-hidden rounded-full bg-gray-700">
+                                  {diffStats.additions > 0 && (
+                                    <div 
+                                      className="bg-emerald-500 transition-all duration-500"
+                                      style={{ 
+                                        width: `${(diffStats.additions / (diffStats.additions + diffStats.deletions)) * 100}%` 
+                                      }}
+                                    />
+                                  )}
+                                  {diffStats.deletions > 0 && (
+                                    <div 
+                                      className="bg-red-500 transition-all duration-500"
+                                      style={{ 
+                                        width: `${(diffStats.deletions / (diffStats.additions + diffStats.deletions)) * 100}%` 
+                                      }}
+                                    />
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Copy button with enhanced design */}
+              <button 
+                onClick={() => copyToClipboard(previewData?.snippet || '', 'diff-preview')}
+                className="group flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg transition-all duration-200 text-xs font-medium text-gray-300 hover:text-white"
+              >
+                {copiedCode === 'diff-preview' ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-emerald-400">Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                    <span>Copy</span>
+                  </>
+                )}
+              </button>
             </div>
-            <div className="flex items-center gap-2 ml-2">
-              <svg className="h-4 w-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <span className="text-sm font-medium text-white truncate">{filePath}</span>
-              {isDiff && (
-                <span className="text-xs bg-emerald-600/90 text-white px-2 py-0.5 rounded-full font-medium">
-                  DIFF {previewData.pr_number ? `#${previewData.pr_number}` : ''}
-                </span>
-              )}
-            </div>
+            
+            {/* Enhanced file info */}
+            {previewData && (
+              <div className="text-xs text-gray-400/80 mt-3 pl-12 flex items-center gap-4">
+                {isDiff 
+                  ? (
+                    <span className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
+                      Changes in {previewData.file_path}
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
+                      Lines {previewData.start_line || 1}-{previewData.end_line || previewData.total_lines} of {previewData.total_lines}
+                    </span>
+                  )
+                }
+              </div>
+            )}
           </div>
-          {previewData && (
-            <div className="text-xs text-gray-400 mt-2">
-              {isDiff 
-                ? `Changes in ${previewData.file_path}`
-                : `Lines ${previewData.start_line || 1}-${previewData.end_line || previewData.total_lines} of ${previewData.total_lines}`
-              }
-            </div>
-          )}
-        </div>
 
-        {/* Content */}
-        <div className="max-h-96 overflow-auto">
-          {loading && (
-            <div className="p-8 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-400 border-t-transparent mx-auto"></div>
-              <div className="text-sm text-gray-400 mt-3">Loading preview...</div>
-            </div>
-          )}
-          
-          {error && (
-            <div className="p-4 text-red-400 text-sm">
-              <div className="font-medium">❌ Error loading preview:</div>
-              <div className="text-xs mt-1 text-red-300">{error}</div>
-            </div>
-          )}
-          
-          {previewData && !loading && !error && (
-            <div className="font-mono text-sm">
-              {isDiff ? (
-                // Diff view with proper styling
-                <div className="bg-gray-950/80">
-                  {diffLines.length > 0 ? diffLines.map((line, idx) => (
-                    <div 
-                      key={idx}
-                      className={`flex ${
-                        line.type === 'addition' ? 'bg-emerald-900/40 border-l-2 border-emerald-500' :
-                        line.type === 'deletion' ? 'bg-red-900/40 border-l-2 border-red-500' :
-                        line.type === 'header' ? 'bg-blue-900/30 border-l-2 border-blue-500' :
-                        line.type === 'meta' ? 'bg-gray-800/60' :
-                        'hover:bg-gray-800/20'
-                      }`}
-                    >
-                      {/* Line numbers */}
-                      <div className="flex-shrink-0 px-3 py-1 text-gray-500 text-xs bg-gray-900/60 border-r border-gray-700/50 min-w-[80px] select-none">
-                        {line.type === 'addition' && <span className="text-emerald-400">+{line.lineNumber}</span>}
-                        {line.type === 'deletion' && <span className="text-red-400">-{line.oldLineNumber}</span>}
-                        {line.type === 'context' && (
-                          <span>{line.oldLineNumber} {line.lineNumber}</span>
-                        )}
-                      </div>
-                      
-                      {/* Content */}
-                      <div className={`flex-1 px-3 py-1 whitespace-pre-wrap ${
-                        line.type === 'addition' ? 'text-emerald-200' :
-                        line.type === 'deletion' ? 'text-red-200' :
-                        line.type === 'header' ? 'text-blue-200 font-semibold' :
-                        line.type === 'meta' ? 'text-gray-400 text-xs' :
-                        'text-gray-300'
-                      }`}>
-                        {line.type === 'addition' && <span className="text-emerald-400 mr-1">+</span>}
-                        {line.type === 'deletion' && <span className="text-red-400 mr-1">-</span>}
-                        {line.content || ' '}
-                      </div>
-                    </div>
-                  )) : (
-                    <div className="p-4 text-gray-400 text-center">
-                      No diff content available
-                    </div>
-                  )}
+          {/* Enhanced Content Area */}
+          <div className="max-h-[500px] overflow-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/20 hover:scrollbar-thumb-white/30">
+            {loading && (
+              <div className="p-12 text-center">
+                <div className="relative">
+                  <div className="animate-spin rounded-full h-10 w-10 border-2 border-white/20 border-t-blue-400 mx-auto"></div>
+                  <div className="absolute inset-0 rounded-full h-10 w-10 border-2 border-blue-400/20 animate-pulse mx-auto"></div>
                 </div>
-              ) : (
-                // Regular file view with syntax highlighting
-                <div className="bg-gray-950/80">
-                  <pre className="p-4 text-gray-200 whitespace-pre-wrap" style={{ tabSize: 2 }}>
-                    {previewData.snippet}
-                  </pre>
+                <div className="text-sm text-gray-300/80 mt-4 font-medium">Loading preview...</div>
+                <div className="text-xs text-gray-400/60 mt-1">Fetching file content</div>
+              </div>
+            )}
+            
+            {error && (
+              <div className="p-6 text-center">
+                <div className="inline-flex items-center justify-center w-12 h-12 bg-red-500/20 rounded-full mb-3 ring-1 ring-red-400/30">
+                  <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
                 </div>
-              )}
-            </div>
-          )}
+                <div className="text-red-300 text-sm font-medium">Failed to load preview</div>
+                <div className="text-xs mt-1 text-red-400/80 max-w-sm mx-auto">{error}</div>
+              </div>
+            )}
+            
+            {previewData && !loading && !error && (
+              <div className="font-mono text-sm bg-gradient-to-b from-black/20 to-black/40">
+                {isDiff ? (
+                  // Enhanced diff view with glassmorphism styling
+                  <div className="bg-black/20 backdrop-blur-sm">
+                    {diffLines.length > 0 ? diffLines.map((line, idx) => (
+                      <div 
+                        key={idx}
+                        className={`flex group hover:bg-white/5 transition-colors duration-150 ${
+                          line.type === 'addition' ? 'bg-emerald-500/10 border-l-2 border-emerald-400/60' :
+                          line.type === 'deletion' ? 'bg-red-500/10 border-l-2 border-red-400/60' :
+                          line.type === 'header' ? 'bg-blue-500/10 border-l-2 border-blue-400/60' :
+                          line.type === 'meta' ? 'bg-gray-500/10' :
+                          ''
+                        }`}
+                      >
+                        {/* Enhanced line numbers with better styling */}
+                        <div className="flex-shrink-0 px-4 py-2 text-gray-400/70 text-xs bg-black/20 border-r border-white/10 min-w-[90px] select-none backdrop-blur-sm">
+                          {line.type === 'addition' && (
+                            <span className="text-emerald-400 font-semibold">+{line.lineNumber}</span>
+                          )}
+                          {line.type === 'deletion' && (
+                            <span className="text-red-400 font-semibold">-{line.oldLineNumber}</span>
+                          )}
+                          {line.type === 'context' && (
+                            <span className="text-gray-400">{line.oldLineNumber} {line.lineNumber}</span>
+                          )}
+                        </div>
+                        
+                        {/* Enhanced content with better typography */}
+                        <div className={`flex-1 px-4 py-2 whitespace-pre-wrap leading-relaxed ${
+                          line.type === 'addition' ? 'text-emerald-200/90 bg-emerald-500/5' :
+                          line.type === 'deletion' ? 'text-red-200/90 bg-red-500/5' :
+                          line.type === 'header' ? 'text-blue-200/90 font-semibold bg-blue-500/5' :
+                          line.type === 'meta' ? 'text-gray-400/80 text-xs italic' :
+                          'text-gray-200/80'
+                        }`}>
+                          {line.type === 'addition' && (
+                            <span className="text-emerald-400 mr-2 font-bold select-none">+</span>
+                          )}
+                          {line.type === 'deletion' && (
+                            <span className="text-red-400 mr-2 font-bold select-none">-</span>
+                          )}
+                          {line.content || <span className="text-gray-500/50">·</span>}
+                        </div>
+                      </div>
+                    )) : (
+                      <div className="p-8 text-center">
+                        <div className="text-gray-400/80 text-sm">No diff content available</div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  // Enhanced regular file view
+                  <div className="bg-black/20 backdrop-blur-sm">
+                    <pre className="p-6 text-gray-200/90 whitespace-pre-wrap leading-relaxed tracking-wide" style={{ tabSize: 2 }}>
+                      {previewData.snippet}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {!loading && !error && !previewData && (
+              <div className="p-8 text-center">
+                <div className="inline-flex items-center justify-center w-12 h-12 bg-white/5 rounded-full mb-3 ring-1 ring-white/10">
+                  <Loader2 className="w-5 h-5 text-gray-400 animate-pulse" />
+                </div>
+                <div className="text-gray-400/80 text-sm">Hover to load preview...</div>
+              </div>
+            )}
+          </div>
           
-          {!loading && !error && !previewData && (
-            <div className="p-6 text-gray-400 text-center text-sm">
-              Hover to load preview...
+          {/* Enhanced footer with better information display */}
+          {previewData?.truncated && (
+            <div className="px-5 py-3 bg-gradient-to-r from-amber-900/20 via-yellow-900/20 to-amber-900/20 border-t border-amber-400/20 backdrop-blur-sm">
+              <div className="flex items-center gap-2 text-xs text-amber-300/90">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="font-medium">Preview truncated</span>
+                <span className="text-amber-400/70">•</span>
+                <span className="text-amber-400/80">{previewData.total_lines} total lines</span>
+              </div>
             </div>
           )}
         </div>
-        
-        {previewData?.truncated && (
-          <div className="px-4 py-2 bg-gray-800/70 border-t border-gray-700/50 text-xs text-gray-400 text-center">
-            Preview truncated • {previewData.total_lines} total lines
-          </div>
-        )}
       </div>
     );
   };

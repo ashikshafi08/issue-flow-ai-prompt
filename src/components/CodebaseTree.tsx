@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, ChevronDown, File, Folder, FolderOpen, Search, Filter } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FolderOpen, Search, Filter } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import FileViewer from './FileViewer';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -15,15 +17,17 @@ interface FileNode {
 interface CodebaseTreeProps {
   sessionId: string;
   onFileSelect?: (filePath: string) => void;
+  onTimelineSelect?: (filePath: string) => void;
 }
 
-const CodebaseTree: React.FC<CodebaseTreeProps> = ({ sessionId, onFileSelect }) => {
+const CodebaseTree: React.FC<CodebaseTreeProps> = ({ sessionId, onFileSelect, onTimelineSelect }) => {
   const [treeData, setTreeData] = useState<FileNode[]>([]);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredData, setFilteredData] = useState<FileNode[]>([]);
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchTreeStructure = async () => {
@@ -182,8 +186,13 @@ const CodebaseTree: React.FC<CodebaseTreeProps> = ({ sessionId, onFileSelect }) 
           onClick={() => {
             if (node.type === 'directory') {
               toggleNode(node.path);
-            } else if (onFileSelect) {
-              onFileSelect(node.path);
+            } else {
+              // Show FileViewer with integrated timeline
+              setSelectedFile(node.path);
+              // Also call onFileSelect if provided (for backward compatibility)
+              if (onFileSelect) {
+                onFileSelect(node.path);
+              }
             }
           }}
         >
@@ -271,74 +280,97 @@ const CodebaseTree: React.FC<CodebaseTreeProps> = ({ sessionId, onFileSelect }) 
   }
 
   return (
-    <div className="flex flex-col h-full bg-gray-950">
-      {/* Enhanced Search Header */}
-      <div className="p-3 space-y-3 bg-gray-950 border-b border-gray-800">
+    <div className="flex flex-col h-full bg-gray-950 text-gray-100">
+      {/* Header with Search */}
+      <div className="p-4 border-b border-gray-800 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-gray-200">Files</h3>
+        </div>
+        
+        {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
+            placeholder="Search files..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search files and folders..."
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-900/80 border border-gray-700/50 rounded-lg text-sm text-gray-100 placeholder:text-gray-400 focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/20 transition-all"
+            className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-sm text-gray-100 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all"
           />
           {searchQuery && (
             <button
               onClick={clearSearch}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-700 rounded text-gray-400 hover:text-gray-200 transition-colors"
+              title="Clear search"
             >
               ×
             </button>
           )}
         </div>
-        
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={expandAll}
-              variant="ghost"
-              size="sm"
-              className="h-8 px-3 text-xs text-gray-400 hover:text-white hover:bg-gray-800/50"
-            >
-              Expand All
-            </Button>
-            <Button
-              onClick={collapseAll}
-              variant="ghost"
-              size="sm"
-              className="h-8 px-3 text-xs text-gray-400 hover:text-white hover:bg-gray-800/50"
-            >
-              Collapse
-            </Button>
-          </div>
-          
-          {searchQuery && (
-            <span className="text-xs text-gray-500">
-              {filteredData.length} result{filteredData.length !== 1 ? 's' : ''}
-            </span>
-          )}
+
+        {/* Action buttons */}
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={expandAll}
+            className="text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800/60 transition-colors px-3 py-1 h-7"
+          >
+            Expand All
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={collapseAll}
+            className="text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800/60 transition-colors px-3 py-1 h-7"
+          >
+            Collapse All
+          </Button>
         </div>
       </div>
 
       {/* Tree Content */}
-      <ScrollArea className="flex-1">
-        <div className="p-2 bg-gray-950">
-          {Array.isArray(filteredData) && filteredData.length > 0 ? (
-            filteredData.map(node => renderNode(node))
-          ) : searchQuery ? (
-            <div className="px-4 py-8 text-center text-sm text-gray-400">
-              <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              No files found matching "{searchQuery}"
-            </div>
-          ) : (
-            <div className="px-4 py-8 text-center text-sm text-gray-400">
-              <Folder className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              No files found in repository
-            </div>
-          )}
-        </div>
-      </ScrollArea>
+      <div className="flex-1 overflow-hidden">
+        <ScrollArea className="h-full">
+          <div className="p-2">
+            {loading ? (
+              <div className="flex items-center justify-center h-32 text-gray-400">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  Loading codebase...
+                </div>
+              </div>
+            ) : error ? (
+              <div className="flex flex-col items-center justify-center h-32 text-gray-400 text-center p-4">
+                <div className="text-red-400 mb-2">⚠️</div>
+                <div className="text-sm font-medium text-gray-300 mb-1">Failed to load codebase</div>
+                <div className="text-xs text-gray-500">{error}</div>
+              </div>
+            ) : filteredData.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-32 text-gray-400 text-center p-4">
+                <Search className="h-8 w-8 mb-2 opacity-50" />
+                <div className="text-sm font-medium text-gray-300 mb-1">No files found</div>
+                <div className="text-xs text-gray-500">
+                  {searchQuery ? `No matches for "${searchQuery}"` : 'Repository appears to be empty'}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-0.5">
+                {filteredData.map(node => renderNode(node))}
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      </div>
+      
+      {/* FileViewer Modal with integrated Timeline */}
+      {selectedFile && (
+        <FileViewer
+          filePath={selectedFile}
+          sessionId={sessionId}
+          onClose={() => setSelectedFile(null)}
+        />
+      )}
     </div>
   );
 };
