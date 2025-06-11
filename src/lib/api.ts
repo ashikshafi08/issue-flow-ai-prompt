@@ -66,6 +66,8 @@ export interface StreamedAgenticResponse {
 
 // Repository chat session API functions
 export const createRepoSession = async (request: RepoSessionRequest): Promise<RepoSessionResponse> => {
+  console.log('Creating repo session with request:', request);
+  
   const response = await fetch(`${API_BASE_URL}/assistant/sessions`, {
     method: 'POST',
     headers: {
@@ -74,9 +76,26 @@ export const createRepoSession = async (request: RepoSessionRequest): Promise<Re
     body: JSON.stringify(request),
   });
 
+  console.log('Response status:', response.status);
+
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to create repository session');
+    try {
+      const error = await response.json();
+      console.error('API Error Response:', error);
+      
+      // Handle FastAPI validation errors (422)
+      if (response.status === 422 && error.detail && Array.isArray(error.detail)) {
+        const validationErrors = error.detail.map((err: any) => 
+          `${err.loc?.join('.') || 'unknown'}: ${err.msg || 'validation error'}`
+        ).join(', ');
+        throw new Error(`Validation error: ${validationErrors}`);
+      }
+      
+      throw new Error(error.detail || error.message || 'Failed to create repository session');
+    } catch (parseError) {
+      console.error('Error parsing response:', parseError);
+      throw new Error(`HTTP ${response.status}: Failed to create repository session`);
+    }
   }
 
   return response.json();
@@ -308,5 +327,85 @@ export const listPullRequests = async (repoUrl: string, sessionId?: string, stat
     const errorData = await response.json().catch(() => ({ detail: `Failed to fetch ${state} pull requests` }));
     throw new Error(errorData.detail || `Failed to fetch ${state} pull requests`);
   }
+  return response.json();
+};
+
+// Issue Analysis API
+
+export interface IssueAnalysisRequest {
+  issue_url: string;
+  session_id?: string;
+}
+
+export interface IssueAnalysisStep {
+  step: string;
+  status: 'pending' | 'active' | 'completed' | 'error';
+  result?: any;
+  error?: string;
+}
+
+export interface IssueAnalysisResponse {
+  session_id: string;
+  steps: IssueAnalysisStep[];
+  final_result?: {
+    classification?: {
+      category: string;
+      confidence: number;
+      reasoning: string;
+    };
+    related_files?: string[];
+    remediation_plan?: string;
+  };
+  status: 'in_progress' | 'completed' | 'error';
+  error?: string;
+}
+
+export const analyzeIssue = async (request: IssueAnalysisRequest): Promise<IssueAnalysisResponse> => {
+  const response = await fetch(`${API_BASE_URL}/api/analyze-issue`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to analyze issue');
+  }
+
+  return response.json();
+};
+
+export interface ApplyPatchRequest {
+  patch_content: string;
+  session_id: string;
+}
+
+export interface ApplyPatchResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+  details?: string;
+  modified_files?: Array<{
+    file: string;
+    status: string;
+  }>;
+}
+
+export const applyPatch = async (request: ApplyPatchRequest): Promise<ApplyPatchResponse> => {
+  const response = await fetch(`${API_BASE_URL}/api/apply-patch`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to apply patch');
+  }
+
   return response.json();
 };

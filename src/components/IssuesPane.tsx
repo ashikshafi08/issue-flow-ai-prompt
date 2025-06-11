@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, GitBranch, MessageCircle, Tag, Clock, User, ExternalLink, ChevronRight, Filter, Bug, CheckCircle, Circle, GitMerge, FileDiff } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { X, GitBranch, MessageCircle, Tag, Clock, User, ExternalLink, ChevronRight, Filter, Bug, CheckCircle, Circle, GitMerge, FileDiff, Brain, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -26,10 +26,20 @@ interface IssuesPaneProps {
   onClose: () => void;
   repoUrl: string;
   onAddIssueToContext?: (issue: Issue) => void;
+  onAnalyzeIssue?: (issue: Issue) => void;
   sessionId?: string;
 }
 
-const IssuesPane: React.FC<IssuesPaneProps> = ({ open, onClose, repoUrl, onAddIssueToContext, sessionId }) => {
+// Cache for issues and PRs to avoid repeated API calls
+const dataCache = new Map<string, {
+  data: Issue[] | PullRequestInfo[] | Issue | PullRequestInfo,
+  timestamp: number,
+  type: 'issues' | 'prs' | 'issue-detail'
+}>();
+
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+const IssuesPane: React.FC<IssuesPaneProps> = ({ open, onClose, repoUrl, onAddIssueToContext, onAnalyzeIssue, sessionId }) => {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [pullRequests, setPullRequests] = useState<PullRequestInfo[]>([]);
   const [selectedItem, setSelectedItem] = useState<Issue | PullRequestInfo | null>(null);
@@ -37,6 +47,33 @@ const IssuesPane: React.FC<IssuesPaneProps> = ({ open, onClose, repoUrl, onAddIs
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'open' | 'closed' | 'all' | 'merged_prs'>('open');
   const [showDetail, setShowDetail] = useState(false);
+
+  // Create cache keys for different data types
+  const getCacheKey = useCallback((repoUrl: string, type: string, state?: string) => {
+    return `${repoUrl}:${type}:${state || 'default'}`;
+  }, []);
+
+  // Check if cache is valid
+  const isCacheValid = useCallback((cacheKey: string): boolean => {
+    const cached = dataCache.get(cacheKey);
+    if (!cached) return false;
+    return (Date.now() - cached.timestamp) < CACHE_DURATION;
+  }, []);
+
+  // Get data from cache
+  const getFromCache = useCallback((cacheKey: string) => {
+    const cached = dataCache.get(cacheKey);
+    return cached?.data || null;
+  }, []);
+
+  // Set data in cache
+  const setCache = useCallback((cacheKey: string, data: Issue[] | PullRequestInfo[] | Issue | PullRequestInfo, type: 'issues' | 'prs' | 'issue-detail') => {
+    dataCache.set(cacheKey, {
+      data,
+      timestamp: Date.now(),
+      type
+    });
+  }, []);
 
   useEffect(() => {
     if (open && repoUrl) {
@@ -50,59 +87,107 @@ const IssuesPane: React.FC<IssuesPaneProps> = ({ open, onClose, repoUrl, onAddIs
     }
   }, [open, repoUrl, activeTab]);
 
-  const fetchIssues = async () => {
+  const fetchIssues = useCallback(async () => {
     if (!repoUrl) return;
+    
+    const issueState = (activeTab === 'merged_prs' ? 'all' : activeTab) as 'open' | 'closed' | 'all';
+    const cacheKey = getCacheKey(repoUrl, 'issues', issueState);
+    
+    // Check cache first
+    if (isCacheValid(cacheKey)) {
+      const cachedData = getFromCache(cacheKey) as Issue[];
+      if (cachedData) {
+        setIssues(cachedData);
+        setPullRequests([]);
+        return;
+      }
+    }
+
     setLoading(true);
     setError(null);
     setPullRequests([]);
+    
     try {
-      const issueState = (activeTab === 'merged_prs' ? 'all' : activeTab) as 'open' | 'closed' | 'all';
       const response = await fetch(`http://localhost:8000/api/issues?repo_url=${encodeURIComponent(repoUrl)}&state=${issueState}`);
       if (!response.ok) throw new Error(`Failed to fetch issues: ${response.status}`);
       const data = await response.json();
+      
       setIssues(data);
+      setCache(cacheKey, data, 'issues');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch issues');
       console.error('Error fetching issues:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [repoUrl, activeTab, getCacheKey, isCacheValid, getFromCache, setCache]);
 
-  const fetchPullRequests = async () => {
+  const fetchPullRequests = useCallback(async () => {
     if (!repoUrl) return;
+    
+    const cacheKey = getCacheKey(repoUrl, 'prs', 'merged');
+    
+    // Check cache first
+    if (isCacheValid(cacheKey)) {
+      const cachedData = getFromCache(cacheKey) as PullRequestInfo[];
+      if (cachedData) {
+        setPullRequests(cachedData);
+        setIssues([]);
+        return;
+      }
+    }
+
     setLoading(true);
     setError(null);
     setIssues([]);
+    
     try {
       const data = await listPullRequests(repoUrl, sessionId, "merged");
       setPullRequests(data);
+      setCache(cacheKey, data, 'prs');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch pull requests');
       console.error('Error fetching pull requests:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [repoUrl, sessionId, getCacheKey, isCacheValid, getFromCache, setCache]);
 
-  const fetchIssueDetail = async (issueNumber: number) => {
+  const fetchIssueDetail = useCallback(async (issueNumber: number) => {
     if (!repoUrl) return;
+    
+    // For issue details, we'll use a shorter cache since they can change more frequently
+    const cacheKey = getCacheKey(repoUrl, 'issue-detail', issueNumber.toString());
+    const SHORT_CACHE_DURATION = 2 * 60 * 1000; // 2 minutes for details
+    
+         const cached = dataCache.get(cacheKey);
+     if (cached && (Date.now() - cached.timestamp) < SHORT_CACHE_DURATION) {
+       // For issue details, cached.data should be a single Issue, not an array
+       setSelectedItem(cached.data as Issue);
+       setShowDetail(true);
+       return;
+     }
+
     setLoading(true);
     try {
       const response = await fetch(`http://localhost:8000/api/issues/${issueNumber}?repo_url=${encodeURIComponent(repoUrl)}`);
       if (!response.ok) throw new Error(`Failed to fetch issue detail: ${response.status}`);
       const data = await response.json();
+      
       setSelectedItem(data);
       setShowDetail(true);
+      
+             // Cache the detailed issue
+       setCache(cacheKey, data, 'issue-detail');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch issue detail');
       console.error('Error fetching issue detail:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [repoUrl, getCacheKey]);
 
-  const formatDate = (dateString?: string | null) => {
+  const formatDate = useCallback((dateString?: string | null) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -110,33 +195,63 @@ const IssuesPane: React.FC<IssuesPaneProps> = ({ open, onClose, repoUrl, onAddIs
       day: 'numeric',
       year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
     });
-  };
+  }, []);
 
-  const handleItemSelect = (item: Issue | PullRequestInfo) => {
+  const handleItemSelect = useCallback((item: Issue | PullRequestInfo) => {
     if ('comments' in item) { // It's an Issue
       fetchIssueDetail(item.number);
     } else { // It's a PullRequestInfo
       setSelectedItem(item);
       setShowDetail(true);
     }
-  };
+  }, [fetchIssueDetail]);
 
-  const getStateIcon = (state: string) => {
+  const getStateIcon = useCallback((state: string) => {
     return state === 'open' ? (
       <Circle className="h-4 w-4 text-green-500" />
     ) : (
       <CheckCircle className="h-4 w-4 text-purple-500" />
     );
-  };
+  }, []);
 
-  const getLabelColor = (label: string) => {
+  const getLabelColor = useCallback((label: string) => {
     const colorMap: { [key: string]: string } = {
       'bug': 'bg-red-500/20 text-red-300 border-red-500/30',
       'enhancement': 'bg-blue-500/20 text-blue-300 border-blue-500/30',
       'documentation': 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
     };
     return colorMap[label.toLowerCase()] || 'bg-gray-500/20 text-gray-300 border-gray-500/30';
-  };
+  }, []);
+
+  // Optimized tab change handler
+  const handleTabChange = useCallback((tab: 'open' | 'closed' | 'all' | 'merged_prs') => {
+    if (tab === activeTab) return; // No need to change if same tab
+    setActiveTab(tab);
+    setError(null); // Clear any existing errors
+  }, [activeTab]);
+
+  // Memoize the tab buttons to prevent unnecessary re-renders
+  const tabButtons = useMemo(() => {
+    const tabs = [
+      { key: 'open' as const, icon: Circle, label: 'Open' },
+      { key: 'closed' as const, icon: CheckCircle, label: 'Closed' },
+      { key: 'all' as const, icon: Filter, label: 'All' },
+      { key: 'merged_prs' as const, icon: GitMerge, label: 'Merged PRs' }
+    ];
+
+    return tabs.map((tab) => (
+      <Button 
+        key={tab.key}
+        variant={activeTab === tab.key ? "default" : "ghost"} 
+        size="sm" 
+        onClick={() => handleTabChange(tab.key)} 
+        className={`text-xs ${activeTab === tab.key ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'}`}
+      >
+        <tab.icon className="h-3 w-3 mr-1" />
+        {tab.label}
+      </Button>
+    ));
+  }, [activeTab, handleTabChange]);
 
   if (!open) return null;
 
@@ -146,19 +261,33 @@ const IssuesPane: React.FC<IssuesPaneProps> = ({ open, onClose, repoUrl, onAddIs
         {loading && (
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <span className="ml-2 text-sm text-gray-400">Loading...</span>
           </div>
         )}
         {error && (
           <div className="bg-red-900/30 border border-red-700/50 rounded-lg p-4 mb-4">
             <p className="text-red-300 text-sm">{error}</p>
-            <Button variant="outline" size="sm" onClick={activeTab === 'merged_prs' ? fetchPullRequests : fetchIssues} className="mt-2 text-red-300 border-red-700/50 hover:bg-red-900/20">Retry</Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={activeTab === 'merged_prs' ? fetchPullRequests : fetchIssues} 
+              className="mt-2 text-red-300 border-red-700/50 hover:bg-red-900/20"
+            >
+              Retry
+            </Button>
           </div>
         )}
         {!loading && !error && activeTab !== 'merged_prs' && issues.length === 0 && (
-          <div className="text-center py-8 text-gray-400"><Bug className="h-12 w-12 mx-auto mb-3 opacity-50" /><p>No {activeTab} issues found</p></div>
+          <div className="text-center py-8 text-gray-400">
+            <Bug className="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <p>No {activeTab} issues found</p>
+          </div>
         )}
         {!loading && !error && activeTab === 'merged_prs' && pullRequests.length === 0 && (
-          <div className="text-center py-8 text-gray-400"><GitMerge className="h-12 w-12 mx-auto mb-3 opacity-50" /><p>No merged PRs found</p></div>
+          <div className="text-center py-8 text-gray-400">
+            <GitMerge className="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <p>No merged PRs found</p>
+          </div>
         )}
 
         {activeTab !== 'merged_prs' && issues.map((issue) => (
@@ -215,9 +344,20 @@ const IssuesPane: React.FC<IssuesPaneProps> = ({ open, onClose, repoUrl, onAddIs
                 <><span>•</span><a href={isIssue ? itemAsIssue!.url : itemAsPr!.url!} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 inline-flex items-center gap-1">View on GitHub <ExternalLink className="h-3 w-3" /></a></>
               ) : null}
             </div>
-            {isIssue && onAddIssueToContext && (
-              <div className="mt-3">
-                <Button onClick={() => onAddIssueToContext(itemAsIssue!)} className="bg-blue-600 hover:bg-blue-700 text-white text-sm" size="sm"><MessageCircle className="h-4 w-4 mr-2" />Add Issue as Context</Button>
+            {isIssue && (onAddIssueToContext || onAnalyzeIssue) && (
+              <div className="mt-3 space-x-2">
+                {onAddIssueToContext && (
+                  <Button onClick={() => onAddIssueToContext(itemAsIssue!)} className="bg-blue-600 hover:bg-blue-700 text-white text-sm" size="sm">
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Add as Context
+                  </Button>
+                )}
+                {onAnalyzeIssue && (
+                  <Button onClick={() => onAnalyzeIssue(itemAsIssue!)} className="bg-purple-600 hover:bg-purple-700 text-white text-sm" size="sm">
+                    <Brain className="h-4 w-4 mr-2" />
+                    Deep Analysis
+                  </Button>
+                )}
               </div>
             )}
           </div>
@@ -270,15 +410,7 @@ const IssuesPane: React.FC<IssuesPaneProps> = ({ open, onClose, repoUrl, onAddIs
           <Button variant="ghost" size="sm" onClick={onClose} className="text-gray-400 hover:text-gray-200"><X className="h-4 w-4" /></Button>
         </div>
         <div className="flex items-center gap-1 p-3 border-b border-gray-700/30 flex-shrink-0">
-          {(['open', 'closed', 'all', 'merged_prs'] as const).map((tab) => (
-            <Button key={tab} variant={activeTab === tab ? "default" : "ghost"} size="sm" onClick={() => setActiveTab(tab)} className={`text-xs ${activeTab === tab ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'}`}>
-              {tab === 'open' && <Circle className="h-3 w-3 mr-1" />}
-              {tab === 'closed' && <CheckCircle className="h-3 w-3 mr-1" />}
-              {tab === 'all' && <Filter className="h-3 w-3 mr-1" />}
-              {tab === 'merged_prs' && <GitMerge className="h-3 w-3 mr-1" />}
-              {tab === 'merged_prs' ? 'Merged PRs' : tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </Button>
-          ))}
+          {tabButtons}
         </div>
         <div className="flex-1 min-h-0">
           {!showDetail ? renderItemList() : renderDetailView()}

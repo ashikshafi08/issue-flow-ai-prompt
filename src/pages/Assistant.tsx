@@ -7,6 +7,7 @@ import NewChatModal from '@/components/NewChatModal';
 import IssuesPane from '@/components/IssuesPane';
 import FileViewer from '@/components/FileViewer';
 import UnifiedContextPanel from '@/components/UnifiedContextPanel';
+import IssueAnalysisHub from '@/components/IssueAnalysisHub';
 import { listAssistantSessions, SessionInfo, getSessionMessages, getSessionMetadata, resetAgenticMemory, syncRepository } from '@/lib/api'; // Added syncRepository
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2, PanelLeft, FolderTree, RefreshCw, GitBranch, Zap as SyncIcon } from 'lucide-react'; // Removed Clock
@@ -57,6 +58,8 @@ const Assistant = () => {
   const [detailedActiveSession, setDetailedActiveSession] = useState<Session | null>(null);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [showIssuesPane, setShowIssuesPane] = useState(false);
+  const [showAnalysisHub, setShowAnalysisHub] = useState(false);
+  const [selectedAnalysisIssue, setSelectedAnalysisIssue] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSessionLoading, setIsSessionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -360,6 +363,16 @@ const Assistant = () => {
     }
   }, [detailedActiveSession, updateActiveSessionMessages, toast]);
 
+  const handleAnalyzeIssue = useCallback((issue: any) => {
+    setSelectedAnalysisIssue(issue);
+    setShowAnalysisHub(true);
+    setShowIssuesPane(false); // Close issues pane when opening analysis hub
+    toast({
+      title: "Analysis Starting",
+      description: `Opening deep analysis for issue #${issue.number}`,
+    });
+  }, [toast]);
+
   const handleSyncRepository = async () => {
     if (!activeSessionId) return;
     setIsSyncing(true);
@@ -624,6 +637,22 @@ const Assistant = () => {
           repoUrl={detailedActiveSession.repoUrl}
           onClose={() => setShowIssuesPane(false)}
           onAddIssueToContext={handleAddIssueToContext}
+          onAnalyzeIssue={handleAnalyzeIssue}
+        />
+      )}
+
+      {/* Issue Analysis Hub */}
+      {showAnalysisHub && detailedActiveSession && (
+        <IssueAnalysisHub
+          open={showAnalysisHub}
+          onClose={() => setShowAnalysisHub(false)}
+          selectedIssue={selectedAnalysisIssue}
+          sessionId={detailedActiveSession.id}
+          onFileSelect={(filePath: string) => {
+            setSelectedFile(filePath);
+            setShowCodebaseTree(true);
+            setShowAnalysisHub(false);
+          }}
         />
       )}
     </div>
