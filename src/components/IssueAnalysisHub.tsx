@@ -84,6 +84,28 @@ interface AnalysisResult {
   reason?: string;
   pr_info?: any;
   error?: string;
+  pr_detection?: {
+    has_existing_prs: boolean;
+    pr_state?: string;
+    pr_number?: number;
+    pr_url?: string;
+    related_merged_prs?: Array<{
+      pr_number: number;
+      pr_url: string;
+      pr_title: string;
+      merged_at: string;
+    }>;
+    related_open_prs?: Array<{
+      pr_number: number;
+      title: string;
+      author: string;
+      url: string;
+      draft: boolean;
+      review_decision?: string;
+    }>;
+    message: string;
+    error?: string;
+  };
 }
 
 interface IssueAnalysisHubProps {
@@ -230,6 +252,119 @@ const ClassificationBadge: React.FC<{ label: string; confidence: number }> = ({ 
       <span className="text-xs opacity-75">
         {Math.round(confidence * 100)}%
       </span>
+    </div>
+  );
+};
+
+// PR Detection Results Component
+const PRDetectionResults: React.FC<{ prDetection: NonNullable<AnalysisResult['pr_detection']> }> = ({ prDetection }) => {
+  if (!prDetection.has_existing_prs) {
+    return (
+      <div className="border border-gray-800 rounded-lg p-4">
+        <h3 className="font-medium text-white mb-3 flex items-center gap-2">
+          <CheckCircle className="h-4 w-4 text-green-500" />
+          PR Detection
+        </h3>
+        <p className="text-sm text-gray-300">{prDetection.message}</p>
+        <div className="mt-2 text-xs text-gray-500">
+          ✅ No existing work found - safe to proceed with new implementation
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border border-yellow-500/20 bg-yellow-500/5 rounded-lg p-4">
+      <h3 className="font-medium text-white mb-3 flex items-center gap-2">
+        <AlertCircle className="h-4 w-4 text-yellow-500" />
+        PR Detection - Existing Work Found
+      </h3>
+      <p className="text-sm text-yellow-200 mb-3">{prDetection.message}</p>
+      
+      {/* Existing Direct PR */}
+      {prDetection.pr_number && (
+        <div className="mb-3">
+          <div className="text-xs text-yellow-300 font-medium mb-1">Direct PR Link:</div>
+          <div className="bg-yellow-900/20 rounded p-2">
+            <a 
+              href={prDetection.pr_url} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-yellow-200 hover:text-yellow-100 text-sm flex items-center gap-1"
+            >
+              <ExternalLink className="h-3 w-3" />
+              PR #{prDetection.pr_number} ({prDetection.pr_state})
+            </a>
+          </div>
+        </div>
+      )}
+
+      {/* Related Merged PRs */}
+      {prDetection.related_merged_prs && prDetection.related_merged_prs.length > 0 && (
+        <div className="mb-3">
+          <div className="text-xs text-yellow-300 font-medium mb-1">Related Merged PRs:</div>
+          <div className="space-y-1">
+            {prDetection.related_merged_prs.map((pr) => (
+              <div key={pr.pr_number} className="bg-green-900/20 rounded p-2">
+                <a 
+                  href={pr.pr_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-green-200 hover:text-green-100 text-sm flex items-center gap-1"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  PR #{pr.pr_number}: {pr.pr_title}
+                </a>
+                <div className="text-xs text-green-300 mt-1">
+                  Merged: {new Date(pr.merged_at).toLocaleDateString()}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Related Open PRs */}
+      {prDetection.related_open_prs && prDetection.related_open_prs.length > 0 && (
+        <div className="mb-3">
+          <div className="text-xs text-yellow-300 font-medium mb-1">Related Open PRs:</div>
+          <div className="space-y-1">
+            {prDetection.related_open_prs.map((pr) => (
+              <div key={pr.pr_number} className="bg-blue-900/20 rounded p-2">
+                <a 
+                  href={pr.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-200 hover:text-blue-100 text-sm flex items-center gap-1"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  PR #{pr.pr_number}: {pr.title}
+                </a>
+                <div className="text-xs text-blue-300 mt-1 flex items-center gap-2">
+                  <span>By: {pr.author}</span>
+                  {pr.draft && <Badge variant="outline" className="text-xs">Draft</Badge>}
+                  {pr.review_decision && (
+                    <Badge 
+                      variant="outline" 
+                      className={`text-xs ${
+                        pr.review_decision === 'APPROVED' ? 'text-green-400 border-green-400' :
+                        pr.review_decision === 'CHANGES_REQUESTED' ? 'text-red-400 border-red-400' :
+                        'text-yellow-400 border-yellow-400'
+                      }`}
+                    >
+                      {pr.review_decision.replace('_', ' ')}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="mt-3 text-xs text-yellow-400 bg-yellow-900/20 rounded p-2">
+        ⚠️ Consider coordinating with existing work or reviewing these PRs before proceeding
+      </div>
     </div>
   );
 };
@@ -621,21 +756,38 @@ const IssueAnalysisHub: React.FC<IssueAnalysisHubProps> = ({
       // Transform API response to match component expectations
       const result: AnalysisResult = {
         status: apiResult.status === 'completed' ? 'completed' : 
-                apiResult.status === 'error' ? 'error' : 'completed',
-        classification: apiResult.final_result?.classification ? {
+                apiResult.status === 'error' ? 'error' : 'completed'
+      };
+      
+      // Add optional properties
+      if (apiResult.final_result?.classification) {
+        result.classification = {
           label: apiResult.final_result.classification.category,
           confidence: apiResult.final_result.classification.confidence
-        } : undefined,
-        plan_markdown: apiResult.final_result?.remediation_plan,
-        explorer: {
-          related_files: apiResult.final_result?.related_files ? { 
-            files: apiResult.final_result.related_files 
-          } : null,
-          react_analysis: null,
-          agentic_insights: apiResult.steps?.find((step: any) => step.step === "Codebase Analysis")?.result || null
-        },
-        error: apiResult.error
+        };
+      }
+      
+      if (apiResult.final_result?.remediation_plan) {
+        result.plan_markdown = apiResult.final_result.remediation_plan;
+      }
+      
+      result.explorer = {
+        related_files: apiResult.final_result?.related_files ? { 
+          files: apiResult.final_result.related_files 
+        } : null,
+        react_analysis: null,
+        agentic_insights: apiResult.steps?.find((step: any) => step.step === "Codebase Analysis")?.result || null
       };
+      
+      if (apiResult.error) {
+        result.error = apiResult.error;
+      }
+      
+      // Add PR detection results
+      const prDetectionStep = apiResult.steps?.find((step: any) => step.step === "PR Detection");
+      if (prDetectionStep?.result) {
+        result.pr_detection = prDetectionStep.result;
+      }
       
       setAnalysisResult(result);
 
@@ -861,6 +1013,11 @@ const IssueAnalysisHub: React.FC<IssueAnalysisHubProps> = ({
                           confidence={analysisResult.classification.confidence}
                         />
                       </div>
+                    )}
+
+                    {/* PR Detection */}
+                    {analysisResult.pr_detection && (
+                      <PRDetectionResults prDetection={analysisResult.pr_detection} />
                     )}
 
                     {/* Remediation Plan */}
