@@ -1,14 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   Clock, 
-  GitCommit, 
   ArrowLeft,
   ArrowRight,
-  Info,
-  Zap,
   FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -39,11 +35,11 @@ interface OptimizedTimelineScrubberProps {
   className?: string;
 }
 
-// 🚀 PERFORMANCE: Global cache with LRU eviction
+// Simple cache without performance announcements
 class TimelineCache {
   private cache = new Map<string, { data: TimelineData; timestamp: number }>();
   private maxSize = 50;
-  private maxAge = 5 * 60 * 1000; // 5 minutes
+  private maxAge = 5 * 60 * 1000;
 
   get(key: string): TimelineData | null {
     const entry = this.cache.get(key);
@@ -54,7 +50,6 @@ class TimelineCache {
       return null;
     }
     
-    // Move to end (LRU)
     this.cache.delete(key);
     this.cache.set(key, entry);
     return entry.data;
@@ -83,22 +78,15 @@ const OptimizedTimelineScrubber: React.FC<OptimizedTimelineScrubberProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // 🚀 PERFORMANCE: Throttled commit selection
   const throttleTimeoutRef = useRef<NodeJS.Timeout>();
-  const lastCommitSelectTime = useRef<number>(0);
-
   const cacheKey = useMemo(() => `${sessionId}:${filePath}`, [sessionId, filePath]);
 
-  // 🚀 PERFORMANCE: Optimized fetching with aggressive caching
   const fetchTimelineData = useCallback(async () => {
     if (!filePath || !sessionId) return;
     
-    // Check cache first - instant load
     const cachedData = timelineCache.get(cacheKey);
     if (cachedData) {
-      console.log('⚡ Timeline cache hit - 0ms load time');
       setTimelineData(cachedData);
-      
       if (cachedData.timeline.length > 0) {
         setSelectedCommitIndex(0);
         onCommitSelect?.(cachedData.timeline[0]);
@@ -109,10 +97,7 @@ const OptimizedTimelineScrubber: React.FC<OptimizedTimelineScrubberProps> = ({
     setIsLoading(true);
     setError(null);
     
-    const startTime = performance.now();
-    
     try {
-      // 🚀 PERFORMANCE: Reduced limit for faster load
       const response = await fetch(
         `http://localhost:8000/api/timeline/file?session_id=${encodeURIComponent(sessionId)}&file_path=${encodeURIComponent(filePath)}&limit=8`
       );
@@ -122,10 +107,7 @@ const OptimizedTimelineScrubber: React.FC<OptimizedTimelineScrubberProps> = ({
       }
       
       const data: TimelineData = await response.json();
-      
-      // Cache immediately
       timelineCache.set(cacheKey, data);
-      
       setTimelineData(data);
       
       if (data.timeline.length > 0) {
@@ -133,23 +115,16 @@ const OptimizedTimelineScrubber: React.FC<OptimizedTimelineScrubberProps> = ({
         onCommitSelect?.(data.timeline[0]);
       }
       
-      const loadTime = performance.now() - startTime;
-      console.log(`⚡ Timeline loaded in ${Math.round(loadTime)}ms`);
-      
     } catch (err) {
-      console.error('Timeline error:', err);
       setError(err instanceof Error ? err.message : 'Failed to load timeline');
     } finally {
       setIsLoading(false);
     }
   }, [filePath, sessionId, onCommitSelect, cacheKey]);
 
-  // 🚀 PERFORMANCE: Smart commit selection with sub-100ms UI updates
   const handleCommitSelection = useCallback((newIndex: number) => {
-    // Update UI immediately (0ms lag)
     setSelectedCommitIndex(newIndex);
     
-    // Throttle API callback to prevent spam
     if (throttleTimeoutRef.current) {
       clearTimeout(throttleTimeoutRef.current);
     }
@@ -157,18 +132,11 @@ const OptimizedTimelineScrubber: React.FC<OptimizedTimelineScrubberProps> = ({
     const commit = timelineData?.timeline[newIndex];
     if (!commit) return;
     
-    // Minimal throttling for smoother scrolling
-    const now = Date.now();
-    const timeSinceLastSelect = now - lastCommitSelectTime.current;
-    const delay = timeSinceLastSelect < 75 ? 75 : 0; // Reduced from 150ms
-    
     throttleTimeoutRef.current = setTimeout(() => {
-      lastCommitSelectTime.current = Date.now();
       onCommitSelect?.(commit);
-    }, delay);
+    }, 50);
   }, [timelineData, onCommitSelect]);
 
-  // 🚀 PERFORMANCE: Optimized navigation
   const navigateTimeline = useCallback((direction: 'prev' | 'next') => {
     if (!timelineData) return;
     
@@ -184,7 +152,6 @@ const OptimizedTimelineScrubber: React.FC<OptimizedTimelineScrubberProps> = ({
     }
   }, [timelineData, selectedCommitIndex, handleCommitSelection]);
 
-  // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!timelineData || e.target !== document.body) return;
@@ -206,7 +173,6 @@ const OptimizedTimelineScrubber: React.FC<OptimizedTimelineScrubberProps> = ({
     fetchTimelineData();
   }, [fetchTimelineData]);
 
-  // Cleanup
   useEffect(() => {
     return () => {
       if (throttleTimeoutRef.current) {
@@ -215,7 +181,6 @@ const OptimizedTimelineScrubber: React.FC<OptimizedTimelineScrubberProps> = ({
     };
   }, []);
 
-  // 🚀 PERFORMANCE: Memoized UI to prevent unnecessary re-renders
   const timelineUI = useMemo(() => {
     if (!timelineData?.timeline.length) return null;
 
@@ -225,44 +190,34 @@ const OptimizedTimelineScrubber: React.FC<OptimizedTimelineScrubberProps> = ({
     const progressPercent = ((selectedCommitIndex + 1) / totalCommits) * 100;
     
     return (
-      <div className="space-y-3">
-        {/* Ultra-lightweight progress bar - no animations */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Commit {selectedCommitIndex + 1} of {totalCommits}</span>
-            <span className="text-green-500 text-xs">⚡ Fast</span>
-          </div>
-          
-          {/* Simplified timeline bar */}
-          <div className="relative h-1.5 bg-gray-700 rounded-full overflow-hidden">
-            <div 
-              className="absolute top-0 left-0 h-full bg-blue-500 rounded-full"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
+      <div className="space-y-4">
+        <div className="relative h-2 bg-gray-800 rounded-full overflow-hidden">
+          <div 
+            className="absolute top-0 left-0 h-full bg-blue-500 rounded-full transition-all duration-200"
+            style={{ width: `${progressPercent}%` }}
+          />
         </div>
         
-        {/* Minimal commit info */}
-        <div className="bg-gray-800/50 rounded-md p-3 space-y-2">
-          <div className="flex items-center justify-between">
-            <code className="text-sm font-mono text-blue-400">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between text-sm text-gray-400">
+            <span>{selectedCommitIndex + 1} of {totalCommits}</span>
+            <code className="text-xs font-mono bg-gray-800 px-2 py-1 rounded">
               {currentCommit.sha.substring(0, 7)}
             </code>
-            <span className="text-xs text-gray-400 uppercase">
-              {currentCommit.change_type}
-            </span>
           </div>
           
-          <p className="text-sm text-gray-200 line-clamp-2 leading-snug">
-            {currentCommit.message}
-          </p>
-          
-          <div className="flex items-center justify-between text-xs text-gray-400">
-            <span className="truncate max-w-32">{currentCommit.author}</span>
-            <span className="flex items-center gap-2 shrink-0">
-              <span className="text-green-400">+{currentCommit.loc_added}</span>
-              <span className="text-red-400">-{currentCommit.loc_removed}</span>
-            </span>
+          <div>
+            <p className="text-sm leading-relaxed text-gray-100">
+              {currentCommit.message}
+            </p>
+            <div className="flex items-center justify-between mt-2 text-xs text-gray-400">
+              <span>{currentCommit.author}</span>
+              <span>
+                <span className="text-green-400">+{currentCommit.loc_added}</span>
+                {' '}
+                <span className="text-red-400">-{currentCommit.loc_removed}</span>
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -274,10 +229,7 @@ const OptimizedTimelineScrubber: React.FC<OptimizedTimelineScrubberProps> = ({
       <Card className={cn("w-full", className)}>
         <CardContent className="p-6">
           <div className="flex items-center justify-center h-24">
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse" />
-              <span className="text-sm text-muted-foreground">Loading fast timeline...</span>
-            </div>
+            <div className="text-sm text-gray-400">Loading timeline...</div>
           </div>
         </CardContent>
       </Card>
@@ -286,12 +238,11 @@ const OptimizedTimelineScrubber: React.FC<OptimizedTimelineScrubberProps> = ({
 
   if (error) {
     return (
-      <Card className={cn("w-full border-red-200", className)}>
+      <Card className={cn("w-full border-red-800", className)}>
         <CardContent className="p-6">
           <div className="flex items-center justify-center h-24">
             <div className="text-center">
-              <div className="text-red-500 mb-2">⚠️ Error</div>
-              <div className="text-xs text-muted-foreground mb-2">{error}</div>
+              <div className="text-sm text-red-400 mb-2">{error}</div>
               <Button variant="outline" size="sm" onClick={fetchTimelineData}>
                 Retry
               </Button>
@@ -307,9 +258,9 @@ const OptimizedTimelineScrubber: React.FC<OptimizedTimelineScrubberProps> = ({
       <Card className={cn("w-full", className)}>
         <CardContent className="p-6">
           <div className="flex items-center justify-center h-24">
-            <div className="text-center">
-              <FileText className="w-6 h-6 text-muted-foreground mx-auto mb-2" />
-              <div className="text-sm text-muted-foreground">No timeline available</div>
+            <div className="text-center text-gray-400">
+              <FileText className="w-5 h-5 mx-auto mb-2" />
+              <div className="text-sm">No timeline available</div>
             </div>
           </div>
         </CardContent>
@@ -324,7 +275,6 @@ const OptimizedTimelineScrubber: React.FC<OptimizedTimelineScrubberProps> = ({
           <CardTitle className="text-base flex items-center space-x-2">
             <Clock className="w-4 h-4" />
             <span>Timeline</span>
-            <Badge variant="outline" className="text-xs">{timelineData.total_commits}</Badge>
           </CardTitle>
           
           <div className="flex items-center space-x-1">
@@ -349,8 +299,8 @@ const OptimizedTimelineScrubber: React.FC<OptimizedTimelineScrubberProps> = ({
           </div>
         </div>
         
-        <div className="text-xs text-muted-foreground">
-          {filePath.split('/').pop()} • Use ← → to navigate
+        <div className="text-xs text-gray-400">
+          {filePath.split('/').pop()}
         </div>
       </CardHeader>
       

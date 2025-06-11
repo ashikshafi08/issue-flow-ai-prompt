@@ -20,48 +20,28 @@ import {
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 
-// Lightweight syntax highlighter (much faster than Prism)
-const LightSyntaxHighlighter = React.memo(({ 
+// Simple code display without HTML injection
+const CodeDisplay = React.memo(({ 
   code, 
   language 
 }: { 
   code: string; 
   language: string;
 }) => {
-  const highlightedCode = useMemo(() => {
-    // Simple regex-based highlighting for common languages
-    if (language === 'python' || language === 'py') {
-      return code
-        .replace(/(def|class|import|from|if|else|elif|for|while|return|try|except)\b/g, '<span class="text-blue-400">$1</span>')
-        .replace(/(#.*$)/gm, '<span class="text-gray-500">$1</span>')
-        .replace(/(".*?"|'.*?')/g, '<span class="text-green-400">$1</span>');
-    }
-    
-    if (language === 'javascript' || language === 'js' || language === 'typescript' || language === 'ts') {
-      return code
-        .replace(/(function|const|let|var|if|else|for|while|return|class|import|export)\b/g, '<span class="text-blue-400">$1</span>')
-        .replace(/(\/\/.*$)/gm, '<span class="text-gray-500">$1</span>')
-        .replace(/(".*?"|'.*?'|`.*?`)/g, '<span class="text-green-400">$1</span>');
-    }
-    
-    return code; // Fallback to plain text
-  }, [code, language]);
-
   return (
-    <pre className="text-sm overflow-auto p-4 bg-gray-950 rounded-lg">
-      <code 
-        className="font-mono leading-relaxed"
-        dangerouslySetInnerHTML={{ __html: highlightedCode }}
-      />
+    <pre className="text-sm overflow-auto p-4 bg-gray-900 dark:bg-gray-900 rounded-lg border border-gray-700">
+      <code className="font-mono leading-relaxed text-gray-100">
+        {code}
+      </code>
     </pre>
   );
 });
 
-// Ultra-fast diff cache
+// Simple cache
 class DiffCache {
   private cache = new Map<string, { data: any; timestamp: number }>();
   private maxSize = 100;
-  private maxAge = 10 * 60 * 1000; // 10 minutes
+  private maxAge = 10 * 60 * 1000;
 
   get(key: string) {
     const entry = this.cache.get(key);
@@ -104,24 +84,18 @@ const OptimizedCommitDiffViewer: React.FC<OptimizedCommitDiffViewerProps> = ({
   const [viewType, setViewType] = useState<'content' | 'diff'>('content');
   const { toast } = useToast();
   
-  // Performance tracking
-  const loadStartTimeRef = useRef<number>(0);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // 🚀 PERFORMANCE: Ultra-fast data fetching with aggressive caching
   const fetchDiffData = useCallback(async (sha: string, path: string, type: 'content' | 'diff') => {
     const cacheKey = `${sessionId}:${sha}:${path}:${type}`;
     
-    // Check cache first - should be instant
     const cachedData = diffCache.get(cacheKey);
     if (cachedData) {
-      console.log('⚡ Diff cache hit - 0ms load time');
       setDiffData(cachedData);
       setIsLoading(false);
       return;
     }
 
-    // Abort previous request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -131,8 +105,6 @@ const OptimizedCommitDiffViewer: React.FC<OptimizedCommitDiffViewerProps> = ({
     setIsLoading(true);
     setError(null);
     
-    loadStartTimeRef.current = performance.now();
-    
     try {
       const response = await fetch(
         `http://localhost:8000/api/diff/${sha}/${encodeURIComponent(path)}?session_id=${sessionId}&view_type=${type}`,
@@ -140,7 +112,7 @@ const OptimizedCommitDiffViewer: React.FC<OptimizedCommitDiffViewerProps> = ({
           signal: abortControllerRef.current.signal,
           headers: {
             'Accept': 'application/json',
-            'Cache-Control': 'public, max-age=300' // 5 min browser cache
+            'Cache-Control': 'public, max-age=300'
           }
         }
       );
@@ -152,22 +124,8 @@ const OptimizedCommitDiffViewer: React.FC<OptimizedCommitDiffViewerProps> = ({
       const data = await response.json();
       
       if (!abortControllerRef.current.signal.aborted) {
-        // Cache the result
         diffCache.set(cacheKey, data);
-        
         setDiffData(data);
-        
-        const loadTime = performance.now() - loadStartTimeRef.current;
-        console.log(`⚡ Diff loaded in ${Math.round(loadTime)}ms`);
-        
-        // Show performance feedback
-        if (loadTime < 300) {
-          toast({
-            title: "⚡ Fast Load",
-            description: `Content loaded in ${Math.round(loadTime)}ms`,
-            duration: 1500,
-          });
-        }
       }
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
@@ -175,7 +133,6 @@ const OptimizedCommitDiffViewer: React.FC<OptimizedCommitDiffViewerProps> = ({
       }
       
       const errorMessage = err instanceof Error ? err.message : 'Failed to load content';
-      console.error('Diff error:', err);
       
       if (!abortControllerRef.current.signal.aborted) {
         setError(errorMessage);
@@ -186,9 +143,8 @@ const OptimizedCommitDiffViewer: React.FC<OptimizedCommitDiffViewerProps> = ({
         setIsLoading(false);
       }
     }
-  }, [sessionId, onError, toast]);
+  }, [sessionId, onError]);
 
-  // 🚀 PERFORMANCE: Debounced effect with shorter delay
   useEffect(() => {
     if (!commitSha || !filePath) {
       setDiffData(null);
@@ -196,10 +152,9 @@ const OptimizedCommitDiffViewer: React.FC<OptimizedCommitDiffViewerProps> = ({
       return;
     }
     
-    // Immediate UI update, then throttled API call
     const timeoutId = setTimeout(() => {
       fetchDiffData(commitSha, filePath, viewType);
-    }, 100); // Reduced from 300ms to 100ms
+    }, 100);
     
     return () => {
       clearTimeout(timeoutId);
@@ -209,7 +164,6 @@ const OptimizedCommitDiffViewer: React.FC<OptimizedCommitDiffViewerProps> = ({
     };
   }, [commitSha, filePath, viewType, fetchDiffData]);
 
-  // Get file language
   const getLanguage = useCallback((path: string): string => {
     const ext = path.split('.').pop()?.toLowerCase();
     const langMap: Record<string, string> = {
@@ -220,13 +174,12 @@ const OptimizedCommitDiffViewer: React.FC<OptimizedCommitDiffViewerProps> = ({
     return langMap[ext || ''] || 'text';
   }, []);
 
-  // Quick actions
   const copyToClipboard = useCallback(async () => {
     if (!diffData?.content) return;
     
     try {
       await navigator.clipboard.writeText(diffData.content);
-      toast({ title: "Copied!", description: "Content copied to clipboard" });
+      toast({ title: "Copied to clipboard" });
     } catch {
       toast({ title: "Copy failed", variant: "destructive" });
     }
@@ -243,7 +196,7 @@ const OptimizedCommitDiffViewer: React.FC<OptimizedCommitDiffViewerProps> = ({
     a.click();
     URL.revokeObjectURL(url);
     
-    toast({ title: "Downloaded!", description: "File downloaded" });
+    toast({ title: "File downloaded" });
   }, [diffData, toast]);
 
   if (isLoading) {
@@ -252,8 +205,8 @@ const OptimizedCommitDiffViewer: React.FC<OptimizedCommitDiffViewerProps> = ({
         <CardContent className="p-6">
           <div className="flex items-center justify-center h-48">
             <div className="flex items-center space-x-3">
-              <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
-              <span className="text-gray-300">Loading optimized content...</span>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="text-gray-400">Loading content...</span>
             </div>
           </div>
         </CardContent>
@@ -263,15 +216,14 @@ const OptimizedCommitDiffViewer: React.FC<OptimizedCommitDiffViewerProps> = ({
 
   if (error) {
     return (
-      <Card className={cn("w-full border-red-500/50", className)}>
+      <Card className={cn("w-full border-red-800", className)}>
         <CardContent className="p-6">
           <div className="flex flex-col items-center justify-center h-48 space-y-4">
-            <div className="text-red-400">⚠️ Error Loading Content</div>
+            <div className="text-red-400">Error loading content</div>
             <div className="text-sm text-gray-400 text-center">{error}</div>
             <Button 
               variant="outline" 
               onClick={() => fetchDiffData(commitSha!, filePath!, viewType)}
-              className="border-red-500/50 text-red-400"
             >
               <RotateCcw className="w-4 h-4 mr-2" />
               Retry
@@ -287,9 +239,9 @@ const OptimizedCommitDiffViewer: React.FC<OptimizedCommitDiffViewerProps> = ({
       <Card className={cn("w-full", className)}>
         <CardContent className="p-6">
           <div className="flex items-center justify-center h-48">
-            <div className="text-center">
-              <GitCommit className="w-8 h-8 text-gray-500 mx-auto mb-2" />
-              <div className="text-sm text-gray-400">Select a commit to view content</div>
+            <div className="text-center text-gray-400">
+              <GitCommit className="w-8 h-8 mx-auto mb-2" />
+              <div className="text-sm">Select a commit to view content</div>
             </div>
           </div>
         </CardContent>
@@ -302,29 +254,20 @@ const OptimizedCommitDiffViewer: React.FC<OptimizedCommitDiffViewerProps> = ({
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-2">
-              <GitCommit className="w-5 h-5 text-blue-400" />
-              <span className="font-medium">Commit Content</span>
-              <Badge variant="outline" className="text-green-500">Fast</Badge>
-            </div>
+            <GitCommit className="w-5 h-5" />
+            <span className="font-medium">Commit Content</span>
           </div>
           
           <div className="flex items-center space-x-2">
             <Tabs value={viewType} onValueChange={(v) => setViewType(v as 'content' | 'diff')}>
-              <TabsList className="grid w-full grid-cols-2 bg-gray-800/80">
-                <TabsTrigger 
-                  value="content" 
-                  className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white text-gray-300"
-                >
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="content" className="flex items-center gap-2">
                   <Eye className="w-3 h-3" />
-                  <span className="text-xs">File Content</span>
+                  <span className="text-xs">Content</span>
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="diff" 
-                  className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white text-gray-300"
-                >
+                <TabsTrigger value="diff" className="flex items-center gap-2">
                   <Diff className="w-3 h-3" />
-                  <span className="text-xs">Commit Diff</span>
+                  <span className="text-xs">Diff</span>
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -339,9 +282,8 @@ const OptimizedCommitDiffViewer: React.FC<OptimizedCommitDiffViewerProps> = ({
           </div>
         </div>
 
-        {/* Commit metadata */}
         <div className="space-y-2">
-          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+          <div className="flex items-center space-x-4 text-sm text-gray-400">
             <span className="flex items-center gap-1">
               <Hash className="w-3 h-3" />
               {diffData.sha.substring(0, 8)}
@@ -363,33 +305,21 @@ const OptimizedCommitDiffViewer: React.FC<OptimizedCommitDiffViewerProps> = ({
       </CardHeader>
 
       <CardContent>
-        {/* Content display */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <FileText className="w-4 h-4" />
               <span className="font-mono text-sm">{diffData.file_path}</span>
-              <Badge variant={diffData.change_type === 'added' ? 'default' : 'secondary'}>
-                {diffData.change_type}
-              </Badge>
             </div>
             
-            <div className="flex items-center space-x-2">
-              <Zap className="w-3 h-3 text-green-500" />
-              <span className="text-xs text-green-500">Optimized</span>
+            <div className="text-xs text-gray-400">
+              {getLanguage(diffData.file_path)} • {diffData.content.split('\n').length} lines
             </div>
           </div>
 
-          {/* Fast content display */}
           <div className="border rounded-lg overflow-hidden">
-            <div className="bg-gray-800/50 px-4 py-2 border-b">
-              <span className="text-xs text-gray-400">
-                {getLanguage(diffData.file_path)} • {diffData.content.split('\n').length} lines
-              </span>
-            </div>
-            
             <div className="max-h-96 overflow-auto">
-              <LightSyntaxHighlighter
+              <CodeDisplay
                 code={diffData.content}
                 language={getLanguage(diffData.file_path)}
               />
