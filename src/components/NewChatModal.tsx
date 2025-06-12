@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -39,6 +39,8 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ onClose, onCreateSession })
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState<ProgressState | null>(null);
   const { toast } = useToast();
+  const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
+  const [currentPollingSessionId, setCurrentPollingSessionId] = useState<string | null>(null);
 
   const validateRepoUrl = (url: string): boolean => {
     const githubRepoPattern = /^https:\/\/github\.com\/[^\/]+\/[^\/]+(?:\.git)?(?:\/.*)?$/;
@@ -64,6 +66,7 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ onClose, onCreateSession })
     switch (currentProgress.status) {
       case 'initializing': return 'Preparing repository setup...';
       case 'cloning': return `Cloning ${repoId}...`;
+      case 'indexing': return `Indexing ${repoId}...`; // Added case for indexing
       case 'core_ready': return `Core context ready for ${repoId}. Linking issues...`;
       case 'issue_linking': return currentProgress.patch_linkage_message || `Linking issues & PRs for ${repoId}...`;
       case 'ready': return `Repository ${repoId} fully processed!`;
@@ -73,83 +76,105 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ onClose, onCreateSession })
     }
   };
   
+  // Effect to handle terminal states from polling
   useEffect(() => {
-    let intervalId: NodeJS.Timeout | undefined;
-    if (isLoading && progress && progress.status !== 'core_ready' && progress.status !== 'ready' && progress.status !== 'error' && progress.status !== 'warning_issue_rag_failed') {
-      // This effect is primarily for the initial session creation polling
-      // It will be cleared once a terminal state (core_ready, ready, error, warning) is reached for the modal.
+    if (progress && currentPollingSessionId && ['core_ready', 'ready', 'warning_issue_rag_failed', 'error'].includes(progress.status)) {
+      if (intervalIdRef.current) {
+        clearInterval(intervalIdRef.current);
+        intervalIdRef.current = null;
+      }
+
+      if (progress.status !== 'error') {
+        enableAgenticMode(currentPollingSessionId)
+          .catch(e => console.warn('Error enabling agentic mode:', e))
+          .finally(() => {
+            setTimeout(() => {
+              onCreateSession(repoUrl, filePath, currentPollingSessionId);
+              onClose();
+            }, 500);
+          });
+      } else {
+        setIsLoading(false); // Keep modal open on error
+      }
+      setCurrentPollingSessionId(null); // Reset polling session ID
     }
+  }, [progress, currentPollingSessionId, repoUrl, filePath, onCreateSession, onClose]);
+
+  // Effect for unmount cleanup
+  useEffect(() => {
     return () => {
-      if (intervalId) clearInterval(intervalId);
+      if (intervalIdRef.current) {
+        clearInterval(intervalIdRef.current);
+      }
     };
-  }, [isLoading, progress?.status]);
+  }, []);
 
 
   const pollSessionStatus = async (sessionId: string): Promise<void> => {
+    setCurrentPollingSessionId(sessionId);
     let attempts = 0;
     const maxAttempts = 360; // Poll for up to 12 minutes (360 * 2s)
+
+    if (intervalIdRef.current) {
+      clearInterval(intervalIdRef.current); // Clear any existing interval
+    }
     
-    const intervalId = setInterval(async () => {
+    intervalIdRef.current = setInterval(async () => {
       if (attempts >= maxAttempts) {
-        clearInterval(intervalId);
+        if (intervalIdRef.current) clearInterval(intervalIdRef.current);
+        intervalIdRef.current = null;
         setProgress(prev => ({
-          ...(prev || { status: 'timeout', message: '', error: undefined }),
+          ...(prev || { status: 'timeout', message: 'Repository setup timed out.', error: undefined }),
           status: 'error',
           message: 'Repository initialization timed out.',
           error: 'Please try again. If the issue persists, the repository might be too large or there could be a network problem.'
         }));
         setIsLoading(false);
+        setCurrentPollingSessionId(null);
         return;
       }
 
       try {
         const statusDataFromApi = await getSessionStatus(sessionId);
-        // Use metadata as primary source for session info, fallback to repo_info for owner/repo
         const sessionMetadata = (statusDataFromApi as any).metadata || {};
         const repoInfo = statusDataFromApi.repo_info || {};
 
-        const newProgressState: ProgressState = {
-          status: statusDataFromApi.status || 'unknown',
-          message: sessionMetadata.message || '', // Will be refined by getDisplayMessage
-          error: statusDataFromApi.error || sessionMetadata.error,
-          owner: sessionMetadata.owner || repoInfo.owner,
-          repo: sessionMetadata.repo || repoInfo.repo,
-          patch_linkage_status: sessionMetadata.patch_linkage_status,
-          patch_linkage_message: sessionMetadata.patch_linkage_message,
-          patch_linkage_progress: sessionMetadata.patch_linkage_progress,
-          // New detailed progress fields
-          progress_stage: sessionMetadata.progress_stage,
-          progress_step: sessionMetadata.progress_step,
-          progress_percentage: sessionMetadata.progress_percentage,
-          progress_items_processed: sessionMetadata.progress_items_processed,
-          progress_total_items: sessionMetadata.progress_total_items,
-          progress_current_item: sessionMetadata.progress_current_item,
-          progress_estimated_time: sessionMetadata.progress_estimated_time,
-          progress_details: sessionMetadata.progress_details,
-        };
-        newProgressState.message = getDisplayMessage(newProgressState); // Update message based on new full state
-        setProgress(newProgressState);
+        setProgress(prevProgress => {
+          const statusFromServer = statusDataFromApi.status || 'unknown';
+          const currentFrontendStatusInCallback = prevProgress?.status;
 
-        if (['core_ready', 'ready', 'warning_issue_rag_failed', 'error'].includes(newProgressState.status)) {
-          clearInterval(intervalId);
-          if (newProgressState.status !== 'error') {
-            try {
-              await enableAgenticMode(sessionId);
-            } catch (e) {
-              console.warn('Error enabling agentic mode:', e);
-            }
-            setTimeout(() => {
-              onCreateSession(repoUrl, filePath, sessionId);
-              onClose();
-            }, 500);
-          } else {
-            setIsLoading(false); // Keep modal open on error, allow retry/cancel
-          }
-          return;
-        }
+          const effectiveStatus = (currentFrontendStatusInCallback === 'cloning' && statusFromServer === 'initializing')
+                                  ? 'cloning'
+                                  : statusFromServer;
+
+          const newResolvedProgressState: ProgressState = {
+            status: effectiveStatus,
+            message: '', // Will be set by getDisplayMessage
+            error: statusDataFromApi.error || sessionMetadata.error,
+            owner: sessionMetadata.owner || repoInfo.owner,
+            repo: sessionMetadata.repo || repoInfo.repo,
+            patch_linkage_status: sessionMetadata.patch_linkage_status,
+            patch_linkage_message: sessionMetadata.patch_linkage_message,
+            patch_linkage_progress: sessionMetadata.patch_linkage_progress,
+            progress_stage: sessionMetadata.progress_stage,
+            progress_step: sessionMetadata.progress_step,
+            progress_percentage: sessionMetadata.progress_percentage,
+            progress_items_processed: sessionMetadata.progress_items_processed,
+            progress_total_items: sessionMetadata.progress_total_items,
+            progress_current_item: sessionMetadata.progress_current_item,
+            progress_estimated_time: sessionMetadata.progress_estimated_time,
+            progress_details: sessionMetadata.progress_details,
+          };
+          newResolvedProgressState.message = getDisplayMessage(newResolvedProgressState);
+          
+          // The terminal state check is now handled by the useEffect hook watching 'progress'
+          // If newResolvedProgressState.status is terminal, useEffect will clear the interval.
+          return newResolvedProgressState;
+        });
         attempts++;
       } catch (error) {
-        clearInterval(intervalId);
+        if (intervalIdRef.current) clearInterval(intervalIdRef.current);
+        intervalIdRef.current = null;
         console.error('Error polling session status:', error);
         const pollErrorMsg = error instanceof Error ? error.message : 'Unknown polling error';
         setProgress({
@@ -158,6 +183,7 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ onClose, onCreateSession })
           error: pollErrorMsg
         });
         setIsLoading(false);
+        setCurrentPollingSessionId(null);
       }
     }, 2000);
   };
@@ -182,19 +208,37 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ onClose, onCreateSession })
         initial_file: filePath.trim() || undefined,
         session_name: sessionName.trim() || undefined
       });
-      // Update progress with owner/repo for better messages
-      setProgress(prev => ({ 
-        ...(prev!), 
+      
+      // Update progress explicitly after session creation call
+      const ownerFromMeta = response.repo_metadata?.owner;
+      const repoFromMeta = response.repo_metadata?.repo;
+      const initialCloningMessage = getDisplayMessage({
         status: 'cloning',
-        owner: response.repo_metadata?.owner,
-        repo: response.repo_metadata?.repo,
-        message: getDisplayMessage({
-            status: 'cloning', 
-            message: '', 
-            owner: response.repo_metadata?.owner, 
-            repo: response.repo_metadata?.repo 
-        })
-      }));
+        message: '', // Message is determined by getDisplayMessage based on status
+        owner: ownerFromMeta,
+        repo: repoFromMeta
+      });
+
+      setProgress({
+        status: 'cloning',
+        message: initialCloningMessage,
+        error: undefined, // Clear any previous error
+        owner: ownerFromMeta,
+        repo: repoFromMeta,
+        // Initialize other progress fields to undefined or default
+        patch_linkage_status: undefined,
+        patch_linkage_message: undefined,
+        patch_linkage_progress: undefined,
+        progress_stage: undefined,
+        progress_step: undefined,
+        progress_percentage: undefined,
+        progress_items_processed: undefined,
+        progress_total_items: undefined,
+        progress_current_item: undefined,
+        progress_estimated_time: undefined,
+        progress_details: undefined,
+      });
+      
       await pollSessionStatus(response.session_id);
     } catch (error) {
       console.error('Error creating repository session:', error);
@@ -312,15 +356,21 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ onClose, onCreateSession })
               
               {!progress.error && (
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-400 mt-2 pl-1">
-                  {renderStep("Clone", progress.status, ["initializing", "cloning"], ["core_ready", "issue_linking", "ready", "warning_issue_rag_failed"])}
-                  {renderStep("Core Index", progress.status, ["cloning"], ["core_ready", "issue_linking", "ready", "warning_issue_rag_failed"])}
-                  {renderStep("Chat Ready", progress.status, 
-                    [], // Active status for Chat Ready is effectively when core_ready is hit.
+                  {renderStep("Clone", progress.status, 
+                    ["initializing", "cloning"], 
+                    ["indexing", "core_ready", "issue_linking", "ready", "warning_issue_rag_failed"]
+                  )}
+                  {renderStep("Core Index", progress.status, 
+                    ["cloning", "indexing"], 
                     ["core_ready", "issue_linking", "ready", "warning_issue_rag_failed"]
                   )}
+                  {renderStep("Chat Ready", progress.status, 
+                    ["core_ready"], // Active when core is ready but not yet linking or fully ready
+                    ["linking_issues", "ready", "warning_issue_rag_failed"]
+                  )}
                   {renderStep("Issue Linking", progress.status, 
-                    ["issue_linking", ...(progress.status === 'core_ready' && progress.patch_linkage_status === 'in_progress' ? ['core_ready'] : [])],
-                    ["ready"],
+                    ["linking_issues", ...(progress.status === 'core_ready' && progress.patch_linkage_status === 'in_progress' ? ['core_ready'] : [])], 
+                    ["ready", "warning_issue_rag_failed"], // Completed if ready or warning (linking attempted)
                     (progress.status === 'warning_issue_rag_failed') ? <AlertTriangle /> : undefined
                   )}
                 </div>

@@ -409,3 +409,78 @@ export const applyPatch = async (request: ApplyPatchRequest): Promise<ApplyPatch
 
   return response.json();
 };
+
+// Repository file structure and content API functions
+export interface FileTreeNode {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+  children?: FileTreeNode[];
+}
+
+export interface FileInfo {
+  path: string;
+}
+
+export interface FileContent {
+  content: string;
+  size: number;
+  type: string;
+  encoding?: string;
+  error?: string;
+}
+
+export const getRepositoryTree = async (sessionId: string): Promise<FileTreeNode[]> => {
+  const response = await fetch(`${API_BASE_URL}/api/tree?session_id=${sessionId}`);
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to get repository tree');
+  }
+
+  return response.json();
+};
+
+export const getRepositoryFiles = async (sessionId: string): Promise<FileInfo[]> => {
+  const response = await fetch(`${API_BASE_URL}/api/files?session_id=${sessionId}`);
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to get repository files');
+  }
+
+  return response.json();
+};
+
+export const getFileContent = async (sessionId: string, filePath: string): Promise<FileContent> => {
+  const response = await fetch(`${API_BASE_URL}/api/file-content?session_id=${sessionId}&file_path=${encodeURIComponent(filePath)}`);
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to get file content');
+  }
+
+  return response.json();
+};
+
+export interface CommitInfo {
+  sha: string;
+  message: string;
+  author: {
+    name: string;
+    email: string;
+    date: string;
+  };
+  url?: string;
+}
+
+export const getRepositoryCommits = async (sessionId: string, limit: number = 50): Promise<CommitInfo[]> => {
+  const response = await fetch(`${API_BASE_URL}/api/commits?session_id=${sessionId}&limit=${limit}`);
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to get repository commits');
+  }
+
+  return response.json();
+};
