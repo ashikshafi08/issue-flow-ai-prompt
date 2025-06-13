@@ -140,7 +140,7 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ onClose, onCreateSession })
         const repoInfo = statusDataFromApi.repo_info || {};
 
         setProgress(prevProgress => {
-          const statusFromServer = statusDataFromApi.status || 'unknown';
+          const statusFromServer = statusDataFromApi.overall_status || statusDataFromApi.status || 'unknown';
           const currentFrontendStatusInCallback = prevProgress?.status;
 
           const effectiveStatus = (currentFrontendStatusInCallback === 'cloning' && statusFromServer === 'initializing')

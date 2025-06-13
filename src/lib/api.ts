@@ -3,7 +3,7 @@
  */
 import type { ChatMessage, AgenticStep } from '@/pages/Assistant'; // Import shared types
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 export interface RepoSessionRequest {
   repo_url: string;
@@ -410,6 +410,37 @@ export const applyPatch = async (request: ApplyPatchRequest): Promise<ApplyPatch
   return response.json();
 };
 
+export interface PostToGitHubRequest {
+  issue_url: string;
+  analysis_result: any;
+  custom_message?: string;
+}
+
+export interface PostToGitHubResponse {
+  success: boolean;
+  message: string;
+  comment_url?: string;
+  comment_id?: string;
+  error?: string;
+}
+
+export const postAnalysisToGitHub = async (request: PostToGitHubRequest): Promise<PostToGitHubResponse> => {
+  const response = await fetch(`${API_BASE_URL}/api/post-to-github`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to post analysis to GitHub');
+  }
+
+  return response.json();
+};
+
 // Repository file structure and content API functions
 export interface FileTreeNode {
   name: string;
@@ -480,6 +511,17 @@ export const getRepositoryCommits = async (sessionId: string, limit: number = 50
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.detail || 'Failed to get repository commits');
+  }
+
+  return response.json();
+};
+
+export const getAgenticInitializationStatus = async (sessionId: string) => {
+  const response = await fetch(`${API_BASE_URL}/assistant/sessions/${sessionId}/agentic-status`);
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to get AgenticRAG status');
   }
 
   return response.json();

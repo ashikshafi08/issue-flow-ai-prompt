@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Download, Copy, Check, FileText, Image, Code, File, Clock, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -85,27 +86,21 @@ const FileViewer: React.FC<FileViewerProps> = ({ filePath, sessionId, onClose })
     };
   }, [filePath, sessionId]);
 
-  // Handle escape key to close modal and prevent body scroll
+  // Handle escape key to close modal - without body manipulation
   useEffect(() => {
-    // Prevent body scroll when modal is open
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    
-          const handleEscape = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') {
-          console.log('FileViewer: Escape key pressed, closing modal');
-          e.preventDefault();
-          e.stopPropagation();
-          onClose();
-        }
-      };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        console.log('FileViewer: Escape key pressed, closing modal');
+        e.preventDefault();
+        e.stopPropagation();
+        onClose();
+      }
+    };
 
     // Add escape key listener with capture to ensure it works
     document.addEventListener('keydown', handleEscape, true);
     
     return () => {
-      // Restore body scroll
-      document.body.style.overflow = originalOverflow;
       document.removeEventListener('keydown', handleEscape, true);
     };
   }, [onClose]);
@@ -226,12 +221,21 @@ const FileViewer: React.FC<FileViewerProps> = ({ filePath, sessionId, onClose })
     return textExtensions.includes(ext || '') || !ext;
   };
 
-    return (
+    const modalContent = (
     <div 
-      className="fixed inset-0 bg-black/90 backdrop-blur-md z-[9999] flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-hidden"
       role="dialog"
       aria-labelledby="file-viewer-title"
       aria-describedby="file-viewer-description"
+      style={{ 
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        margin: 0,
+        padding: '1rem'
+      }}
       onMouseDown={(e) => {
         // Close when clicking backdrop (using mousedown for better responsiveness)
         if (e.target === e.currentTarget) {
@@ -456,6 +460,9 @@ const FileViewer: React.FC<FileViewerProps> = ({ filePath, sessionId, onClose })
       </div>
     </div>
   );
+
+  // Use portal to render outside the normal component tree
+  return createPortal(modalContent, document.body);
 };
 
 export default FileViewer; 
