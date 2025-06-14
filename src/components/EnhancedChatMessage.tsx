@@ -525,7 +525,7 @@ const FileHoverPreview = ({ filePath, sessionId, messageContent }: { filePath: s
           {previewData?.truncated && (
             <div className="px-5 py-3 bg-gradient-to-r from-amber-900/20 via-yellow-900/20 to-amber-900/20 border-t border-amber-400/20 backdrop-blur-sm">
               <div className="flex items-center gap-2 text-xs text-amber-300/90">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 20 20">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span className="font-medium">Preview truncated</span>
@@ -634,25 +634,25 @@ const EnhancedChatMessage: React.FC<EnhancedChatMessageProps> = ({
       
       if (inline) {
         if (isFilePath(text)) {
-          return <FileHoverPreview filePath={text} sessionId={sessionId} messageContent={content} />;
+          return <FileHoverPreview filePath={text} sessionId={sessionId || ''} messageContent={content} />;
         }
         
         return (
-          <code className="bg-gray-700/60 text-blue-300 px-2 py-1 rounded text-sm font-mono" {...props}>
+          <code className="bg-slate-700/60 text-blue-300 px-2 py-1 rounded text-sm font-mono" {...props}>
             {children}
           </code>
         );
       }
       
       if ((inline === undefined || inline === false) && isFilePath(text) && !text.includes('\n') && text.length < 100) {
-        return <FileHoverPreview filePath={text} sessionId={sessionId} messageContent={content} />;
+        return <FileHoverPreview filePath={text} sessionId={sessionId || ''} messageContent={content} />;
       }
       
       if (match) {
         return (
-          <div className="relative group my-4">
-            <div className="flex items-center justify-between bg-gray-800/80 px-4 py-2 rounded-t-lg border-b border-gray-700">
-              <span className="text-xs text-gray-400 font-medium">{match[1]}</span>
+          <div className="relative group my-6">
+            <div className="flex items-center justify-between bg-slate-800/80 px-4 py-2 rounded-t-lg border-b border-slate-700">
+              <span className="text-xs text-slate-400 font-medium">{match[1]}</span>
               <Button
                 variant="ghost"
                 size="sm"
@@ -662,7 +662,7 @@ const EnhancedChatMessage: React.FC<EnhancedChatMessageProps> = ({
                 {copiedCode === codeId ? (
                   <Check className="h-3 w-3 text-green-400" />
                 ) : (
-                  <Copy className="h-3 w-3 text-gray-400" />
+                  <Copy className="h-3 w-3 text-slate-400" />
                 )}
               </Button>
             </div>
@@ -680,43 +680,39 @@ const EnhancedChatMessage: React.FC<EnhancedChatMessageProps> = ({
       }
 
       return (
-        <code className="bg-gray-700/60 text-blue-300 px-2 py-1 rounded text-sm font-mono" {...props}>
+        <code className="bg-slate-700/60 text-blue-300 px-2 py-1 rounded text-sm font-mono" {...props}>
           {children}
         </code>
       );
     },
     
-    // Enhanced paragraph spacing
     p({ children, ...props }) {
-      return <p className="mb-4 leading-relaxed" {...props}>{children}</p>;
+      return <p className="mb-5 leading-7 text-slate-200" {...props}>{children}</p>;
     },
     
-    // Enhanced heading spacing
     h1({ children, ...props }) {
-      return <h1 className="text-xl font-bold mb-4 mt-6 text-white" {...props}>{children}</h1>;
+      return <h1 className="text-xl font-bold mb-6 mt-8 text-white" {...props}>{children}</h1>;
     },
     h2({ children, ...props }) {
-      return <h2 className="text-lg font-semibold mb-3 mt-5 text-white" {...props}>{children}</h2>;
+      return <h2 className="text-lg font-semibold mb-5 mt-7 text-white" {...props}>{children}</h2>;
     },
     h3({ children, ...props }) {
-      return <h3 className="text-base font-medium mb-3 mt-4 text-white" {...props}>{children}</h3>;
+      return <h3 className="text-base font-medium mb-4 mt-6 text-white" {...props}>{children}</h3>;
     },
     
-    // Enhanced list spacing
     ul({ children, ...props }) {
-      return <ul className="mb-4 space-y-2 pl-4" {...props}>{children}</ul>;
+      return <ul className="mb-5 space-y-2 pl-5" {...props}>{children}</ul>;
     },
     ol({ children, ...props }) {
-      return <ol className="mb-4 space-y-2 pl-4" {...props}>{children}</ol>;
+      return <ol className="mb-5 space-y-2 pl-5" {...props}>{children}</ol>;
     },
     li({ children, ...props }) {
-      return <li className="leading-relaxed" {...props}>{children}</li>;
+      return <li className="leading-7 text-slate-200" {...props}>{children}</li>;
     },
     
-    // Enhanced blockquote
     blockquote({ children, ...props }) {
       return (
-        <blockquote className="border-l-4 border-blue-500 pl-4 my-4 italic text-gray-300 bg-gray-800/30 py-2 rounded-r" {...props}>
+        <blockquote className="border-l-4 border-blue-500 pl-6 my-6 italic text-slate-300 bg-slate-800/30 py-3 rounded-r-lg" {...props}>
           {children}
         </blockquote>
       );
@@ -727,14 +723,14 @@ const EnhancedChatMessage: React.FC<EnhancedChatMessageProps> = ({
     <div className="w-full">
       {/* Context Cards */}
       {contextCards.length > 0 && (
-        <div className="mb-4">
-          <div className="flex items-center gap-2 mb-3">
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-4">
             <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
-            <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+            <span className="text-xs font-medium text-slate-400 uppercase tracking-wide">
               Referenced Context
             </span>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {contextCards.map(renderContextCard)}
           </div>
         </div>
@@ -742,14 +738,14 @@ const EnhancedChatMessage: React.FC<EnhancedChatMessageProps> = ({
 
       {/* Main Message Bubble */}
       <div className={`
-        rounded-2xl px-6 py-4 shadow-lg backdrop-blur-sm border
+        rounded-2xl px-6 py-5 shadow-xl backdrop-blur-sm border
         ${role === 'user' 
-          ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-tr-md border-blue-500/20' 
-          : 'bg-gray-800/60 border-gray-700/30 text-gray-100 rounded-tl-md'
+          ? 'bg-gradient-to-r from-blue-600 to-violet-600 text-white rounded-tr-lg border-blue-500/20 shadow-blue-500/20' 
+          : 'bg-slate-800/90 border-slate-700/50 text-slate-100 rounded-tl-lg shadow-slate-900/50'
         }
       `}>
         {/* Timestamp */}
-        <div className={`text-xs mb-3 ${role === 'user' ? 'text-blue-100' : 'text-gray-400'}`}>
+        <div className={`text-xs mb-4 ${role === 'user' ? 'text-blue-100/80' : 'text-slate-400'}`}>
           {formatTimestamp(timestamp)}
         </div>
 
@@ -758,7 +754,6 @@ const EnhancedChatMessage: React.FC<EnhancedChatMessageProps> = ({
           <ReactMarkdown
             components={customMarkdownComponents}
             remarkPlugins={[remarkGfm]}
-            className={role === 'user' ? 'prose-invert' : 'prose-invert'}
           >
             {content}
           </ReactMarkdown>
@@ -767,54 +762,56 @@ const EnhancedChatMessage: React.FC<EnhancedChatMessageProps> = ({
 
       {/* AI Reasoning Steps */}
       {agenticSteps.length > 0 && role === 'assistant' && (
-        <div className="mt-4 bg-gray-800/30 backdrop-blur-sm border border-gray-700/20 rounded-xl overflow-hidden">
+        <div className="mt-5 bg-slate-800/60 backdrop-blur-sm border border-slate-700/40 rounded-2xl overflow-hidden shadow-lg">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setShowAgenticSteps(!showAgenticSteps)}
-            className="w-full justify-start text-left p-4 hover:bg-gray-700/30 transition-colors"
+            className="w-full justify-start text-left p-5 hover:bg-slate-700/40 transition-colors"
           >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center">
-                <Brain className="w-4 h-4 text-white" />
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                <Brain className="w-5 h-5 text-white" />
               </div>
               <div className="flex-1">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   {showAgenticSteps ? (
-                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                    <ChevronDown className="h-4 w-4 text-slate-400" />
                   ) : (
-                    <ChevronRight className="h-4 w-4 text-gray-400" />
+                    <ChevronRight className="h-4 w-4 text-slate-400" />
                   )}
-                  <span className="text-sm font-medium text-white">Thought Process</span>
-                  <span className="text-xs text-gray-400">({agenticSteps.length} steps)</span>
+                  <span className="text-sm font-semibold text-white">Thought Process</span>
+                  <span className="text-xs text-slate-400 bg-slate-700/50 px-2 py-1 rounded-full">
+                    {agenticSteps.length} step{agenticSteps.length !== 1 ? 's' : ''}
+                  </span>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">View AI reasoning and decision-making process</p>
+                <p className="text-xs text-slate-500 mt-1.5">View AI reasoning and decision-making process</p>
               </div>
             </div>
           </Button>
           
           {showAgenticSteps && (
-            <div className="border-t border-gray-700/30 bg-gray-900/20">
-              <div className="p-4 space-y-3">
+            <div className="border-t border-slate-700/40 bg-slate-900/30">
+              <div className="p-5 space-y-4">
                 {agenticSteps.map((step, index) => (
-                  <div key={step.step || index} className="flex items-start gap-3 p-3 bg-gray-800/40 rounded-lg border border-gray-700/20">
-                    <div className="flex-shrink-0 w-6 h-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-xs font-bold text-white">
+                  <div key={step.step || index} className="flex items-start gap-4 p-4 bg-slate-800/60 rounded-xl border border-slate-700/30 shadow-sm">
+                    <div className="flex-shrink-0 w-7 h-7 bg-gradient-to-br from-blue-500 to-violet-600 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-lg">
                       {step.step || index + 1}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                          step.type === 'thought' ? 'bg-purple-500/20 text-purple-300' :
-                          step.type === 'action' ? 'bg-blue-500/20 text-blue-300' :
-                          step.type === 'observation' ? 'bg-green-500/20 text-green-300' :
-                          'bg-gray-500/20 text-gray-300'
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className={`text-xs font-semibold px-3 py-1.5 rounded-full ${
+                          step.type === 'thought' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' :
+                          step.type === 'action' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
+                          step.type === 'observation' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+                          'bg-slate-500/20 text-slate-300 border border-slate-500/30'
                         }`}>
-                          {step.type === 'thought' && <Brain className="w-3 h-3 inline mr-1" />}
-                          {step.type === 'action' && <Zap className="w-3 h-3 inline mr-1" />}
-                          {step.type}
+                          {step.type === 'thought' && <Brain className="w-3 h-3 inline mr-1.5" />}
+                          {step.type === 'action' && <Zap className="w-3 h-3 inline mr-1.5" />}
+                          {step.type.charAt(0).toUpperCase() + step.type.slice(1)}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-200 leading-relaxed">{step.content}</p>
+                      <p className="text-sm text-slate-200 leading-relaxed">{step.content}</p>
                     </div>
                   </div>
                 ))}
