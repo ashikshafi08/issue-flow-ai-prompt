@@ -8,6 +8,7 @@ import IssuesPane from '@/components/IssuesPane';
 import FileViewer from '@/components/FileViewer';
 import UnifiedContextPanel from '@/components/UnifiedContextPanel';
 import IssueAnalysisHub from '@/components/IssueAnalysisHub';
+import AnalysisToolbar from '@/components/AnalysisToolbar';
 import { listAssistantSessions, SessionInfo, getSessionMessages, getSessionMetadata, resetAgenticMemory, syncRepository } from '@/lib/api'; // Added syncRepository
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2, PanelLeft, FolderTree, RefreshCw, GitBranch, Zap as SyncIcon } from 'lucide-react'; // Removed Clock
@@ -462,62 +463,76 @@ const Assistant = () => {
           ) : detailedActiveSession ? (
             <>
               {/* Chat Header */}
-              <div className="border-b border-gray-700 bg-gray-800/60 px-4 py-3 shadow-md">
+              <div className="border-b border-gray-700/50 bg-gray-900/50 px-4 py-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Button
-                      variant="outline"
-                      size="sm"
+                    <button
                       onClick={() => setShowUnifiedContext(!showUnifiedContext)}
-                      className="text-gray-400 border-gray-600 hover:bg-gray-700 hover:text-gray-200"
+                      className="text-gray-400 hover:text-gray-200 p-1.5 rounded-md hover:bg-gray-700/50"
                       title="Toggle Context Panel"
                     >
                       <FolderTree className="h-4 w-4" />
-                    </Button>
+                    </button>
                     <div>
-                      <h1 className="text-lg font-semibold text-white truncate">
+                      <h1 className="text-base font-medium text-white truncate">
                         {detailedActiveSession.title || "Chat"}
                       </h1>
-                      <p className="text-sm text-gray-400 truncate">
+                      <p className="text-xs text-gray-400 truncate">
                         {detailedActiveSession.repoUrl.replace('https://github.com/', '')}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <KeyboardShortcutsIndicator />
-                    <Button
-                      variant="outline"
-                      size="sm"
+                  <div className="flex items-center gap-1">
+                    <button
                       onClick={handleResetMemory}
-                      className="text-gray-400 border-gray-600 hover:bg-gray-700 hover:text-gray-200"
-                      title="Reset Agent Memory"
+                      className="text-gray-400 hover:text-gray-200 p-1.5 rounded-md hover:bg-gray-700/50 text-xs"
+                      title="Reset Memory"
                     >
-                      <RefreshCw className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
+                      <RefreshCw className="h-3.5 w-3.5" />
+                    </button>
+                    <button
                       onClick={() => setShowIssuesPane(true)}
-                      className="text-gray-400 border-gray-600 hover:bg-gray-700 hover:text-gray-200"
-                      title="View Repository Issues"
+                      className="text-gray-400 hover:text-gray-200 p-1.5 rounded-md hover:bg-gray-700/50 text-xs"
+                      title="Issues"
                     >
-                      <GitBranch className="h-4 w-4" />
-                      Issues
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
+                      <GitBranch className="h-3.5 w-3.5" />
+                    </button>
+                    <button
                       onClick={handleSyncRepository}
-                      className="text-gray-400 border-gray-600 hover:bg-gray-700 hover:text-gray-200"
-                      title="Sync Repository Data"
-                      disabled={isSyncing || !detailedActiveSession?.metadata?.repo_url} // Disable if no repo_url or already syncing
+                      className="text-gray-400 hover:text-gray-200 p-1.5 rounded-md hover:bg-gray-700/50 text-xs"
+                      title="Sync Repository"
+                      disabled={isSyncing || !detailedActiveSession?.metadata?.repo_url}
                     >
-                      {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <SyncIcon className="h-4 w-4 mr-2" />}
-                      {isSyncing ? 'Syncing...' : 'Sync Repo'}
-                    </Button>
+                      {isSyncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <SyncIcon className="h-3.5 w-3.5" />}
+                    </button>
                   </div>
                 </div>
               </div>
+
+              {/* Analysis Toolbar */}
+              <AnalysisToolbar
+                sessionId={detailedActiveSession.id}
+                onAnalysisSelect={(issueUrl) => {
+                  // Extract issue info and open analysis hub
+                  const match = issueUrl.match(/github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)/);
+                  if (match) {
+                    const [, owner, repo, number] = match;
+                    const mockIssue = {
+                      number: parseInt(number),
+                      title: `Issue #${number}`,
+                      body: '',
+                      state: 'open',
+                      created_at: new Date().toISOString(),
+                      url: issueUrl,
+                      labels: [],
+                      assignees: [],
+                      comments: []
+                    };
+                    setSelectedAnalysisIssue(mockIssue);
+                    setShowAnalysisHub(true);
+                  }
+                }}
+              />
 
               {/* Chat Content */}
               <div className="flex-1 overflow-hidden">

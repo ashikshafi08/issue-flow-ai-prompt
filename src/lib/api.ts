@@ -377,6 +377,81 @@ export const analyzeIssue = async (request: IssueAnalysisRequest): Promise<Issue
   return response.json();
 };
 
+// Cached analysis interfaces and functions
+export interface CachedAnalysis {
+  session_id: string;
+  steps: IssueAnalysisStep[];
+  final_result?: {
+    classification?: {
+      category: string;
+      confidence: number;
+      reasoning: string;
+    };
+    related_files?: string[];
+    remediation_plan?: string;
+  };
+  status: 'in_progress' | 'completed' | 'error';
+  error?: string;
+  cached_at: number;
+  issue_url: string;
+}
+
+export interface CachedAnalysisResponse {
+  found: boolean;
+  analysis?: CachedAnalysis;
+  cached_at?: number;
+  issue_url: string;
+}
+
+export interface CachedAnalysesListResponse {
+  cached_analyses: Array<{
+    issue_url: string;
+    cached_at: number;
+    status: string;
+    issue_title?: string;
+    issue_number?: number;
+  }>;
+  repository: string;
+  session_id: string;
+}
+
+export const getCachedAnalysis = async (issueUrl: string): Promise<CachedAnalysisResponse> => {
+  const encodedUrl = encodeURIComponent(issueUrl);
+  const response = await fetch(`${API_BASE_URL}/api/analysis-cache/${encodedUrl}`);
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to get cached analysis');
+  }
+
+  return response.json();
+};
+
+export const getCachedAnalyses = async (sessionId: string): Promise<CachedAnalysesListResponse> => {
+  const response = await fetch(`${API_BASE_URL}/api/cached-analyses/${sessionId}`);
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to get cached analyses');
+  }
+
+  return response.json();
+};
+
+export const deleteCachedAnalysis = async (issueUrl: string): Promise<{ deleted: boolean; issue_url: string }> => {
+  const encodedUrl = encodeURIComponent(issueUrl);
+  const response = await fetch(`${API_BASE_URL}/api/analysis-cache/${encodedUrl}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to delete cached analysis');
+  }
+
+  return response.json();
+};
+
 export interface ApplyPatchRequest {
   patch_content: string;
   session_id: string;

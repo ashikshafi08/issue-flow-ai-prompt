@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, ChevronDown, Search, X } from 'lucide-react';
+import { ChevronRight, ChevronDown, Search, X, FileText } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import FileViewer from './FileViewer';
 
@@ -155,29 +155,90 @@ const CodebaseTree: React.FC<CodebaseTreeProps> = ({ sessionId, onFileSelect, on
   const getFileIcon = (fileName: string) => {
     const ext = fileName.split('.').pop()?.toLowerCase();
     
-    // Simplified, more consistent icons
-    if (!ext) return '📄';
+    // Return subtle, monochromatic icons that aid recognition without distraction
+    if (!ext) return <FileText className="h-3.5 w-3.5 text-gray-400" />;
     
-    const iconMap: { [key: string]: string } = {
-      // Code files
-      'js': '🟨', 'jsx': '🟨', 'ts': '🟦', 'tsx': '🟦',
-      'py': '🟩', 'java': '🟫', 'cpp': '⚪', 'c': '⚪',
-      'go': '🟦', 'rs': '🟫', 'rb': '🟥',
+    const iconClass = "h-3.5 w-3.5";
+    
+    switch (ext) {
+      // JavaScript/TypeScript
+      case 'js':
+      case 'jsx':
+        return <span className={`${iconClass} flex items-center justify-center text-yellow-400/80 font-bold text-xs`}>JS</span>;
+      case 'ts':
+      case 'tsx':
+        return <span className={`${iconClass} flex items-center justify-center text-blue-400/80 font-bold text-xs`}>TS</span>;
+      
+      // Python
+      case 'py':
+        return <span className={`${iconClass} flex items-center justify-center text-green-400/80 font-bold text-xs`}>PY</span>;
+      
+      // Java
+      case 'java':
+        return <span className={`${iconClass} flex items-center justify-center text-orange-400/80 font-bold text-xs`}>J</span>;
+      
+      // C/C++
+      case 'c':
+        return <span className={`${iconClass} flex items-center justify-center text-blue-300/80 font-bold text-xs`}>C</span>;
+      case 'cpp':
+      case 'cc':
+      case 'cxx':
+        return <span className={`${iconClass} flex items-center justify-center text-blue-300/80 font-bold text-xs`}>C+</span>;
       
       // Web files
-      'html': '🟧', 'css': '🟪', 'scss': '🟪', 'sass': '🟪',
+      case 'html':
+      case 'htm':
+        return <span className={`${iconClass} flex items-center justify-center text-orange-400/80 font-bold text-xs`}>H</span>;
+      case 'css':
+        return <span className={`${iconClass} flex items-center justify-center text-blue-400/80 font-bold text-xs`}>C</span>;
+      case 'scss':
+      case 'sass':
+        return <span className={`${iconClass} flex items-center justify-center text-pink-400/80 font-bold text-xs`}>S</span>;
       
-      // Data files
-      'json': '🟨', 'yaml': '🟨', 'yml': '🟨', 'xml': '🟨', 'toml': '🟨',
+      // Data/Config files
+      case 'json':
+        return <span className={`${iconClass} flex items-center justify-center text-yellow-400/80 font-bold text-xs`}>{}</span>;
+      case 'yaml':
+      case 'yml':
+        return <span className={`${iconClass} flex items-center justify-center text-purple-400/80 font-bold text-xs`}>Y</span>;
+      case 'xml':
+        return <span className={`${iconClass} flex items-center justify-center text-orange-400/80 font-bold text-xs`}>X</span>;
+      case 'toml':
+        return <span className={`${iconClass} flex items-center justify-center text-gray-400/80 font-bold text-xs`}>T</span>;
       
       // Documentation
-      'md': '📝', 'txt': '📄', 'rst': '📄',
+      case 'md':
+      case 'markdown':
+        return <span className={`${iconClass} flex items-center justify-center text-gray-300/80 font-bold text-xs`}>M</span>;
+      case 'txt':
+        return <FileText className={`${iconClass} text-gray-400/80`} />;
+      case 'rst':
+        return <span className={`${iconClass} flex items-center justify-center text-gray-400/80 font-bold text-xs`}>R</span>;
       
-      // Config
-      'dockerfile': '🐳', 'gitignore': '⚙️', 'env': '⚙️'
-    };
-    
-    return iconMap[ext] || '📄';
+      // Other languages
+      case 'go':
+        return <span className={`${iconClass} flex items-center justify-center text-cyan-400/80 font-bold text-xs`}>GO</span>;
+      case 'rs':
+        return <span className={`${iconClass} flex items-center justify-center text-orange-400/80 font-bold text-xs`}>RS</span>;
+      case 'rb':
+        return <span className={`${iconClass} flex items-center justify-center text-red-400/80 font-bold text-xs`}>RB</span>;
+      case 'php':
+        return <span className={`${iconClass} flex items-center justify-center text-purple-400/80 font-bold text-xs`}>P</span>;
+      case 'swift':
+        return <span className={`${iconClass} flex items-center justify-center text-orange-400/80 font-bold text-xs`}>SW</span>;
+      
+      // Special files
+      case 'dockerfile':
+        return <span className={`${iconClass} flex items-center justify-center text-blue-400/80 font-bold text-xs`}>🐳</span>;
+      case 'gitignore':
+        return <span className={`${iconClass} flex items-center justify-center text-gray-400/80 font-bold text-xs`}>G</span>;
+      case 'env':
+        return <span className={`${iconClass} flex items-center justify-center text-yellow-400/80 font-bold text-xs`}>E</span>;
+      
+      // Default
+      default:
+        return <FileText className={`${iconClass} text-gray-400/80`} />;
+    }
   };
 
   const renderNode = (node: FileNode, level: number = 0) => {
@@ -220,7 +281,7 @@ const CodebaseTree: React.FC<CodebaseTreeProps> = ({ sessionId, onFileSelect, on
           )}
           
           {/* File/folder icon */}
-          <div className="w-5 h-5 flex items-center justify-center mr-3 text-sm">
+          <div className="w-5 h-5 flex items-center justify-center mr-3">
             {node.type === 'directory' ? (
               <span className={isExpanded ? 'text-blue-400' : 'text-slate-400'}>
                 {isExpanded ? '📂' : '📁'}

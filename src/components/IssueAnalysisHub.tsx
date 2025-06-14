@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { X, Brain, Search, FileText, GitBranch, CheckCircle, AlertCircle, Loader2, Code, Bug, Settings, Zap, Eye, MessageSquare, Clock, Tag, ChevronRight, Play, Download, Copy, Check, ArrowRight, Lightbulb, Target, ListChecks, TestTube, Cpu, Database, Network, GitCommit, FileCode, ExternalLink } from 'lucide-react';
+import { X, Brain, Search, FileText, GitBranch, CheckCircle, AlertCircle, Loader2, Code, Bug, Settings, Zap, Eye, MessageSquare, Clock, Tag, ChevronRight, Play, Download, Copy, Check, ArrowRight, Lightbulb, Target, ListChecks, TestTube, Cpu, Database, Network, GitCommit, FileCode, ExternalLink, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +8,7 @@ import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useToast } from '@/components/ui/use-toast';
-import { analyzeIssue, applyPatch, postAnalysisToGitHub } from '@/lib/api';
+import { analyzeIssue, applyPatch, postAnalysisToGitHub, getCachedAnalysis } from '@/lib/api';
 import { Diff, Hunk, parseDiff, getChangeKey } from 'react-diff-view';
 import 'react-diff-view/style/index.css';
 
@@ -84,6 +84,7 @@ interface AnalysisResult {
   reason?: string;
   pr_info?: any;
   error?: string;
+  cached_at?: number;
   pr_detection?: {
     has_existing_prs: boolean;
     pr_state?: string;
@@ -731,7 +732,7 @@ const IssueAnalysisHub: React.FC<IssueAnalysisHubProps> = ({
     }
   ];
 
-  const runAnalysis = useCallback(async () => {
+  const runAnalysis = useCallback(async (forceNew: boolean = false) => {
     if (!selectedIssue) return;
 
     setIsAnalyzing(true);
@@ -739,6 +740,60 @@ const IssueAnalysisHub: React.FC<IssueAnalysisHubProps> = ({
     setAnalysisResult(null);
 
     try {
+      // Check for cached analysis first (unless forced to run new)
+      if (!forceNew) {
+        try {
+          const cachedResponse = await getCachedAnalysis(selectedIssue.url);
+          if (cachedResponse.found && cachedResponse.analysis) {
+            // Transform cached result to match component expectations
+            const cachedAnalysis = cachedResponse.analysis;
+            const result: AnalysisResult = {
+              status: cachedAnalysis.status === 'completed' ? 'completed' : 
+                      cachedAnalysis.status === 'error' ? 'error' : 'completed',
+              cached_at: cachedAnalysis.cached_at
+            };
+            
+            // Add cached properties
+            if (cachedAnalysis.final_result?.classification) {
+              result.classification = {
+                label: cachedAnalysis.final_result.classification.category,
+                confidence: cachedAnalysis.final_result.classification.confidence
+              };
+            }
+            
+            if (cachedAnalysis.final_result?.remediation_plan) {
+              result.plan_markdown = cachedAnalysis.final_result.remediation_plan;
+            }
+            
+            result.explorer = {
+              related_files: cachedAnalysis.final_result?.related_files ? { 
+                files: cachedAnalysis.final_result.related_files 
+              } : null,
+              react_analysis: null,
+              agentic_insights: cachedAnalysis.steps?.find((step: any) => step.step === "Codebase Analysis")?.result || null
+            };
+            
+            // Add PR detection results
+            const prDetectionStep = cachedAnalysis.steps?.find((step: any) => step.step === "PR Detection");
+            if (prDetectionStep?.result) {
+              result.pr_detection = prDetectionStep.result;
+            }
+            
+            setAnalysisResult(result);
+            setCurrentStep(steps.length - 1);
+            
+            toast({
+              title: "Cached analysis loaded",
+              description: `Using cached analysis from ${new Date(cachedAnalysis.cached_at * 1000).toLocaleString()}`,
+            });
+            
+            return;
+          }
+        } catch (cacheError) {
+          console.log('No cached analysis found, running fresh analysis');
+        }
+      }
+
       // Simulate step progression with realistic timing
       const stepTimings = [1000, 1500, 0]; // Last step runs during actual API call
       
@@ -1089,13 +1144,26 @@ const IssueAnalysisHub: React.FC<IssueAnalysisHubProps> = ({
                 {/* Start Analysis Button */}
                 {selectedIssue && !isAnalyzing && !analysisResult && (
                   <div className="text-center py-12">
-                    <Button
-                      onClick={runAnalysis}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      <Brain className="h-4 w-4 mr-2" />
-                      Analyze Issue
-                    </Button>
+                    <div className="space-y-3">
+                      <Button
+                        onClick={() => runAnalysis(false)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        <Brain className="h-4 w-4 mr-2" />
+                        Analyze Issue
+                      </Button>
+                      <div className="flex items-center justify-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => runAnalysis(true)}
+                          className="text-gray-400 border-gray-600 hover:bg-gray-700"
+                        >
+                          <RefreshCw className="h-3 w-3 mr-1" />
+                          Force New Analysis
+                        </Button>
+                      </div>
+                    </div>
                     <p className="text-sm text-gray-500 mt-3">
                       Deep analysis typically takes 1-2 minutes
                     </p>
@@ -1124,16 +1192,37 @@ const IssueAnalysisHub: React.FC<IssueAnalysisHubProps> = ({
                   <div className="space-y-4">
                     {/* Analysis Results Header */}
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-medium text-white">Analysis Results</h3>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={copyTriageReport}
-                        className="text-gray-400 hover:text-white h-8"
-                      >
-                        {reportCopied ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
-                        {reportCopied ? 'Copied!' : 'Copy Report'}
-                      </Button>
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-lg font-medium text-white">Analysis Results</h3>
+                        {analysisResult.cached_at && (
+                          <div className="flex items-center gap-1 px-2 py-1 bg-blue-500/10 border border-blue-500/20 rounded text-xs text-blue-400">
+                            <Clock className="h-3 w-3" />
+                            Cached {new Date(analysisResult.cached_at * 1000).toLocaleDateString()}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {analysisResult.cached_at && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => runAnalysis(true)}
+                            className="text-gray-400 hover:text-white h-8"
+                          >
+                            <RefreshCw className="h-3 w-3 mr-1" />
+                            Refresh
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={copyTriageReport}
+                          className="text-gray-400 hover:text-white h-8"
+                        >
+                          {reportCopied ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
+                          {reportCopied ? 'Copied!' : 'Copy Report'}
+                        </Button>
+                      </div>
                     </div>
                     {/* Status */}
                     {analysisResult.status !== 'completed' && (

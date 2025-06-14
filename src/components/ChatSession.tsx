@@ -404,277 +404,85 @@ const formatDiffForDisplay = (diff: string): string => {
     .join('\n');
 };
 
-// Enhanced Agent Trace Panel - Showcasing AI Intelligence with Style
+// Enhanced Agent Trace Panel - Simplified and Clean
 const AgenticTracePanel: React.FC<{ steps: AgenticStep[], isStreaming?: boolean }> = ({ steps, isStreaming }) => {
-  const [visibleSteps, setVisibleSteps] = useState<AgenticStep[]>([]);
-  const [currentStep, setCurrentStep] = useState<AgenticStep | null>(null);
-  const [isExpanded, setIsExpanded] = useState(false); // Always start collapsed
+  const [isExpanded, setIsExpanded] = useState(false);
 
-  // Show steps with smooth animation
-  useEffect(() => {
-    if (steps.length === 0) {
-      setVisibleSteps([]);
-      return;
-    }
-
-    const showSteps = async () => {
-      for (let i = 0; i < steps.length; i++) {
-        if (i >= visibleSteps.length) {
-          await new Promise(resolve => setTimeout(resolve, 300)); // Faster animation
-          setVisibleSteps(prev => [...prev, steps[i]]);
-        }
-      }
-    };
-
-    showSteps();
-  }, [steps.length]);
-
-  // Set current step for streaming but don't auto-expand
-  useEffect(() => {
-    if (isStreaming && visibleSteps.length > 0) {
-      setCurrentStep(visibleSteps[visibleSteps.length - 1]);
-      // Remove any auto-expansion logic here
-    } else {
-      setCurrentStep(null);
-    }
-  }, [visibleSteps, isStreaming]);
-
-  const getStepIcon = (type: string, isActive: boolean = false) => {
-    const iconClass = `h-5 w-5 ${isActive ? 'animate-pulse' : ''}`;
-    
+  const getStepIcon = (type: string) => {
     switch (type) {
-      case 'thought':
-        return <Brain className={`${iconClass} text-purple-400`} />;
-      case 'action':
-        return <Zap className={`${iconClass} text-blue-400`} />;
-      case 'observation':
-        return <Eye className={`${iconClass} text-green-400`} />;
-      case 'answer':
-        return <MessageSquare className={`${iconClass} text-teal-400`} />;
-      case 'status':
-        return <RefreshCw className={`${iconClass} text-yellow-400 ${isActive ? 'animate-spin' : ''}`} />;
-      case 'error':
-        return <AlertCircleIcon className={`${iconClass} text-red-400`} />;
-      default:
-        return <span className="text-gray-400">🤔</span>;
-    }
-  };
-
-  const getStepTheme = (type: string) => {
-    switch (type) {
-      case 'thought':
-        return {
-          bg: 'bg-gradient-to-r from-purple-900/30 to-purple-800/20',
-          border: 'border-purple-500/30',
-          text: 'text-purple-200',
-          accent: 'bg-purple-500/20'
-        };
-      case 'action':
-        return {
-          bg: 'bg-gradient-to-r from-blue-900/30 to-blue-800/20',
-          border: 'border-blue-500/30',
-          text: 'text-blue-200',
-          accent: 'bg-blue-500/20'
-        };
-      case 'observation':
-        return {
-          bg: 'bg-gradient-to-r from-green-900/30 to-green-800/20',
-          border: 'border-green-500/30',
-          text: 'text-green-200',
-          accent: 'bg-green-500/20'
-        };
-      case 'answer':
-        return {
-          bg: 'bg-gradient-to-r from-teal-900/30 to-teal-800/20',
-          border: 'border-teal-500/30',
-          text: 'text-teal-200',
-          accent: 'bg-teal-500/20'
-        };
-      case 'status':
-        return {
-          bg: 'bg-gradient-to-r from-yellow-900/30 to-yellow-800/20',
-          border: 'border-yellow-500/30',
-          text: 'text-yellow-200',
-          accent: 'bg-yellow-500/20'
-        };
-      case 'error':
-        return {
-          bg: 'bg-gradient-to-r from-red-900/30 to-red-800/20',
-          border: 'border-red-500/30',
-          text: 'text-red-200',
-          accent: 'bg-red-500/20'
-        };
-      default:
-        return {
-          bg: 'bg-gradient-to-r from-gray-900/30 to-gray-800/20',
-          border: 'border-gray-500/30',
-          text: 'text-gray-200',
-          accent: 'bg-gray-500/20'
-        };
+      case 'thought': return '💭';
+      case 'action': return '⚡';
+      case 'observation': return '👁️';
+      case 'answer': return '💬';
+      case 'status': return '⏳';
+      case 'error': return '❌';
+      default: return '•';
     }
   };
 
   const formatStepContent = (content: string, type: string) => {
-    // Enhanced content formatting for different step types
     if (type === 'observation' || type === 'action') {
       try {
         const parsed = JSON.parse(content);
         return `\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\``;
       } catch (e) {
-        // Only format file paths when they appear in technical contexts (lists, mentions, etc.)
-        // Don't format them in natural sentences
-        const lines = content.split('\n');
-        let hasFormattedContent = false;
-        const formattedLines = lines.map(line => {
-          const trimmed = line.trim();
-          
-          // Only format files in these contexts:
-          // - Lines that start with bullets, dashes, or numbers (lists)
-          // - Lines that contain "file:", "Found:", "Reading:", etc.
-          // - Lines that are mostly just a file path
-          const isList = /^[-*•\d+.]\s/.test(trimmed);
-          const isTechnicalContext = /^(Found|Reading|Analyzing|File|Path|Directory|Folder):/i.test(trimmed);
-          const isMostlyFilePath = /^[\w\-./]+\.[a-z]{1,4}$/i.test(trimmed);
-          
-          if (isList || isTechnicalContext || isMostlyFilePath) {
-            const fileRegex = /\b([\w\-./]+\.(js|jsx|ts|tsx|py|json|md|txt|yml|yaml|css|html|php|rb|go|rs|java|cpp|c|h|sh|sql))\b/gi;
-            const formatted = line.replace(fileRegex, '`$1`');
-            if (formatted !== line) hasFormattedContent = true;
-            return formatted;
-          }
-          
-          return line;
-        });
-        
-        return hasFormattedContent ? formattedLines.join('\n') : content;
+        return content;
       }
     }
     return content;
   };
 
-  if (!visibleSteps.length && !isStreaming) return null;
+  if (!steps.length && !isStreaming) return null;
 
   return (
-    <div className="mb-4 border border-gray-700/30 rounded-lg bg-gray-900/60 backdrop-blur-sm shadow-sm">
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-700/30 bg-gray-800/30">
+    <div className="mb-4 border border-gray-700/30 rounded-lg bg-gray-900/40">
+      {/* Simple Header */}
+      <div className="px-4 py-3 border-b border-gray-700/30">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-1.5 rounded-md bg-blue-500/10 border border-blue-500/20">
-              <Brain className="h-4 w-4 text-blue-400" />
-            </div>
-            <div>
-              <h3 className="text-base font-medium text-white">AI Reasoning Process</h3>
-              <p className="text-xs text-gray-400">
-                {isStreaming ? 'Actively thinking...' : `Completed ${visibleSteps.length} reasoning steps`}
-              </p>
-            </div>
-          </div>
           <div className="flex items-center gap-2">
+            <span className="text-blue-400">🧠</span>
+            <span className="text-sm font-medium text-white">AI Reasoning</span>
             {isStreaming && (
-              <div className="flex items-center gap-2 text-xs text-blue-400">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                Processing
-              </div>
+              <span className="text-xs text-blue-400">Processing...</span>
             )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="text-gray-400 hover:text-gray-200 text-xs px-2"
-            >
-              {isExpanded ? 'Collapse' : 'Expand'}
-            </Button>
           </div>
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-xs text-gray-400 hover:text-gray-200"
+          >
+            {isExpanded ? 'Hide' : 'Show'} ({steps.length})
+          </button>
         </div>
       </div>
 
       {/* Steps Content */}
       {isExpanded && (
-        <div className="p-5 space-y-4">
-          {visibleSteps.map((step, index) => {
-            const theme = getStepTheme(step.type);
-            const isCurrentStep = currentStep === step;
-            const formattedContent = formatStepContent(step.content, step.type);
-            
-            return (
-              <div 
-                key={`${step.type}-${index}`}
-                className={`relative transform transition-all duration-500 ease-out ${
-                  isCurrentStep ? 'scale-[1.02]' : ''
-                }`}
-              >
-                {/* Step indicator line */}
-                {index < visibleSteps.length - 1 && (
-                  <div className="absolute left-7 top-16 w-0.5 h-8 bg-gradient-to-b from-gray-600 to-transparent"></div>
-                )}
-                
-                <div className={`rounded-lg border ${theme.border} ${theme.bg} backdrop-blur-sm overflow-hidden transition-all duration-300 ${
-                  isCurrentStep ? 'ring-1 ring-blue-400/50 shadow-lg' : 'hover:shadow-md'
-                }`}>
-                  {/* Step Header */}
-                  <div className="flex items-start gap-4 p-4">
-                    <div className={`flex-shrink-0 p-2 rounded-lg ${theme.accent} border ${theme.border}`}>
-                      {getStepIcon(step.type, isCurrentStep)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h4 className="text-lg font-semibold text-white capitalize">
-                          {step.type}
-                        </h4>
-                        <span className="text-xs bg-gray-700/50 text-gray-300 px-2 py-1 rounded-full">
-                          Step {index + 1}
-                        </span>
-                        {isCurrentStep && (
-                          <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full animate-pulse">
-                            Active
-                          </span>
-                        )}
-                      </div>
-                      
-                      {/* Step Content */}
-                      <div className={`${theme.text} leading-relaxed`}>
-                        <ReactMarkdown
-                          components={{
-                            ...MarkdownComponents,
-                            p: ({ children, ...props }: any) => (
-                              <p className="my-2 leading-relaxed" {...props}>{children}</p>
-                            ),
-                            code: ({ node, inline, className, children, ...props }: any) => {
-                              if (!inline) {
-                                return MarkdownComponents.code({ node, inline, className, children, ...props });
-                              }
-                              return (
-                                <code className="font-mono text-emerald-300 bg-gray-800/60 px-1.5 py-0.5 rounded text-sm" {...props}>
-                                  {children}
-                                </code>
-                              );
-                            }
-                          }}
-                          remarkPlugins={[remarkGfm]}
-                        >
-                          {formattedContent}
-                        </ReactMarkdown>
-                      </div>
-                    </div>
-                  </div>
+        <div className="p-4 space-y-3">
+          {steps.map((step, index) => (
+            <div key={index} className="flex gap-3">
+              <span className="text-sm mt-0.5 flex-shrink-0">
+                {getStepIcon(step.type)}
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs text-gray-400 mb-1 capitalize">
+                  {step.type}
+                </div>
+                <div className="text-sm text-gray-200">
+                  <ReactMarkdown
+                    components={MarkdownComponents}
+                    remarkPlugins={[remarkGfm]}
+                  >
+                    {formatStepContent(step.content, step.type)}
+                  </ReactMarkdown>
                 </div>
               </div>
-            );
-          })}
+            </div>
+          ))}
           
-          {/* Active thinking indicator */}
           {isStreaming && (
-            <div className="rounded-lg border border-blue-500/30 bg-gradient-to-r from-blue-900/30 to-blue-800/20 backdrop-blur-sm">
-              <div className="flex items-center gap-4 p-4">
-                <div className="flex-shrink-0 p-2 rounded-lg bg-blue-500/20 border border-blue-500/30">
-                  <Loader2 className="h-5 w-5 text-blue-400 animate-spin" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-lg font-semibold text-white mb-1">Analyzing...</h4>
-                  <p className="text-blue-200">The AI is processing your request and gathering relevant context.</p>
-                </div>
-              </div>
+            <div className="flex gap-3">
+              <span className="text-sm mt-0.5">⏳</span>
+              <div className="text-sm text-gray-400">Thinking...</div>
             </div>
           )}
         </div>
@@ -947,18 +755,17 @@ const MarkdownComponents = {
     const isSimpleValue = !isDiff && content.length < 30 && !content.includes('\n') && !/[{}[\]();]/.test(content);
     
     if (inline || isFilePath || isFolderPath || isShortCommand || isSimpleValue) {
-      // Enhanced inline code with better contrast (file paths will be handled by the enhanced MarkdownComponents)
+      // Simplified inline code styling
       if (isFilePath) {
         return (
-          <code className="font-mono text-blue-400 bg-gray-800/60 px-2 py-1 rounded-md text-sm font-medium hover:bg-blue-900/40 cursor-pointer transition-colors" {...props}>
+          <code className="font-mono text-blue-400 bg-gray-800/40 px-1.5 py-0.5 rounded text-sm" {...props}>
             {content}
           </code>
         );
       }
       
-      // Enhanced inline code with better contrast
       return (
-        <code className="font-mono text-emerald-400 bg-gray-800/60 px-2 py-1 rounded-md text-sm font-medium" {...props}>
+        <code className="font-mono text-emerald-400 bg-gray-800/40 px-1.5 py-0.5 rounded text-sm" {...props}>
           {content}
         </code>
       );
@@ -970,228 +777,158 @@ const MarkdownComponents = {
     const hasCodePatterns = /[{}[\]();]/.test(content) || /^(import|from|def|class|if __name__|const|let|var|function|export)\s/m.test(content);
     
     if (!hasMultipleLines && !isSubstantialCode && !hasCodePatterns) {
-      // Treat as inline code even if marked as block
       return (
-        <code className="font-mono text-emerald-400 bg-gray-800/60 px-2 py-1 rounded-md text-sm font-medium" {...props}>
+        <code className="font-mono text-emerald-400 bg-gray-800/40 px-1.5 py-0.5 rounded text-sm" {...props}>
           {content}
         </code>
       );
     }
     
-    // Advanced language detection for better syntax highlighting (only for actual code blocks)
-    let detectedLang = language;
-    if (detectedLang === 'plaintext' && (hasCodePatterns || content.length > 100)) {
-      if (/^(import|from|def|class|if __name__)\s/m.test(content)) detectedLang = 'python';
-      else if (/^(const|let|var|function|import|export)\s/m.test(content)) detectedLang = 'javascript';
-      else if (/:\s*[A-Z][\w<>]+/m.test(content)) detectedLang = 'typescript';
-      else if (/^(<!DOCTYPE|<html|<div|<body)/m.test(content)) detectedLang = 'html';
-      else if (/^(\.|#|body|html|\*)\s*\{/m.test(content)) detectedLang = 'css';
-      else if (/^(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER)\s/im.test(content)) detectedLang = 'sql';
-      else if (/^(\$|npm|yarn|sudo|apt|brew)\s/m.test(content)) detectedLang = 'bash';
-      else if (/^\{.*\}$/.test(content.trim()) && content.length > 20) detectedLang = 'json';
-    }
-    
-          return (
-        <div className="my-6 rounded-xl overflow-hidden border border-gray-600 bg-[#0d1117] shadow-lg">
-          {/* GitHub-style Code Block Header */}
-          <div className="flex items-center justify-between bg-[#161b22] px-4 py-3 border-b border-gray-600">
-            <div className="flex items-center gap-3">
-              <div className="flex gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
-                <div className="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
-                <div className="w-3 h-3 rounded-full bg-[#27ca3f]"></div>
-              </div>
-              <span className="text-gray-300 font-mono text-sm font-medium">{detectedLang}</span>
-              {content.split('\n').length > 5 && (
-                <span className="text-gray-500 text-xs bg-gray-800 px-2 py-1 rounded-md">
-                  {content.split('\n').length} lines
-                </span>
-              )}
-            </div>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigator.clipboard.writeText(content)}
-              className="text-gray-300 hover:text-white hover:bg-gray-700 px-3 py-1.5 text-sm border border-gray-600 hover:border-gray-500 rounded-md transition-all duration-200"
-            >
-              <Copy className="w-4 h-4 mr-2" />
-              Copy
-            </Button>
-          </div>
+    // Simplified code block - remove the elaborate header
+    return (
+      <div className="my-4 rounded-lg overflow-hidden border border-gray-700/50 bg-gray-900/50">
+        <div className="relative">
+          <SyntaxHighlighter
+            style={vscDarkPlus}
+            language={language}
+            PreTag="div"
+            showLineNumbers={content.split('\n').length > 5}
+            wrapLines={true}
+            customStyle={{
+              margin: 0,
+              padding: '16px',
+              background: 'transparent',
+              fontSize: '13px',
+              lineHeight: '1.4',
+              fontFamily: "'SF Mono', Monaco, Consolas, monospace",
+            }}
+            lineNumberStyle={{
+              color: '#6b7280',
+              paddingRight: '12px',
+              minWidth: '32px',
+              textAlign: 'right',
+              fontSize: '12px',
+              userSelect: 'none',
+            }}
+            {...props}
+          >
+            {content}
+          </SyntaxHighlighter>
           
-          {/* Enhanced Syntax Highlighter */}
-          <div className="relative bg-[#0d1117]">
-            <SyntaxHighlighter
-              style={{
-                ...vscDarkPlus,
-                'hljs': {
-                  ...vscDarkPlus['hljs'],
-                  background: '#0d1117',
-                  color: '#e6edf3'
-                }
-              }}
-              language={detectedLang}
-              PreTag="div"
-              showLineNumbers={content.split('\n').length > 3}
-              wrapLines={true}
-              customStyle={{
-                margin: 0,
-                padding: '20px',
-                background: '#0d1117',
-                fontSize: '14px',
-                lineHeight: '1.5',
-                fontFamily: '"SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace',
-                borderRadius: '0',
-              }}
-              lineNumberStyle={{
-                color: '#7d8590',
-                backgroundColor: 'transparent',
-                paddingRight: '12px',
-                minWidth: '40px',
-                textAlign: 'right',
-                fontSize: '13px',
-                borderRight: '1px solid #30363d',
-                marginRight: '16px',
-                userSelect: 'none',
-              }}
-              {...props}
-            >
-              {content}
-            </SyntaxHighlighter>
-          </div>
+          {/* Simple copy button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigator.clipboard.writeText(content)}
+            className="absolute top-2 right-2 opacity-0 hover:opacity-100 transition-opacity text-gray-400 hover:text-white h-8 w-8 p-0"
+          >
+            <Copy className="w-3 h-3" />
+          </Button>
         </div>
-      );
+      </div>
+    );
   },
 
-  // Enhanced Headers with better visual hierarchy
+  // Simplified headers
   h1: ({ node, children, ...props }: any) => (
-    <h1 className="text-lg font-bold text-white mt-8 mb-4 pb-3 border-b border-gray-600/50" {...props}>
+    <h1 className="text-lg font-semibold text-white mt-6 mb-3" {...props}>
       {children}
     </h1>
   ),
   h2: ({ node, children, ...props }: any) => (
-    <h2 className="text-base font-semibold text-white mt-6 mb-3" {...props}>
+    <h2 className="text-base font-medium text-white mt-5 mb-2" {...props}>
       {children}
     </h2>
   ),
   h3: ({ node, children, ...props }: any) => (
-    <h3 className="text-sm font-semibold text-white mt-5 mb-2" {...props}>
+    <h3 className="text-sm font-medium text-gray-200 mt-4 mb-2" {...props}>
       {children}
     </h3>
   ),
-  h4: ({ node, children, ...props }: any) => (
-    <h4 className="text-sm font-medium text-gray-200 my-2" {...props}>
-      {children}
-    </h4>
+
+  // Cleaner lists
+  ul: ({ node, ...props }: any) => (
+    <ul className="space-y-1 my-3 ml-4" {...props} />
+  ),
+  ol: ({ node, ...props }: any) => (
+    <ol className="space-y-1 my-3 ml-4" {...props} />
+  ),
+  li: ({ node, children, ordered, index, ...props }: any) => (
+    <li className="flex items-start gap-2 text-gray-200 text-sm leading-relaxed" {...props}>
+      <span className="text-gray-400 text-xs mt-1 flex-shrink-0">
+        {ordered ? `${(index || 0) + 1}.` : '•'}
+      </span>
+      <div className="flex-1">{children}</div>
+    </li>
   ),
 
-  // Enhanced Lists with proper hierarchy and spacing
-  ul: ({ node, depth = 0, ...props }: any) => (
-    <ul className={`space-y-2 my-4 ${depth > 0 ? 'ml-6' : ''}`} {...props} />
+  // Simplified paragraphs
+  p: ({ node, children, ...props }: any) => (
+    <p className="mb-3 leading-relaxed text-gray-200 text-sm" {...props}>{children}</p>
   ),
-  ol: ({ node, depth = 0, ...props }: any) => (
-    <ol className={`space-y-2 my-4 ${depth > 0 ? 'ml-6' : ''}`} {...props} />
-  ),
-  li: ({ node, children, ordered, index, ...props }: any) => {
-    // Determine bullet style based on nesting level
-    const getBullet = (isOrdered: boolean, idx: number) => {
-      if (isOrdered) {
-        return <span className="text-blue-400 font-medium min-w-[24px]">{idx + 1}.</span>;
-      }
-      return <span className="text-blue-400 text-lg leading-none">•</span>;
-    };
 
-         return (
-       <li className="flex items-start gap-3 leading-relaxed text-gray-200 text-sm" {...props}>
-         <div className="flex-shrink-0 mt-0.5">
-           {getBullet(ordered, index || 0)}
-         </div>
-         <div className="flex-1 min-w-0">{children}</div>
-       </li>
-     );
-  },
-
-  // Enhanced Paragraphs with better spacing
-  p: ({ node, children, ...props }: any) => {
-    // Check if the paragraph contains code blocks to avoid nesting issues
-    const hasCodeBlock = React.Children.toArray(children).some((child: any) => 
-      React.isValidElement(child) && child.type === 'code'
-    );
-    
-    if (hasCodeBlock) {
-      return <div className="mb-4 leading-relaxed text-gray-200 text-sm" {...props}>{children}</div>;
-    }
-    
-    return <p className="mb-4 leading-relaxed text-gray-200 text-sm" {...props}>{children}</p>;
-  },
-
-  // Enhanced Blockquotes for callouts and important info
+  // Minimal blockquotes
   blockquote: ({ node, children, ...props }: any) => (
-    <div className="my-8 relative">
-      <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-full"></div>
-      <blockquote className="ml-6 pl-6 py-5 bg-blue-950/30 border border-blue-500/30 rounded-r-lg" {...props}>
-        <div className="text-blue-100 italic leading-relaxed text-base">{children}</div>
-      </blockquote>
+    <div className="my-4 pl-4 border-l-2 border-blue-500/30 bg-blue-950/20 py-2 rounded-r">
+      <div className="text-blue-100 text-sm leading-relaxed">{children}</div>
     </div>
   ),
 
-  // Enhanced Links
+  // Clean links
   a: ({ node, ...props }: any) => (
     <a 
-      className="text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-all duration-200 hover:bg-blue-400/10 px-1 py-0.5 rounded-md" 
+      className="text-blue-400 hover:text-blue-300 underline underline-offset-2" 
       target="_blank" 
       rel="noopener noreferrer" 
       {...props} 
     />
   ),
 
-  // Enhanced Tables with better styling
+  // Simplified tables
   table: ({ node, ...props }: any) => (
-    <div className="overflow-x-auto my-6 rounded-xl border border-gray-600/40 shadow-xl bg-gray-900/50 backdrop-blur-sm">
-      <table className="min-w-full divide-y divide-gray-600/50" {...props} />
+    <div className="overflow-x-auto my-4 rounded-lg border border-gray-700/40">
+      <table className="min-w-full divide-y divide-gray-700/40" {...props} />
     </div>
   ),
   thead: ({ node, ...props }: any) => (
-    <thead className="bg-gradient-to-r from-gray-800/80 to-gray-800/60" {...props} />
+    <thead className="bg-gray-800/40" {...props} />
   ),
   tbody: ({ node, ...props }: any) => (
-    <tbody className="divide-y divide-gray-700/40 bg-gray-900/30" {...props} />
+    <tbody className="divide-y divide-gray-700/20" {...props} />
   ),
   tr: ({ node, ...props }: any) => (
-    <tr className="hover:bg-gray-700/30 transition-colors duration-200" {...props} />
+    <tr className="hover:bg-gray-800/20" {...props} />
   ),
   th: ({ node, ...props }: any) => (
-    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-200 uppercase tracking-wider border-b border-gray-600/30" {...props} />
+    <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider" {...props} />
   ),
   td: ({ node, ...props }: any) => (
-    <td className="px-6 py-4 text-sm text-gray-300 border-b border-gray-700/20" {...props} />
+    <td className="px-4 py-2 text-sm text-gray-300" {...props} />
   ),
 
-  // Enhanced formatting elements
+  // Clean formatting
   pre: ({ node, ...props }: any) => (
     <pre className="overflow-auto p-0 bg-transparent m-0" {...props} />
   ),
   hr: ({ node, ...props }: any) => (
-    <hr className="border-0 h-px bg-gradient-to-r from-transparent via-gray-500 to-transparent my-8" {...props} />
+    <hr className="border-0 h-px bg-gray-600 my-6" {...props} />
   ),
   strong: ({ node, children, ...props }: any) => {
-    // Check if this strong element looks like a section header (ends with colon)
     const text = React.Children.toArray(children).join('');
     const isHeader = text.endsWith(':') || text.match(/^\d+\.\s/);
     
     if (isHeader) {
       return (
-        <strong className="block font-bold text-white mt-6 mb-3 text-base" {...props}>
+        <strong className="block font-medium text-white mt-4 mb-2" {...props}>
           {children}
         </strong>
       );
     }
     
-    return <strong className="font-semibold text-white" {...props} />;
+    return <strong className="font-medium text-white" {...props} />;
   },
   em: ({ node, ...props }: any) => (
-    <em className="italic text-gray-300 font-medium" {...props} />
+    <em className="italic text-gray-300" {...props} />
   ),
 };
 
@@ -1589,29 +1326,25 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSessionMessa
               <div className="px-6 py-8">
                 <div className="mx-auto max-w-4xl space-y-8">
                   {session.messages.length === 0 ? (
-                    <div className="text-center py-16">
-                      <div className="w-20 h-20 bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-2xl">
-                        <FileText className="h-10 w-10 text-white" />
+                    <div className="text-center py-20">
+                      <div className="w-16 h-16 bg-gray-800 rounded-2xl mx-auto mb-6 flex items-center justify-center">
+                        <FileText className="h-8 w-8 text-gray-400" />
                       </div>
-                      <h2 className="text-2xl font-bold text-white mb-3">
-                        Ready to chat!
+                      <h2 className="text-xl font-medium text-white mb-2">
+                        Ready to help
                       </h2>
-                      <p className="text-gray-400 text-lg mb-8 max-w-md mx-auto">
-                        Ask questions about the code, files, or repository structure.
+                      <p className="text-gray-400 mb-8 max-w-md mx-auto">
+                        Ask questions about the code, explore files, or discuss the repository structure.
                       </p>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto text-left">
-                        <div className="bg-gray-900/70 border border-gray-800 rounded-xl p-4 hover:bg-gray-900 transition-colors">
-                          <div className="text-green-400 mb-2">@</div>
-                          <p className="text-sm text-gray-300">Reference specific files with @ mentions</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-lg mx-auto text-left">
+                        <div className="bg-gray-800/50 border border-gray-700/50 rounded-lg p-3">
+                          <div className="text-blue-400 mb-1 text-sm">@filename</div>
+                          <p className="text-xs text-gray-400">Reference specific files</p>
                         </div>
-                        <div className="bg-gray-900/70 border border-gray-800 rounded-xl p-4 hover:bg-gray-900 transition-colors">
-                          <div className="text-yellow-400 mb-2">📁</div>
-                          <p className="text-sm text-gray-300">Reference folders with @folder/ to query entire directories</p>
-                        </div>
-                        <div className="bg-gray-900/70 border border-gray-800 rounded-xl p-4 hover:bg-gray-900 transition-colors">
-                          <div className="text-purple-400 mb-2">💬</div>
-                          <p className="text-sm text-gray-300">Ask about code patterns and structure</p>
+                        <div className="bg-gray-800/50 border border-gray-700/50 rounded-lg p-3">
+                          <div className="text-green-400 mb-1 text-sm">@folder/</div>
+                          <p className="text-xs text-gray-400">Query entire directories</p>
                         </div>
                       </div>
                     </div>
@@ -1666,20 +1399,20 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSessionMessa
                     })
                   )}
                   
-                  {/* Loading Indicator */}
+                  {/* Simplified Loading Indicator */}
                   {isLoading && (
-                    <div className="flex items-start space-x-4 mb-6">
-                      <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-semibold shadow-lg">
+                    <div className="flex items-start space-x-3 mb-6">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-gray-700 flex items-center justify-center text-white text-sm font-medium">
                         AI
                       </div>
-                      <div className="flex-1 min-w-0 bg-gray-800/40 border border-gray-700/40 rounded-2xl p-6 shadow-lg backdrop-blur-sm">
-                        <div className="flex items-center space-x-4">
+                      <div className="flex-1 bg-gray-800/30 border border-gray-700/30 rounded-lg p-4">
+                        <div className="flex items-center space-x-3">
                           <div className="flex space-x-1">
-                            <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                            <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                            <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                            <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                            <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                            <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                           </div>
-                          <span className="text-gray-300 text-sm">Analyzing your request...</span>
+                          <span className="text-gray-300 text-sm">Thinking...</span>
                         </div>
                       </div>
                     </div>
