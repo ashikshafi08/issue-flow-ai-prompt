@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { File, GitBranch, Bug, Code, ChevronDown, ChevronRight, ExternalLink, Copy, Check, Terminal, Loader2 } from 'lucide-react';
+import { File, GitBranch, Bug, Code, ChevronDown, ChevronRight, ExternalLink, Copy, Check, Terminal, Loader2, Brain, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 import ReactMarkdown from 'react-markdown';
@@ -543,8 +543,6 @@ const FileHoverPreview = ({ filePath, sessionId, messageContent }: { filePath: s
     <>
       <code 
         className="cursor-pointer text-blue-400 hover:text-blue-300 hover:underline bg-gray-800/60 px-1.5 py-0.5 rounded text-sm font-mono transition-colors"
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
       >
         {filePath}
       </code>
@@ -578,13 +576,8 @@ const EnhancedChatMessage: React.FC<EnhancedChatMessageProps> = ({
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
-  // Enhanced file path detection regex
   const isFilePath = (text: string): boolean => {
-    // Detects paths ending with common file extensions
     const result = /[\w\-\/\.]+\.(js|jsx|ts|tsx|py|java|cpp|c|h|hpp|rs|go|php|rb|css|scss|html|xml|json|yaml|yml|md|sh|sql|txt)$/i.test(text);
-    if (result) {
-      console.log('🔍 File path detected:', text);
-    }
     return result;
   };
 
@@ -635,38 +628,30 @@ const EnhancedChatMessage: React.FC<EnhancedChatMessageProps> = ({
 
   const customMarkdownComponents = {
     code({ node, inline, className, children, ...props }: any) {
-      console.log('🛠️ customMarkdownComponents.code called:', { inline, children: String(children), className });
-      
       const match = /language-(\w+)/.exec(className || '');
       const text = String(children).trim();
       const codeId = `code-${Math.random().toString(36).substr(2, 9)}`;
       
-      // Handle inline code that might be file paths
       if (inline) {
-        console.log('📝 Processing inline code:', text);
         if (isFilePath(text)) {
-          console.log('✅ File path detected, rendering FileHoverPreview');
           return <FileHoverPreview filePath={text} sessionId={sessionId} messageContent={content} />;
         }
         
         return (
-          <code className="bg-gray-800 text-blue-300 px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
+          <code className="bg-gray-700/60 text-blue-300 px-2 py-1 rounded text-sm font-mono" {...props}>
             {children}
           </code>
         );
       }
       
-      // ALSO handle when inline is undefined but content looks like a file path (common with certain markdown parsers)
       if ((inline === undefined || inline === false) && isFilePath(text) && !text.includes('\n') && text.length < 100) {
-        console.log('✅ File path detected in non-inline code, rendering FileHoverPreview');
         return <FileHoverPreview filePath={text} sessionId={sessionId} messageContent={content} />;
       }
       
-      // Handle code blocks
       if (match) {
         return (
-          <div className="relative group">
-            <div className="flex items-center justify-between bg-gray-800 px-4 py-2 rounded-t-lg border-b border-gray-700">
+          <div className="relative group my-4">
+            <div className="flex items-center justify-between bg-gray-800/80 px-4 py-2 rounded-t-lg border-b border-gray-700">
               <span className="text-xs text-gray-400 font-medium">{match[1]}</span>
               <Button
                 variant="ghost"
@@ -685,7 +670,7 @@ const EnhancedChatMessage: React.FC<EnhancedChatMessageProps> = ({
               style={oneDark}
               language={match[1]}
               PreTag="div"
-              className="rounded-t-none !mt-0"
+              className="rounded-t-none !mt-0 !mb-0"
               {...props}
             >
               {text}
@@ -695,94 +680,147 @@ const EnhancedChatMessage: React.FC<EnhancedChatMessageProps> = ({
       }
 
       return (
-        <code className="bg-gray-800 text-blue-300 px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
+        <code className="bg-gray-700/60 text-blue-300 px-2 py-1 rounded text-sm font-mono" {...props}>
           {children}
         </code>
+      );
+    },
+    
+    // Enhanced paragraph spacing
+    p({ children, ...props }) {
+      return <p className="mb-4 leading-relaxed" {...props}>{children}</p>;
+    },
+    
+    // Enhanced heading spacing
+    h1({ children, ...props }) {
+      return <h1 className="text-xl font-bold mb-4 mt-6 text-white" {...props}>{children}</h1>;
+    },
+    h2({ children, ...props }) {
+      return <h2 className="text-lg font-semibold mb-3 mt-5 text-white" {...props}>{children}</h2>;
+    },
+    h3({ children, ...props }) {
+      return <h3 className="text-base font-medium mb-3 mt-4 text-white" {...props}>{children}</h3>;
+    },
+    
+    // Enhanced list spacing
+    ul({ children, ...props }) {
+      return <ul className="mb-4 space-y-2 pl-4" {...props}>{children}</ul>;
+    },
+    ol({ children, ...props }) {
+      return <ol className="mb-4 space-y-2 pl-4" {...props}>{children}</ol>;
+    },
+    li({ children, ...props }) {
+      return <li className="leading-relaxed" {...props}>{children}</li>;
+    },
+    
+    // Enhanced blockquote
+    blockquote({ children, ...props }) {
+      return (
+        <blockquote className="border-l-4 border-blue-500 pl-4 my-4 italic text-gray-300 bg-gray-800/30 py-2 rounded-r" {...props}>
+          {children}
+        </blockquote>
       );
     }
   };
 
   return (
-    <div className={`flex gap-3 mb-6 ${role === 'user' ? 'justify-end' : 'justify-start'}`}>
-      {role === 'assistant' && (
-        <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-          <span className="text-sm font-bold text-white">AI</span>
+    <div className="w-full">
+      {/* Context Cards */}
+      {contextCards.length > 0 && (
+        <div className="mb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
+            <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+              Referenced Context
+            </span>
+          </div>
+          <div className="space-y-2">
+            {contextCards.map(renderContextCard)}
+          </div>
         </div>
       )}
 
-      <div className={`flex-1 max-w-3xl ${role === 'user' ? 'order-2' : ''}`}>
-        {/* Message Header */}
-        <div className={`flex items-center gap-2 mb-2 ${role === 'user' ? 'justify-end' : 'justify-start'}`}>
-          <span className="text-xs font-medium text-gray-400">
-            {role === 'user' ? 'You' : 'Assistant'}
-          </span>
-          <span className="text-xs text-gray-500">{formatTimestamp(timestamp)}</span>
+      {/* Main Message Bubble */}
+      <div className={`
+        rounded-2xl px-6 py-4 shadow-lg backdrop-blur-sm border
+        ${role === 'user' 
+          ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-tr-md border-blue-500/20' 
+          : 'bg-gray-800/60 border-gray-700/30 text-gray-100 rounded-tl-md'
+        }
+      `}>
+        {/* Timestamp */}
+        <div className={`text-xs mb-3 ${role === 'user' ? 'text-blue-100' : 'text-gray-400'}`}>
+          {formatTimestamp(timestamp)}
         </div>
 
-        {/* Context Cards */}
-        {contextCards.length > 0 && (
-          <div className="space-y-2 mb-4">
-            <div className="flex items-center gap-2">
-              <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
-              <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
-                Referenced Context
-              </span>
-            </div>
-            <div className="space-y-2">
-              {contextCards.map(renderContextCard)}
-            </div>
-          </div>
-        )}
-
-        {/* Main Message */}
-        <div className={`
-          rounded-lg px-4 py-3 shadow-sm
-          ${role === 'user' 
-            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white ml-8' 
-            : 'bg-gray-800/60 border border-gray-700/30 text-gray-100'
-          }
-        `}>
-          <div className="prose prose-sm prose-invert max-w-none">
-            <ReactMarkdown
-              components={customMarkdownComponents}
-              remarkPlugins={[remarkGfm]}
-            >
-              {content}
-            </ReactMarkdown>
-          </div>
+        {/* Message Content */}
+        <div className="prose prose-sm max-w-none">
+          <ReactMarkdown
+            components={customMarkdownComponents}
+            remarkPlugins={[remarkGfm]}
+            className={role === 'user' ? 'prose-invert' : 'prose-invert'}
+          >
+            {content}
+          </ReactMarkdown>
         </div>
-
-        {/* Agentic Steps */}
-        {agenticSteps.length > 0 && (
-          <div className="mt-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowAgenticSteps(!showAgenticSteps)}
-              className="text-xs text-gray-400 hover:text-gray-200 p-1 h-auto"
-            >
-              {showAgenticSteps ? (
-                <ChevronDown className="h-3 w-3 mr-1" />
-              ) : (
-                <ChevronRight className="h-3 w-3 mr-1" />
-              )}
-              View reasoning steps ({agenticSteps.length})
-            </Button>
-            
-            {showAgenticSteps && (
-              <div className="mt-2 space-y-1 pl-1">
-                {agenticSteps.map((s, index) => (
-                  <AgenticStep key={s.step || index} step={s} />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
-      {role === 'user' && (
-        <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full flex items-center justify-center order-3">
-          <span className="text-sm font-bold text-white">You</span>
+      {/* AI Reasoning Steps */}
+      {agenticSteps.length > 0 && role === 'assistant' && (
+        <div className="mt-4 bg-gray-800/30 backdrop-blur-sm border border-gray-700/20 rounded-xl overflow-hidden">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowAgenticSteps(!showAgenticSteps)}
+            className="w-full justify-start text-left p-4 hover:bg-gray-700/30 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center">
+                <Brain className="w-4 h-4 text-white" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  {showAgenticSteps ? (
+                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-gray-400" />
+                  )}
+                  <span className="text-sm font-medium text-white">Thought Process</span>
+                  <span className="text-xs text-gray-400">({agenticSteps.length} steps)</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">View AI reasoning and decision-making process</p>
+              </div>
+            </div>
+          </Button>
+          
+          {showAgenticSteps && (
+            <div className="border-t border-gray-700/30 bg-gray-900/20">
+              <div className="p-4 space-y-3">
+                {agenticSteps.map((step, index) => (
+                  <div key={step.step || index} className="flex items-start gap-3 p-3 bg-gray-800/40 rounded-lg border border-gray-700/20">
+                    <div className="flex-shrink-0 w-6 h-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-xs font-bold text-white">
+                      {step.step || index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                          step.type === 'thought' ? 'bg-purple-500/20 text-purple-300' :
+                          step.type === 'action' ? 'bg-blue-500/20 text-blue-300' :
+                          step.type === 'observation' ? 'bg-green-500/20 text-green-300' :
+                          'bg-gray-500/20 text-gray-300'
+                        }`}>
+                          {step.type === 'thought' && <Brain className="w-3 h-3 inline mr-1" />}
+                          {step.type === 'action' && <Zap className="w-3 h-3 inline mr-1" />}
+                          {step.type}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-200 leading-relaxed">{step.content}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
