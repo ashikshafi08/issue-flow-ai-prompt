@@ -144,44 +144,6 @@ const HeroSection = () => {
               </div>
             </form>
           </div>
-
-          {/* Demo preview */}
-          <div className={`w-full max-w-4xl mx-auto transition-all duration-700 delay-500 ${isVisible ? 'opacity-100' : 'opacity-0 translate-y-10'}`}>
-            <div className="glass-card p-4 md:p-6 shadow-2xl">
-              <div className="flex items-center gap-2 mb-3 text-sm text-gray-400">
-                <div className="flex gap-1">
-                  <div className="h-3 w-3 rounded-full bg-red-500/80"></div>
-                  <div className="h-3 w-3 rounded-full bg-yellow-500/80"></div>
-                  <div className="h-3 w-3 rounded-full bg-green-500/80"></div>
-                </div>
-                <span>Live AI Assistant</span>
-                <div className="ml-auto text-xs">
-                  Use <code className="bg-gray-900/50 px-1 py-0.5 rounded">@filename</code> to scope questions
-                </div>
-              </div>
-              <div className="font-code bg-[rgba(15,23,42,0.8)] text-sm text-left overflow-x-auto p-4 md:p-6 rounded-lg">
-                <div className="text-gray-400 font-semibold mb-3">// Ask anything about your codebase:</div>
-                <p className="text-green-400 mb-2">
-                  <span className="text-yellow-400">@utils/logger.ts</span> why is this error happening?
-                </p>
-                <p className="text-green-400 mb-2">
-                  What files should I check for issue <span className="text-blue-400">#1234</span>?
-                </p>
-                <p className="text-green-400 mb-4">
-                  How does the authentication flow work?
-                </p>
-                <div className="border-t border-gray-700 pt-3">
-                  <div className="text-gray-400 font-semibold mb-2">// AI Response with Live Reasoning</div>
-                  <p className="text-gray-300">
-                    🔍 Analyzing authentication flow across 4 files...
-                  </p>
-                  <p className="text-gray-300 mt-1">
-                    Found issue in <span className="text-yellow-400">`auth.middleware.ts`</span> line 23 - token validation
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </section>
