@@ -9,9 +9,10 @@ import FileViewer from '@/components/FileViewer';
 import UnifiedContextPanel from '@/components/UnifiedContextPanel';
 import IssueAnalysisHub from '@/components/IssueAnalysisHub';
 import AnalysisToolbar from '@/components/AnalysisToolbar';
+import { PredictionDashboard } from '@/components/prediction/PredictionDashboard';
 import { listAssistantSessions, SessionInfo, getSessionMessages, getSessionMetadata, resetAgenticMemory, syncRepository } from '@/lib/api'; // Added syncRepository
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2, PanelLeft, FolderTree, RefreshCw, GitBranch, Zap as SyncIcon } from 'lucide-react'; // Removed Clock
+import { Loader2, PanelLeft, FolderTree, RefreshCw, GitBranch, Zap as SyncIcon, BarChart3 } from 'lucide-react'; // Added BarChart3
 import { Button } from '@/components/ui/button';
 import { useKeyboardShortcuts, createChatShortcuts } from '@/hooks/useKeyboardShortcuts';
 import KeyboardShortcutsIndicator from '@/components/KeyboardShortcutsIndicator';
@@ -60,6 +61,7 @@ const Assistant = () => {
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [showIssuesPane, setShowIssuesPane] = useState(false);
   const [showAnalysisHub, setShowAnalysisHub] = useState(false);
+  const [showPredictionDashboard, setShowPredictionDashboard] = useState(false);
   const [selectedAnalysisIssue, setSelectedAnalysisIssue] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSessionLoading, setIsSessionLoading] = useState(false);
@@ -498,6 +500,13 @@ const Assistant = () => {
                       <GitBranch className="h-3.5 w-3.5" />
                     </button>
                     <button
+                      onClick={() => setShowPredictionDashboard(true)}
+                      className="text-gray-400 hover:text-gray-200 p-1.5 rounded-md hover:bg-gray-700/50 text-xs"
+                      title="Prediction Dashboard"
+                    >
+                      <BarChart3 className="h-3.5 w-3.5" />
+                    </button>
+                    <button
                       onClick={handleSyncRepository}
                       className="text-gray-400 hover:text-gray-200 p-1.5 rounded-md hover:bg-gray-700/50 text-xs"
                       title="Sync Repository"
@@ -669,6 +678,32 @@ const Assistant = () => {
             setShowAnalysisHub(false);
           }}
         />
+      )}
+
+      {/* Prediction Dashboard */}
+      {showPredictionDashboard && detailedActiveSession && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-slate-900 rounded-lg shadow-xl max-w-7xl max-h-[90vh] w-full mx-4 overflow-hidden border border-slate-700">
+            <div className="flex items-center justify-between p-4 border-b border-slate-700">
+              <h2 className="text-xl font-semibold text-white">Predictive Issue Resolution Dashboard</h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowPredictionDashboard(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                ×
+              </Button>
+            </div>
+            <div className="overflow-auto max-h-[calc(90vh-80px)] bg-slate-900">
+              <PredictionDashboard
+                repoOwner={detailedActiveSession.metadata?.owner || ''}
+                repoName={detailedActiveSession.metadata?.repo || ''}
+                sessionId={detailedActiveSession.id}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
