@@ -292,8 +292,39 @@ export const resetAgenticMemory = async (sessionId: string): Promise<void> => {
   // No explicit return here, but it's a Promise<void>
 };
 
-export const syncRepository = async (sessionId: string): Promise<{ session_id: string; message: string }> => {
-  const response = await fetch(`${API_BASE_URL}/assistant/sessions/${sessionId}/sync-repository`, {
+export interface SyncRepositoryOptions {
+  force_full_sync?: boolean;
+  max_new_issues?: number;
+  max_new_prs?: number;
+}
+
+export interface SyncRepositoryResponse {
+  message: string;
+  sync_type: string;
+  force_full_sync: boolean;
+  max_new_issues?: number;
+  max_new_prs?: number;
+}
+
+export const syncRepository = async (
+  sessionId: string, 
+  options: SyncRepositoryOptions = {}
+): Promise<SyncRepositoryResponse> => {
+  const searchParams = new URLSearchParams();
+  
+  if (options.force_full_sync !== undefined) {
+    searchParams.append('force_full_sync', options.force_full_sync.toString());
+  }
+  if (options.max_new_issues !== undefined) {
+    searchParams.append('max_new_issues', options.max_new_issues.toString());
+  }
+  if (options.max_new_prs !== undefined) {
+    searchParams.append('max_new_prs', options.max_new_prs.toString());
+  }
+
+  const url = `${API_BASE_URL}/assistant/sessions/${sessionId}/sync-repository${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+  
+  const response = await fetch(url, {
     method: 'POST',
   });
   if (!response.ok) {

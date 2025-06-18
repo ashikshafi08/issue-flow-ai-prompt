@@ -9,7 +9,7 @@ import FileViewer from '@/components/FileViewer';
 import UnifiedContextPanel from '@/components/UnifiedContextPanel';
 import IssueAnalysisHub from '@/components/IssueAnalysisHub';
 import AnalysisToolbar from '@/components/AnalysisToolbar';
-import { listAssistantSessions, SessionInfo, getSessionMessages, getSessionMetadata, resetAgenticMemory, syncRepository } from '@/lib/api'; // Added syncRepository
+import { listAssistantSessions, SessionInfo, getSessionMessages, getSessionMetadata, resetAgenticMemory, syncRepository, SyncRepositoryOptions } from '@/lib/api'; // Added syncRepository
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2, PanelLeft, FolderTree, RefreshCw, GitBranch, Zap as SyncIcon } from 'lucide-react'; // Removed Clock
 import { Button } from '@/components/ui/button';
@@ -374,21 +374,47 @@ const Assistant = () => {
     });
   }, [toast]);
 
-  const handleSyncRepository = async () => {
+  const handleSyncRepository = async (forceFull: boolean = false) => {
     if (!activeSessionId) return;
     setIsSyncing(true);
+    
+    const syncType = forceFull ? "full rebuild" : "incremental sync";
     toast({
-      title: "Syncing Repository",
-      description: "Starting full data synchronization with GitHub. This may take a few minutes...",
+      title: `Starting ${syncType}`,
+      description: forceFull 
+        ? "Rebuilding entire repository index. This may take several minutes..." 
+        : "Checking for new issues and PRs. This should be quick...",
     });
+    
     try {
-      const result = await syncRepository(activeSessionId);
+      const result = await syncRepository(activeSessionId, {
+        force_full_sync: forceFull,
+        max_new_issues: forceFull ? undefined : 5,
+        max_new_prs: forceFull ? undefined : 5
+      });
+      
       toast({
         title: "Sync Started",
         description: result.message,
       });
-      // Optionally, you could add a system message to the chat here
-      // Or update session metadata display if it shows sync status
+      
+      // Add a system message to the chat indicating sync started
+      if (detailedActiveSession) {
+        const syncMessage = {
+          role: 'assistant' as const,
+          content: `🔄 **Repository ${result.sync_type} started**\n\n${result.message}\n\n*Check back in a few minutes for updated context.*`,
+          timestamp: Date.now(),
+          type: 'status' as const
+        };
+        updateActiveSessionMessages(prev => [...prev, syncMessage]);
+        
+        // Update current context to show sync is happening
+        setCurrentContext(prev => ({
+          ...prev,
+          activeThread: `Repository ${result.sync_type} in progress...`
+        }));
+      }
+      
     } catch (error) {
       console.error("Failed to sync repository:", error);
       toast({
@@ -398,8 +424,6 @@ const Assistant = () => {
       });
     } finally {
       setIsSyncing(false);
-      // After a sync, you might want to re-fetch session status or even messages
-      // to reflect any changes, or wait for polling to update.
     }
   };
 
@@ -498,9 +522,14 @@ const Assistant = () => {
                       <GitBranch className="h-3.5 w-3.5" />
                     </button>
                     <button
-                      onClick={handleSyncRepository}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        // Check for shift-click for full sync
+                        const forceFull = e.shiftKey;
+                        handleSyncRepository(forceFull);
+                      }}
                       className="text-muted-foreground hover:text-foreground p-1.5 rounded-md hover:bg-[hsl(var(--accent))] text-xs transition-colors"
-                      title="Sync Repository"
+                      title="Sync Repository (Shift+Click for full rebuild)"
                       disabled={isSyncing || !detailedActiveSession?.metadata?.repo_url}
                     >
                       {isSyncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <SyncIcon className="h-3.5 w-3.5" />}
