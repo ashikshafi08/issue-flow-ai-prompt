@@ -317,9 +317,9 @@ const FileHoverPreview = ({ filePath, sessionId, messageContent }: { filePath: s
         onMouseLeave={handleMouseLeave}
       >
         {/* Glassmorphism container with enhanced design */}
-        <div className="bg-black/40 backdrop-blur-2xl border border-white/10 shadow-2xl rounded-2xl overflow-hidden ring-1 ring-white/5">
+        <div className="bg-gray-900/95 backdrop-blur-2xl border border-gray-700 shadow-2xl rounded-2xl overflow-hidden">
           {/* Enhanced Header with GitHub-style stats */}
-          <div className="px-5 py-4 bg-gradient-to-r from-gray-900/90 via-gray-800/90 to-gray-900/90 backdrop-blur-xl border-b border-white/10">
+          <div className="px-5 py-4 bg-gray-800/90 backdrop-blur-xl border-b border-gray-700">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {/* macOS-style window controls */}
@@ -336,7 +336,7 @@ const FileHoverPreview = ({ filePath, sessionId, messageContent }: { filePath: s
                     </svg>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-white/90 tracking-tight">{filePath}</span>
+                    <span className="text-sm font-semibold text-gray-100 tracking-tight">{filePath}</span>
                     <div className="flex items-center gap-2 mt-0.5">
                       {isDiff && (
                         <>
@@ -355,7 +355,7 @@ const FileHoverPreview = ({ filePath, sessionId, messageContent }: { filePath: s
                               <span className="text-red-400">-{diffStats.deletions}</span>
                             </span>
                             {(diffStats.additions > 0 || diffStats.deletions > 0) && (
-                              <div className="flex items-center bg-white/10 rounded-full px-2 py-1">
+                              <div className="flex items-center bg-gray-600/30 rounded-full px-2 py-1">
                                 <div className="flex h-2 w-16 overflow-hidden rounded-full bg-gray-700">
                                   {diffStats.additions > 0 && (
                                     <div 
@@ -387,7 +387,7 @@ const FileHoverPreview = ({ filePath, sessionId, messageContent }: { filePath: s
               {/* Copy button with enhanced design */}
               <button 
                 onClick={() => copyToClipboard(previewData?.snippet || '', 'diff-preview')}
-                className="group flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg transition-all duration-200 text-xs font-medium text-gray-300 hover:text-white"
+                className="group flex items-center gap-2 px-3 py-2 bg-gray-700/50 hover:bg-gray-600/50 border border-gray-600 hover:border-gray-500 rounded-lg transition-all duration-200 text-xs font-medium text-gray-200 hover:text-white"
               >
                 {copiedCode === 'diff-preview' ? (
                   <>
@@ -405,7 +405,7 @@ const FileHoverPreview = ({ filePath, sessionId, messageContent }: { filePath: s
             
             {/* Enhanced file info */}
             {previewData && (
-              <div className="text-xs text-gray-400/80 mt-3 pl-12 flex items-center gap-4">
+              <div className="text-xs text-gray-300 mt-3 pl-12 flex items-center gap-4">
                 {isDiff 
                   ? (
                     <span className="flex items-center gap-2">
@@ -424,15 +424,15 @@ const FileHoverPreview = ({ filePath, sessionId, messageContent }: { filePath: s
           </div>
 
           {/* Enhanced Content Area */}
-          <div className="max-h-[500px] overflow-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/20 hover:scrollbar-thumb-white/30">
+          <div className="max-h-[500px] overflow-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-600/50 hover:scrollbar-thumb-gray-500/50">
             {loading && (
               <div className="p-12 text-center">
                 <div className="relative">
-                  <div className="animate-spin rounded-full h-10 w-10 border-2 border-white/20 border-t-blue-400 mx-auto"></div>
+                  <div className="animate-spin rounded-full h-10 w-10 border-2 border-gray-600/30 border-t-blue-400 mx-auto"></div>
                   <div className="absolute inset-0 rounded-full h-10 w-10 border-2 border-blue-400/20 animate-pulse mx-auto"></div>
                 </div>
-                <div className="text-sm text-gray-300/80 mt-4 font-medium">Loading preview...</div>
-                <div className="text-xs text-gray-400/60 mt-1">Fetching file content</div>
+                <div className="text-sm text-gray-200 mt-4 font-medium">Loading preview...</div>
+                <div className="text-xs text-gray-400 mt-1">Fetching file content</div>
               </div>
             )}
             
@@ -449,14 +449,14 @@ const FileHoverPreview = ({ filePath, sessionId, messageContent }: { filePath: s
             )}
             
             {previewData && !loading && !error && (
-              <div className="font-mono text-sm bg-gradient-to-b from-black/20 to-black/40">
+              <div className="font-mono text-sm bg-gradient-to-b from-gray-900/30 to-gray-800/50">
                 {isDiff ? (
                   // Enhanced diff view with glassmorphism styling
-                  <div className="bg-black/20 backdrop-blur-sm">
+                  <div className="bg-gray-900/20 backdrop-blur-sm">
                     {diffLines.length > 0 ? diffLines.map((line, idx) => (
                       <div 
                         key={idx}
-                        className={`flex group hover:bg-white/5 transition-colors duration-150 ${
+                        className={`flex group hover:bg-gray-700/20 transition-colors duration-150 ${
                           line.type === 'addition' ? 'bg-emerald-500/10 border-l-2 border-emerald-400/60' :
                           line.type === 'deletion' ? 'bg-red-500/10 border-l-2 border-red-400/60' :
                           line.type === 'header' ? 'bg-blue-500/10 border-l-2 border-blue-400/60' :
@@ -465,7 +465,7 @@ const FileHoverPreview = ({ filePath, sessionId, messageContent }: { filePath: s
                         }`}
                       >
                         {/* Enhanced line numbers with better styling */}
-                        <div className="flex-shrink-0 px-4 py-2 text-gray-400/70 text-xs bg-black/20 border-r border-white/10 min-w-[90px] select-none backdrop-blur-sm">
+                        <div className="flex-shrink-0 px-4 py-2 text-gray-400 text-xs bg-gray-900/30 border-r border-gray-600 min-w-[90px] select-none backdrop-blur-sm">
                           {line.type === 'addition' && (
                             <span className="text-emerald-400 font-semibold">+{line.lineNumber}</span>
                           )}
@@ -482,8 +482,8 @@ const FileHoverPreview = ({ filePath, sessionId, messageContent }: { filePath: s
                           line.type === 'addition' ? 'text-emerald-200/90 bg-emerald-500/5' :
                           line.type === 'deletion' ? 'text-red-200/90 bg-red-500/5' :
                           line.type === 'header' ? 'text-blue-200/90 font-semibold bg-blue-500/5' :
-                          line.type === 'meta' ? 'text-gray-400/80 text-xs italic' :
-                          'text-gray-200/80'
+                          line.type === 'meta' ? 'text-gray-300 text-xs italic' :
+                          'text-gray-200'
                         }`}>
                           {line.type === 'addition' && (
                             <span className="text-emerald-400 mr-2 font-bold select-none">+</span>
@@ -496,14 +496,14 @@ const FileHoverPreview = ({ filePath, sessionId, messageContent }: { filePath: s
                       </div>
                     )) : (
                       <div className="p-8 text-center">
-                        <div className="text-gray-400/80 text-sm">No diff content available</div>
+                        <div className="text-gray-300 text-sm">No diff content available</div>
                       </div>
                     )}
                   </div>
                 ) : (
                   // Enhanced regular file view
-                  <div className="bg-black/20 backdrop-blur-sm">
-                    <pre className="p-6 text-gray-200/90 whitespace-pre-wrap leading-relaxed tracking-wide" style={{ tabSize: 2 }}>
+                  <div className="bg-gray-900/20 backdrop-blur-sm">
+                    <pre className="p-6 text-gray-200 whitespace-pre-wrap leading-relaxed tracking-wide" style={{ tabSize: 2 }}>
                       {previewData.snippet}
                     </pre>
                   </div>
@@ -513,10 +513,10 @@ const FileHoverPreview = ({ filePath, sessionId, messageContent }: { filePath: s
             
             {!loading && !error && !previewData && (
               <div className="p-8 text-center">
-                <div className="inline-flex items-center justify-center w-12 h-12 bg-white/5 rounded-full mb-3 ring-1 ring-white/10">
+                <div className="inline-flex items-center justify-center w-12 h-12 bg-gray-700/20 rounded-full mb-3 ring-1 ring-gray-600">
                   <Loader2 className="w-5 h-5 text-gray-400 animate-pulse" />
                 </div>
-                <div className="text-gray-400/80 text-sm">Hover to load preview...</div>
+                <div className="text-gray-300 text-sm">Hover to load preview...</div>
               </div>
             )}
           </div>
@@ -542,7 +542,7 @@ const FileHoverPreview = ({ filePath, sessionId, messageContent }: { filePath: s
   return (
     <>
       <code 
-        className="cursor-pointer text-blue-400 hover:text-blue-300 hover:underline bg-gray-800/60 px-1.5 py-0.5 rounded text-sm font-mono transition-colors"
+        className="cursor-pointer text-blue-400 hover:text-blue-300 hover:underline bg-gray-700/40 px-1.5 py-0.5 rounded-sm text-[0.95em] font-mono transition-colors"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
@@ -593,7 +593,7 @@ const EnhancedChatMessage: React.FC<EnhancedChatMessageProps> = ({
       switch (card.type) {
         case 'file': return <File className="h-4 w-4 text-blue-400" />;
         case 'issue': return <Bug className="h-4 w-4 text-red-400" />;
-        case 'pr': return <GitBranch className="h-4 w-4 text-green-400" />;
+        case 'pr': return <GitBranch className="h-4 w-4 text-green-500" />;
         default: return <Code className="h-4 w-4 text-gray-400" />;
       }
     };
@@ -611,22 +611,22 @@ const EnhancedChatMessage: React.FC<EnhancedChatMessageProps> = ({
     return (
       <div
         key={index}
-        className="flex items-center gap-3 p-3 bg-gray-800/40 border border-gray-700/30 rounded-lg cursor-pointer hover:border-gray-600/50 hover:bg-gray-800/60 transition-all duration-200 group"
+        className="flex items-center gap-3 p-4 bg-gray-800/40 border border-gray-700/50 rounded-lg cursor-pointer hover:border-gray-600/60 hover:bg-gray-700/40 transition-all duration-200 group"
         onClick={handleClick}
       >
         <div className="flex-shrink-0">{getIcon()}</div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h4 className="text-sm font-medium text-white truncate group-hover:text-blue-300 transition-colors">
+            <h4 className="text-sm font-medium text-gray-100 truncate group-hover:text-blue-300 transition-colors">
               {card.title}
             </h4>
-            {card.url && <ExternalLink className="h-3 w-3 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />}
+            {card.url && <ExternalLink className="h-3 w-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />}
           </div>
           {card.subtitle && (
-            <p className="text-xs text-gray-400 truncate">{card.subtitle}</p>
+            <p className="text-xs text-gray-300 truncate mt-1">{card.subtitle}</p>
           )}
           {card.preview && (
-            <p className="text-xs text-gray-500 line-clamp-2 mt-1">{card.preview}</p>
+            <p className="text-xs text-gray-400 line-clamp-2 mt-2">{card.preview}</p>
           )}
         </div>
       </div>
@@ -634,6 +634,69 @@ const EnhancedChatMessage: React.FC<EnhancedChatMessageProps> = ({
   };
 
   const customMarkdownComponents = {
+    // Improved paragraph spacing
+    p: ({ children, ...props }: any) => (
+      <p className="mb-4 leading-relaxed text-gray-100" style={{ lineHeight: '1.7' }} {...props}>
+        {children}
+      </p>
+    ),
+    
+    // Better heading spacing and typography
+    h1: ({ children, ...props }: any) => (
+      <h1 className="text-2xl font-bold text-gray-100 mb-6 mt-8 leading-tight" {...props}>
+        {children}
+      </h1>
+    ),
+    h2: ({ children, ...props }: any) => (
+      <h2 className="text-xl font-semibold text-gray-100 mb-4 mt-6 leading-tight" {...props}>
+        {children}
+      </h2>
+    ),
+    h3: ({ children, ...props }: any) => (
+      <h3 className="text-lg font-medium text-gray-100 mb-3 mt-5 leading-tight" {...props}>
+        {children}
+      </h3>
+    ),
+    
+    // Enhanced list spacing
+    ul: ({ children, ...props }: any) => (
+      <ul className="mb-4 space-y-2 pl-0" {...props}>
+        {children}
+      </ul>
+    ),
+    ol: ({ children, ...props }: any) => (
+      <ol className="mb-4 space-y-2 pl-0" {...props}>
+        {children}
+      </ol>
+    ),
+    li: ({ children, ...props }: any) => (
+      <li className="flex items-start gap-3 text-gray-100 leading-relaxed" {...props}>
+        <span className="w-1.5 h-1.5 bg-blue-400 rounded-full mt-2.5 flex-shrink-0"></span>
+        <span className="flex-1">{children}</span>
+      </li>
+    ),
+    
+    // Better blockquote styling
+    blockquote: ({ children, ...props }: any) => (
+      <blockquote className="border-l-4 border-blue-400/50 pl-6 py-3 my-6 bg-gray-800/30 rounded-r-lg italic text-gray-200" {...props}>
+        {children}
+      </blockquote>
+    ),
+    
+    // Enhanced strong/bold text
+    strong: ({ children, ...props }: any) => (
+      <strong className="font-semibold text-gray-50" {...props}>
+        {children}
+      </strong>
+    ),
+    
+    // Improved emphasis
+    em: ({ children, ...props }: any) => (
+      <em className="italic text-gray-200" {...props}>
+        {children}
+      </em>
+    ),
+
     code({ node, inline, className, children, ...props }: any) {
       console.log('🛠️ customMarkdownComponents.code called:', { inline, children: String(children), className });
       
@@ -650,7 +713,7 @@ const EnhancedChatMessage: React.FC<EnhancedChatMessageProps> = ({
         }
         
         return (
-          <code className="bg-gray-800 text-blue-300 px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
+          <code className="bg-gray-700/40 text-orange-300 px-1.5 py-0.5 rounded-sm text-[0.95em] font-mono" {...props}>
             {children}
           </code>
         );
@@ -662,40 +725,49 @@ const EnhancedChatMessage: React.FC<EnhancedChatMessageProps> = ({
         return <FileHoverPreview filePath={text} sessionId={sessionId} messageContent={content} />;
       }
       
-      // Handle code blocks
+      // Handle code blocks with better spacing
       if (match) {
         return (
-          <div className="relative group">
-            <div className="flex items-center justify-between bg-gray-800 px-4 py-2 rounded-t-lg border-b border-gray-700">
-              <span className="text-xs text-gray-400 font-medium">{match[1]}</span>
+          <div className="relative group my-6">
+            <div className="flex items-center justify-between bg-gray-800/90 px-4 py-3 rounded-t-lg border-b border-gray-700">
+              <span className="text-xs text-gray-300 font-medium uppercase tracking-wide">{match[1]}</span>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-700"
                 onClick={() => copyToClipboard(text, codeId)}
               >
                 {copiedCode === codeId ? (
-                  <Check className="h-3 w-3 text-green-400" />
+                  <Check className="h-3.5 w-3.5 text-green-400" />
                 ) : (
-                  <Copy className="h-3 w-3 text-gray-400" />
+                  <Copy className="h-3.5 w-3.5 text-gray-400 hover:text-gray-200" />
                 )}
               </Button>
             </div>
-            <SyntaxHighlighter
-              style={oneDark}
-              language={match[1]}
-              PreTag="div"
-              className="rounded-t-none !mt-0"
-              {...props}
-            >
-              {text}
-            </SyntaxHighlighter>
+            <div className="rounded-t-none overflow-hidden">
+              <SyntaxHighlighter
+                style={oneDark}
+                language={match[1]}
+                PreTag="div"
+                className="!mt-0 !mb-0"
+                customStyle={{
+                  margin: 0,
+                  borderRadius: '0 0 8px 8px',
+                  padding: '16px',
+                  fontSize: '14px',
+                  lineHeight: '1.5'
+                }}
+                {...props}
+              >
+                {text}
+              </SyntaxHighlighter>
+            </div>
           </div>
         );
       }
 
       return (
-        <code className="bg-gray-800 text-blue-300 px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
+        <code className="bg-gray-700/40 text-orange-300 px-1.5 py-0.5 rounded-sm text-[0.95em] font-mono" {...props}>
           {children}
         </code>
       );
@@ -703,46 +775,37 @@ const EnhancedChatMessage: React.FC<EnhancedChatMessageProps> = ({
   };
 
   return (
-    <div className={`flex gap-3 mb-6 ${role === 'user' ? 'justify-end' : 'justify-start'}`}>
-      {role === 'assistant' && (
-        <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-          <span className="text-sm font-bold text-white">AI</span>
-        </div>
-      )}
-
-      <div className={`flex-1 max-w-3xl ${role === 'user' ? 'order-2' : ''}`}>
-        {/* Message Header */}
-        <div className={`flex items-center gap-2 mb-2 ${role === 'user' ? 'justify-end' : 'justify-start'}`}>
-          <span className="text-xs font-medium text-gray-400">
-            {role === 'user' ? 'You' : 'Assistant'}
-          </span>
-          <span className="text-xs text-gray-500">{formatTimestamp(timestamp)}</span>
+    <div className={`flex gap-4 mb-8 ${role === 'user' ? 'justify-end' : 'justify-start'}`}>
+      <div className={`flex-1 max-w-4xl ${role === 'user' ? 'order-1' : ''}`}>
+        {/* Enhanced message header with better spacing */}
+        <div className={`flex items-center gap-2 mb-3 ${role === 'user' ? 'justify-end' : 'justify-start'}`}>
+          <span className="text-xs text-gray-500 font-medium tracking-wide">{formatTimestamp(timestamp)}</span>
         </div>
 
-        {/* Context Cards */}
+        {/* Context Cards with improved spacing */}
         {contextCards.length > 0 && (
-          <div className="space-y-2 mb-4">
+          <div className="space-y-3 mb-6">
             <div className="flex items-center gap-2">
-              <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
-              <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+              <div className="w-1 h-5 bg-blue-500 rounded-full"></div>
+              <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
                 Referenced Context
               </span>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {contextCards.map(renderContextCard)}
             </div>
           </div>
         )}
 
-        {/* Main Message */}
+        {/* Main Message with enhanced typography and spacing */}
         <div className={`
-          rounded-lg px-4 py-3 shadow-sm
+          rounded-xl px-6 py-5 shadow-lg
           ${role === 'user' 
-            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white ml-8' 
-            : 'bg-gray-800/60 border border-gray-700/30 text-gray-100'
+            ? 'bg-gray-700/60 backdrop-blur-sm text-gray-100 ml-12 border border-gray-600/40' 
+            : 'bg-gray-800/50 backdrop-blur-sm border border-gray-700/40 text-gray-100'
           }
         `}>
-          <div className="prose prose-sm prose-invert max-w-none">
+          <div className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
             <ReactMarkdown
               components={customMarkdownComponents}
               remarkPlugins={[remarkGfm]}
@@ -752,25 +815,25 @@ const EnhancedChatMessage: React.FC<EnhancedChatMessageProps> = ({
           </div>
         </div>
 
-        {/* Agentic Steps */}
+        {/* Agentic Steps with better spacing */}
         {agenticSteps.length > 0 && (
-          <div className="mt-3">
+          <div className="mt-4">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowAgenticSteps(!showAgenticSteps)}
-              className="text-xs text-gray-400 hover:text-gray-200 p-1 h-auto"
+              className="text-xs text-gray-400 hover:text-gray-200 p-2 h-auto hover:bg-gray-800/50 rounded-lg transition-colors"
             >
               {showAgenticSteps ? (
-                <ChevronDown className="h-3 w-3 mr-1" />
+                <ChevronDown className="h-3.5 w-3.5 mr-2" />
               ) : (
-                <ChevronRight className="h-3 w-3 mr-1" />
+                <ChevronRight className="h-3.5 w-3.5 mr-2" />
               )}
               View reasoning steps ({agenticSteps.length})
             </Button>
             
             {showAgenticSteps && (
-              <div className="mt-2 space-y-1 pl-1">
+              <div className="mt-3 space-y-2 pl-2">
                 {agenticSteps.map((s, index) => (
                   <AgenticStep key={s.step || index} step={s} />
                 ))}
@@ -779,12 +842,6 @@ const EnhancedChatMessage: React.FC<EnhancedChatMessageProps> = ({
           </div>
         )}
       </div>
-
-      {role === 'user' && (
-        <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full flex items-center justify-center order-3">
-          <span className="text-sm font-bold text-white">You</span>
-        </div>
-      )}
     </div>
   );
 };

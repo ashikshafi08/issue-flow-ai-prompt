@@ -497,7 +497,7 @@ const AgenticStepDisplay: React.FC<{ step: AgenticStep }> = ({ step }) => {
   let title = '';
   let contentColor = 'text-gray-300';
   let borderColor = 'border-gray-700/50';
-  let bgColor = 'bg-gray-800/30';
+      let bgColor = 'bg-gray-800/50';
 
   switch (step.type) {
     case 'thought':
@@ -562,7 +562,7 @@ const AgenticStepDisplay: React.FC<{ step: AgenticStep }> = ({ step }) => {
       // Split content into lines and process each
       const lines = content.split('\n');
       let hasFiles = false;
-      let processedContent = '';
+      let processedContent = "";
       
       for (let line of lines) {
         const trimmedLine = line.trim();
@@ -575,7 +575,7 @@ const AgenticStepDisplay: React.FC<{ step: AgenticStep }> = ({ step }) => {
         
         // Check if this line contains file names (either standalone or with description)
         const words = trimmedLine.split(/\s+/);
-        let processedLine = '';
+        let processedLine = "";
         
         for (let word of words) {
           // Remove common prefixes/suffixes like bullets, colons, etc.
@@ -612,20 +612,92 @@ const AgenticStepDisplay: React.FC<{ step: AgenticStep }> = ({ step }) => {
         components={{
           code({ node, inline, className, children, ...props }: any) {
             const match = /language-(\w+)/.exec(className || '');
-            return !inline && match ? (
-              <SyntaxHighlighter
-                style={atomDark}
-                language={match[1]}
-                PreTag="div"
-                customStyle={{ background: 'transparent', padding: '0.5rem', fontSize: '0.75rem', margin: 0 }}
-                {...props}
-              >
-                {String(children).replace(/\n$/, '')}
-              </SyntaxHighlighter>
-            ) : (
-              <code className={`${className || ''} bg-gray-700/60 text-gray-300 px-1 py-0.5 rounded text-[0.9em]`} {...props}>
-                {children}
-              </code>
+            const language = match ? match[1] : 'plaintext';
+            const content = String(children).replace(/\n$/, '');
+            
+            // Check if this is diff content
+            const isDiff = language === 'diff' || content.includes('diff --git') || 
+                           /^[@]{2}.*[@]{2}$/m.test(content) || 
+                           content.split('\n').some(line => line.match(/^[+-]{1}[^+-]/));
+            
+            // Force inline for specific cases (but not for diffs)
+            const isFilePath = !isDiff && /^[\w\-./]+\.(js|jsx|ts|tsx|py|json|md|txt|yml|yaml|css|html|php|rb|go|rs|java|cpp|c|h|sh|sql)$/i.test(content.trim());
+            const isFolderPath = !isDiff && (/^[@]?folder\/[\w\-./]+$/i.test(content.trim()) || /^[@][\w\-./]+$/i.test(content.trim()));
+            const isShortCommand = !isDiff && content.length < 50 && !content.includes('\n') && /^(npm|yarn|git|sudo|apt|brew|pip|docker)\s/.test(content.trim());
+            const isSimpleValue = !isDiff && content.length < 30 && !content.includes('\n') && !/[{}[\]();]/.test(content);
+            
+            if (inline || isFilePath || isFolderPath || isShortCommand || isSimpleValue) {
+              // Simplified inline code styling
+              if (isFilePath) {
+                return (
+                  <code className="font-mono text-blue-400 bg-gray-700/40 px-1.5 py-0.5 rounded-sm text-[0.95em]" {...props}>
+                    {content}
+                  </code>
+                );
+              }
+              
+              return (
+                <code className="font-mono text-orange-300 bg-gray-700/40 px-1.5 py-0.5 rounded-sm text-[0.95em]" {...props}>
+                  {content}
+                </code>
+              );
+            }
+            
+            // Only create full code blocks for substantial content
+            const hasMultipleLines = content.includes('\n');
+            const isSubstantialCode = content.length > 60;
+            const hasCodePatterns = /[{}[\]();]/.test(content) || /^(import|from|def|class|if __name__|const|let|var|function|export)\s/m.test(content);
+            
+            if (!hasMultipleLines && !isSubstantialCode && !hasCodePatterns) {
+              return (
+                <code className="font-mono text-orange-300 bg-gray-700/40 px-1.5 py-0.5 rounded-sm text-[0.95em]" {...props}>
+                  {content}
+                </code>
+              );
+            }
+            
+            // Simplified code block - remove the elaborate header
+            return (
+              <div className="my-4 rounded-lg overflow-hidden border border-gray-700/50 bg-gray-900/50">
+                <div className="relative">
+                  <SyntaxHighlighter
+                    style={vscDarkPlus}
+                    language={language}
+                    PreTag="div"
+                    showLineNumbers={content.split('\n').length > 5}
+                    wrapLines={true}
+                    customStyle={{
+                      margin: 0,
+                      padding: '16px',
+                      background: 'transparent',
+                      fontSize: '13px',
+                      lineHeight: '1.4',
+                      fontFamily: "'SF Mono', Monaco, Consolas, monospace",
+                    }}
+                    lineNumberStyle={{
+                      color: '#6b7280',
+                      paddingRight: '12px',
+                      minWidth: '32px',
+                      textAlign: 'right',
+                      fontSize: '12px',
+                      userSelect: 'none',
+                    }}
+                    {...props}
+                  >
+                    {content}
+                  </SyntaxHighlighter>
+                  
+                  {/* Simple copy button */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigator.clipboard.writeText(content)}
+                    className="absolute top-2 right-2 opacity-0 hover:opacity-100 transition-opacity text-gray-400 hover:text-white h-8 w-8 p-0"
+                  >
+                    <Copy className="w-3 h-3" />
+                  </Button>
+                </div>
+              </div>
             );
           },
            p: ({node, ...props}) => <p className={`my-0.5 ${contentColor}`} {...props} />
@@ -758,14 +830,14 @@ const MarkdownComponents = {
       // Simplified inline code styling
       if (isFilePath) {
         return (
-          <code className="font-mono text-blue-400 bg-gray-800/40 px-1.5 py-0.5 rounded text-sm" {...props}>
+          <code className="font-mono text-blue-400 bg-gray-700/40 px-1.5 py-0.5 rounded-sm text-[0.95em]" {...props}>
             {content}
           </code>
         );
       }
       
       return (
-        <code className="font-mono text-emerald-400 bg-gray-800/40 px-1.5 py-0.5 rounded text-sm" {...props}>
+        <code className="font-mono text-orange-300 bg-gray-700/40 px-1.5 py-0.5 rounded-sm text-[0.95em]" {...props}>
           {content}
         </code>
       );
@@ -778,7 +850,7 @@ const MarkdownComponents = {
     
     if (!hasMultipleLines && !isSubstantialCode && !hasCodePatterns) {
       return (
-        <code className="font-mono text-emerald-400 bg-gray-800/40 px-1.5 py-0.5 rounded text-sm" {...props}>
+        <code className="font-mono text-orange-300 bg-gray-700/40 px-1.5 py-0.5 rounded-sm text-[0.95em]" {...props}>
           {content}
         </code>
       );
@@ -864,7 +936,7 @@ const MarkdownComponents = {
 
   // Simplified paragraphs
   p: ({ node, children, ...props }: any) => (
-    <p className="mb-3 leading-relaxed text-gray-200 text-sm" {...props}>{children}</p>
+    <p className="mb-3 leading-relaxed text-gray-200 text-sm" style={{ lineHeight: '1.7' }} {...props}>{children}</p>
   ),
 
   // Minimal blockquotes
@@ -1399,20 +1471,27 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSessionMessa
                     })
                   )}
                   
-                  {/* Simplified Loading Indicator */}
+                  {/* Improved Loading Indicator - matches EnhancedChatMessage style */}
                   {isLoading && (
-                    <div className="flex items-start space-x-3 mb-6">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-gray-700 flex items-center justify-center text-white text-sm font-medium">
-                        AI
-                      </div>
-                      <div className="flex-1 bg-gray-800/30 border border-gray-700/30 rounded-lg p-4">
-                        <div className="flex items-center space-x-3">
-                          <div className="flex space-x-1">
-                            <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                            <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                            <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                    <div className="flex gap-4 mb-8">
+                      <div className="flex-1 max-w-4xl">
+                        {/* Minimal message header with timestamp */}
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="text-xs text-gray-500 font-medium tracking-wide">
+                            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        
+                        {/* Loading message card */}
+                        <div className="rounded-xl px-6 py-5 shadow-lg bg-gray-800/50 backdrop-blur-sm border border-gray-700/40 text-gray-100">
+                          <div className="flex items-center gap-3">
+                            <div className="flex space-x-1.5">
+                              <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                              <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                              <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                            </div>
+                            <span className="text-gray-200 text-sm font-medium">Thinking...</span>
                           </div>
-                          <span className="text-gray-300 text-sm">Thinking...</span>
                         </div>
                       </div>
                     </div>

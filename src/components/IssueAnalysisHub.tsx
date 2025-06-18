@@ -678,13 +678,13 @@ const PlanMarkdownComponents = (sessionId?: string, onOpenDiff?: (content: strin
         </SyntaxHighlighter>
       </div>
     ) : (
-      <code className="bg-gray-800/60 text-blue-300 px-1 py-0.5 rounded text-sm font-mono" {...props}>
+      <code className="bg-gray-700/40 text-orange-300 px-1.5 py-0.5 rounded-sm text-[0.95em] font-mono" {...props}>
         {children}
       </code>
     );
   },
   p: ({ children }: any) => (
-    <p className="mb-3 leading-relaxed text-gray-300 text-sm">{children}</p>
+    <p className="mb-3 leading-relaxed text-gray-300 text-sm" style={{ lineHeight: '1.7' }}>{children}</p>
   ),
   blockquote: ({ children }: any) => (
     <blockquote className="border-l-2 border-blue-500/50 pl-3 py-1 my-3 bg-blue-950/10 text-blue-200 text-sm">

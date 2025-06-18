@@ -430,17 +430,17 @@ const Assistant = () => {
 
   if (isLoading && sessions.length === 0) { 
     return (
-      <div className="flex h-screen bg-black items-center justify-center">
+      <div className="flex h-screen bg-[hsl(var(--background))] items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-4" />
-          <p className="text-gray-400">Loading sessions...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading sessions...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-black">
+    <div className="flex h-screen bg-[hsl(var(--background))]">
       <AssistantSidebar
         sessions={sessions}
         activeSessionId={activeSessionId}
@@ -450,34 +450,34 @@ const Assistant = () => {
         onRefresh={handleRefresh}
       />
       
-      <div className="flex-1 flex bg-black min-h-0">
+      <div className="flex-1 flex bg-[hsl(var(--background))] min-h-0">
         {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col bg-black min-w-0">
+        <div className="flex-1 flex flex-col bg-[hsl(var(--background))] min-w-0">
           {isSessionLoading ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-4" />
-                <p className="text-gray-400">Loading session...</p>
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">Loading session...</p>
               </div>
             </div>
           ) : detailedActiveSession ? (
             <>
               {/* Chat Header */}
-              <div className="border-b border-gray-700/50 bg-gray-900/50 px-4 py-3">
+              <div className="border-b border-[hsl(var(--border))] bg-[hsl(var(--card))] px-4 py-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => setShowUnifiedContext(!showUnifiedContext)}
-                      className="text-gray-400 hover:text-gray-200 p-1.5 rounded-md hover:bg-gray-700/50"
+                      className="text-muted-foreground hover:text-foreground p-1.5 rounded-md hover:bg-[hsl(var(--accent))] transition-colors"
                       title="Toggle Context Panel"
                     >
                       <FolderTree className="h-4 w-4" />
                     </button>
                     <div>
-                      <h1 className="text-base font-medium text-white truncate">
+                      <h1 className="text-base font-medium text-foreground truncate">
                         {detailedActiveSession.title || "Chat"}
                       </h1>
-                      <p className="text-xs text-gray-400 truncate">
+                      <p className="text-xs text-muted-foreground truncate">
                         {detailedActiveSession.repoUrl.replace('https://github.com/', '')}
                       </p>
                     </div>
@@ -485,21 +485,21 @@ const Assistant = () => {
                   <div className="flex items-center gap-1">
                     <button
                       onClick={handleResetMemory}
-                      className="text-gray-400 hover:text-gray-200 p-1.5 rounded-md hover:bg-gray-700/50 text-xs"
+                      className="text-muted-foreground hover:text-foreground p-1.5 rounded-md hover:bg-[hsl(var(--accent))] text-xs transition-colors"
                       title="Reset Memory"
                     >
                       <RefreshCw className="h-3.5 w-3.5" />
                     </button>
                     <button
                       onClick={() => setShowIssuesPane(true)}
-                      className="text-gray-400 hover:text-gray-200 p-1.5 rounded-md hover:bg-gray-700/50 text-xs"
+                      className="text-muted-foreground hover:text-foreground p-1.5 rounded-md hover:bg-[hsl(var(--accent))] text-xs transition-colors"
                       title="Issues"
                     >
                       <GitBranch className="h-3.5 w-3.5" />
                     </button>
                     <button
                       onClick={handleSyncRepository}
-                      className="text-gray-400 hover:text-gray-200 p-1.5 rounded-md hover:bg-gray-700/50 text-xs"
+                      className="text-muted-foreground hover:text-foreground p-1.5 rounded-md hover:bg-[hsl(var(--accent))] text-xs transition-colors"
                       title="Sync Repository"
                       disabled={isSyncing || !detailedActiveSession?.metadata?.repo_url}
                     >
@@ -548,44 +548,44 @@ const Assistant = () => {
           ) : activeSessionId ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
-                <p className="text-gray-400">Session not found</p>
+                <p className="text-muted-foreground">Session not found</p>
               </div>
             </div>
           ) : (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center max-w-md">
                 <div className="mb-6">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                    <span className="text-2xl font-bold text-white">AI</span>
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-muted to-muted-foreground/50 flex items-center justify-center">
+                    <span className="text-2xl font-bold text-foreground">AI</span>
                   </div>
-                  <h1 className="text-2xl font-bold text-white mb-2">
+                  <h1 className="text-2xl font-bold text-foreground mb-2">
                     Repository Chat Assistant
                   </h1>
-                  <p className="text-gray-400 mb-6">
+                  <p className="text-muted-foreground mb-6">
                     Clone any GitHub repository and start chatting with your code. Enhanced with AgenticRAG for intelligent analysis and context-aware responses.
                   </p>
                 </div>
                 <button
                   onClick={() => setShowNewChatModal(true)}
-                  className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
+                  className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary text-primary-foreground px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
                   Start New Chat
                 </button>
                 
                 {sessions.length > 0 && (
                   <div className="mt-8">
-                    <p className="text-sm text-gray-500 mb-4">Or continue with an existing session</p>
+                    <p className="text-sm text-muted-foreground mb-4">Or continue with an existing session</p>
                     <div className="space-y-2">
                       {sessions.slice(0, 3).map((session) => (
                         <button
                           key={session.id}
                           onClick={() => setActiveSessionId(session.id)}
-                          className="w-full text-left p-3 rounded-lg bg-gray-800/50 border border-gray-700/50 hover:bg-gray-800 transition-colors"
+                          className="w-full text-left p-3 rounded-lg bg-[hsl(var(--card))] border border-[hsl(var(--border))] hover:bg-[hsl(var(--accent))] transition-colors"
                         >
-                          <p className="text-white font-medium text-sm truncate">
+                          <p className="text-foreground font-medium text-sm truncate">
                             {session.session_name || `${session.metadata?.owner}/${session.metadata?.repo}`}
                           </p>
-                          <p className="text-gray-400 text-xs">
+                          <p className="text-muted-foreground text-xs">
                             {session.message_count} messages • {new Date(session.last_accessed).toLocaleDateString()}
                           </p>
                         </button>
