@@ -21,6 +21,13 @@ interface ChatSessionProps {
   onFileSelect?: (filePath: string) => void;
 }
 
+// **NEW: Message-level loading state instead of component-level**
+interface MessageStreamState {
+  messageId: string;
+  isStreaming: boolean;
+  abortController?: AbortController;
+}
+
 // FileViewerPane Component for side pane display
 interface FileViewerPaneProps {
   filePath: string;
@@ -1006,17 +1013,18 @@ const MarkdownComponents = {
 
 const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSessionMessages, selectedFile, onCloseFileViewer, onFileSelect }) => {
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
-
-  // File autocomplete state
+  // **CHANGED: Remove global isLoading, use message-specific streaming state**
+  const [streamingMessages, setStreamingMessages] = useState<Map<string, MessageStreamState>>(new Map());
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [autocompleteQuery, setAutocompleteQuery] = useState('');
-  const [autocompleteItems, setAutocompleteItems] = useState<Array<{path: string, type: 'file' | 'folder'}>>([]);
-  const [filteredAutocompleteItems, setFilteredAutocompleteItems] = useState<Array<{path: string, type: 'file' | 'folder'}>>([]);
-  const [autocompleteHighlight, setAutocompleteHighlight] = useState(0);
+  const [autocompleteOptions, setAutocompleteOptions] = useState<Array<{path: string, type: 'file' | 'folder'}>>([]);
+  const [selectedAutocompleteIndex, setSelectedAutocompleteIndex] = useState(0);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { toast } = useToast();
+
+  // **NEW: Check if any message is currently streaming**
+  const hasStreamingMessages = streamingMessages.size > 0;
 
   // Format timestamp helper
   const formatTimestamp = (timestamp: number): string => {
@@ -1027,13 +1035,13 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSessionMessa
   const handleAutocompleteKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setAutocompleteHighlight(h => Math.min(h + 1, filteredAutocompleteItems.length - 1));
+      setSelectedAutocompleteIndex(i => Math.min(i + 1, autocompleteOptions.length - 1));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setAutocompleteHighlight(h => Math.max(h - 1, 0));
-    } else if (e.key === 'Enter' && filteredAutocompleteItems[autocompleteHighlight]) {
+      setSelectedAutocompleteIndex(i => Math.max(i - 1, 0));
+    } else if (e.key === 'Enter' && autocompleteOptions[selectedAutocompleteIndex]) {
       e.preventDefault();
-      handleAutocompleteSelect(filteredAutocompleteItems[autocompleteHighlight]);
+      handleAutocompleteSelect(autocompleteOptions[selectedAutocompleteIndex]);
     } else if (e.key === 'Escape') {
       e.preventDefault();
       setShowAutocomplete(false);
@@ -1079,18 +1087,18 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSessionMessa
       // Just typed @, show autocomplete
       setShowAutocomplete(true);
       setAutocompleteQuery('');
-      setFilteredAutocompleteItems(autocompleteItems.slice(0, 20));
+      setAutocompleteOptions(autocompleteOptions.slice(0, 20));
     } else if (lastAtSymbol !== -1) {
       // Currently in a mention, filter based on what's typed after @
       const queryAfterAt = textBeforeCursor.slice(lastAtSymbol + 1);
       if (queryAfterAt && !queryAfterAt.includes(' ')) {
         setShowAutocomplete(true);
         setAutocompleteQuery(queryAfterAt);
-        const filtered = autocompleteItems.filter(item =>
+        const filtered = autocompleteOptions.filter(item =>
           item.path.toLowerCase().includes(queryAfterAt.toLowerCase()) ||
           item.path.split('/').pop()?.toLowerCase().includes(queryAfterAt.toLowerCase())
         ).slice(0, 20);
-        setFilteredAutocompleteItems(filtered);
+        setAutocompleteOptions(filtered);
       } else {
         setShowAutocomplete(false);
       }
@@ -1098,7 +1106,7 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSessionMessa
       setShowAutocomplete(false);
     }
     
-    setAutocompleteHighlight(0);
+    setSelectedAutocompleteIndex(0);
   };
 
   // Handle autocomplete search input changes
@@ -1107,21 +1115,21 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSessionMessa
     setAutocompleteQuery(query);
     
     if (!query) {
-      setFilteredAutocompleteItems(autocompleteItems.slice(0, 20));
+      setAutocompleteOptions(autocompleteOptions.slice(0, 20));
     } else {
-      const filtered = autocompleteItems.filter(item =>
+      const filtered = autocompleteOptions.filter(item =>
         item.path.toLowerCase().includes(query.toLowerCase()) ||
         item.path.split('/').pop()?.toLowerCase().includes(query.toLowerCase())
       ).slice(0, 20);
-      setFilteredAutocompleteItems(filtered);
+      setAutocompleteOptions(filtered);
     }
     
-    setAutocompleteHighlight(0);
+    setSelectedAutocompleteIndex(0);
   };
 
   // Enhanced key handling
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (showAutocomplete && filteredAutocompleteItems.length > 0) {
+    if (showAutocomplete && autocompleteOptions.length > 0) {
       handleAutocompleteKeyDown(e);
       return;
     }
@@ -1161,8 +1169,7 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSessionMessa
           };
           
           const items = flattenItems(Array.isArray(data) ? data : []);
-          setAutocompleteItems(items);
-          setFilteredAutocompleteItems(items.slice(0, 20));
+          setAutocompleteOptions(items);
         }
       } catch (error) {
         console.error('Failed to fetch file tree:', error);
@@ -1197,20 +1204,44 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSessionMessa
     
     const currentInput = input;
     setInput('');
-    setIsLoading(true);
+    
+    // **NEW: Create message-specific streaming state with abort controller**
+    const messageId = `msg_${Date.now()}`;
+    const abortController = new AbortController();
+    
+    setStreamingMessages(prev => new Map(prev).set(messageId, {
+      messageId,
+      isStreaming: true,
+      abortController
+    }));
 
-    // For agentic queries, don't create a placeholder message since the backend
-    // will save the complete message and we'll reload it when needed
     let assistantMessagePlaceholder: ChatMessage | null = null;
     let isAgenticQuery = false;
     
     try {
+      // **NEW: Use AbortController to make stream cancellable**
       const stream = sendMessage(session.id, currentInput, true); 
-      let accumulatedContent = ""; // To accumulate content from 'answer' type steps
+      let accumulatedContent = "";
       let finalAnswerFromStream: string | null = null;
       let allSteps: AgenticStep[] = [];
 
+      // **NEW: Process stream in non-blocking chunks using requestIdleCallback**
       for await (const chunk of stream) {
+        // **NEW: Check if stream was aborted (user navigated away)**
+        if (abortController.signal.aborted) {
+          console.log('Stream processing aborted due to navigation');
+          break;
+        }
+
+        // **NEW: Use requestIdleCallback to prevent UI blocking**
+        await new Promise<void>((resolve) => {
+          if (window.requestIdleCallback) {
+            window.requestIdleCallback(() => resolve(), { timeout: 16 }); // Max 16ms delay
+          } else {
+            setTimeout(() => resolve(), 0); // Fallback for browsers without requestIdleCallback
+          }
+        });
+
         // Detect if this is an agentic response
         if (chunk.type === 'step' || chunk.type === 'final' || chunk.step) {
           isAgenticQuery = true;
@@ -1219,18 +1250,19 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSessionMessa
           if (!assistantMessagePlaceholder) {
             assistantMessagePlaceholder = {
               role: 'assistant',
-              content: '', // Initially empty
+              content: '',
               timestamp: Date.now(),
               isStreaming: true,
               agenticSteps: [],
+              messageId, // **NEW: Add message ID for tracking**
             };
             onUpdateSessionMessages(prevSessionMessages => [...prevSessionMessages, assistantMessagePlaceholder!]);
           }
         }
 
         // Only update UI if we have a placeholder (for agentic queries)
-        if (assistantMessagePlaceholder) {
-          let updatedMessagePart: Partial<ChatMessage> = { agenticSteps: [...allSteps] }; // Start with current steps
+        if (assistantMessagePlaceholder && !abortController.signal.aborted) {
+          let updatedMessagePart: Partial<ChatMessage> = { agenticSteps: [...allSteps] };
 
           if (chunk.type === 'error') {
             updatedMessagePart.content = chunk.error || 'An unknown error occurred during streaming.';
@@ -1239,7 +1271,7 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSessionMessa
             toast({ title: "Stream Error", description: chunk.error, variant: "destructive" });
           } else if (chunk.type === 'final') {
             finalAnswerFromStream = chunk.final_answer || null;
-            allSteps = chunk.steps || allSteps; // Update with all steps from final chunk
+            allSteps = chunk.steps || allSteps;
             updatedMessagePart.agenticSteps = [...allSteps];
             updatedMessagePart.content = finalAnswerFromStream || accumulatedContent || "Agentic analysis complete.";
             updatedMessagePart.isStreaming = false;
@@ -1248,15 +1280,14 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSessionMessa
             updatedMessagePart.agenticSteps = [...allSteps];
             if (chunk.step.type === 'answer') {
               accumulatedContent += chunk.step.content + "\n";
-              // Display accumulated answer content as it comes, if no final_answer is set yet
               if (!finalAnswerFromStream) {
-                   updatedMessagePart.content = accumulatedContent;
+                updatedMessagePart.content = accumulatedContent;
               }
             }
             updatedMessagePart.isStreaming = true; 
           } else if (chunk.type === 'status' && chunk.content) {
-             allSteps.push({type: 'status', content: chunk.content, step: allSteps.length});
-             updatedMessagePart.agenticSteps = [...allSteps];
+            allSteps.push({type: 'status', content: chunk.content, step: allSteps.length});
+            updatedMessagePart.agenticSteps = [...allSteps];
           }
           
           onUpdateSessionMessages(prevSessionMessages => 
@@ -1268,9 +1299,6 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSessionMessa
           );
         }
       }
-      
-      // Keep the placeholder message visible - the backend will save the real message
-      // and session reloads will show the persisted version
       
     } catch (error) {
       console.error('Error sending message or processing stream:', error);
@@ -1294,7 +1322,13 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSessionMessa
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      // **NEW: Clean up streaming state**
+      setStreamingMessages(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(messageId);
+        return newMap;
+      });
+      
       if (assistantMessagePlaceholder) {
         onUpdateSessionMessages(prevSessionMessages => 
           prevSessionMessages.map(msg => 
@@ -1306,6 +1340,24 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSessionMessa
       }
     }
   }, [input, session, onUpdateSessionMessages, toast]);
+
+  // **NEW: Cleanup function to abort streams when component unmounts or session changes**
+  useEffect(() => {
+    return () => {
+      // Abort all active streams when component unmounts
+      streamingMessages.forEach(({ abortController }) => {
+        abortController?.abort();
+      });
+    };
+  }, []);
+
+  // **NEW: Abort streams when session changes**
+  useEffect(() => {
+    streamingMessages.forEach(({ abortController }) => {
+      abortController?.abort();
+    });
+    setStreamingMessages(new Map());
+  }, [session?.id]);
 
   const handleResetMemory = async () => {
     if (!session?.id) return;
@@ -1366,6 +1418,26 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSessionMessa
 
   return (
     <div className="flex flex-col h-full w-full bg-gray-900 text-gray-100">
+      {/* **NEW: Show streaming indicator only when messages are streaming, don't block navigation** */}
+      {hasStreamingMessages && (
+        <div className="px-4 py-2 text-xs border-b border-blue-700 flex items-center gap-2 bg-blue-900/20 text-blue-300">
+          <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
+          <span className="font-medium">AI is thinking... (you can navigate freely)</span>
+          <button 
+            onClick={() => {
+              // **NEW: Allow users to abort streaming**
+              streamingMessages.forEach(({ abortController }) => {
+                abortController?.abort();
+              });
+              setStreamingMessages(new Map());
+            }}
+            className="ml-auto text-blue-400 hover:text-blue-300 underline text-xs"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
       {/* Background Progress Indicator based on session.metadata.status */}
       {session?.metadata?.status && (session.metadata.status === 'core_ready' || session.metadata.status === 'issue_linking' || session.metadata.status === 'warning_issue_rag_failed') && (
         <div className={`px-4 py-2 text-xs border-b border-gray-700 flex items-center gap-2 transition-all duration-300
@@ -1466,13 +1538,14 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSessionMessa
                             // Handle issue selection
                             console.log('Issue selected:', issueNumber);
                           }}
+                          structuredResponse={message.structured_response}
                         />
                       );
                     })
                   )}
                   
                   {/* Improved Loading Indicator - matches EnhancedChatMessage style */}
-                  {isLoading && (
+                  {hasStreamingMessages && (
                     <div className="flex gap-4 mb-8">
                       <div className="flex-1 max-w-4xl">
                         {/* Minimal message header with timestamp */}
@@ -1511,7 +1584,7 @@ const ChatSession: React.FC<ChatSessionProps> = ({ session, onUpdateSessionMessa
                 onChange={setInput}
                 onSubmit={handleSend}
                 onFileSelect={onFileSelect}
-                disabled={isLoading}
+                disabled={hasStreamingMessages}
                 sessionId={session.id}
                 currentContext={{
                   discussingFiles: session.messages

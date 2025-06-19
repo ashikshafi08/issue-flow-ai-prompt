@@ -34,6 +34,8 @@ export interface ChatMessage {
   issueContext?: any;
   processingType?: string;
   suggestions?: string[];
+  messageId?: string; // NEW: Add messageId for tracking streaming state
+  structured_response?: any; // NEW: Professional structured response data
 }
 
 export interface Session {

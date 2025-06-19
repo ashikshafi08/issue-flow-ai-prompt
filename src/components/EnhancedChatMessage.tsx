@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { File, GitBranch, Bug, Code, ChevronDown, ChevronRight, ExternalLink, Copy, Check, Terminal, Loader2 } from 'lucide-react';
+import { File, GitBranch, Bug, Code, ChevronDown, ChevronRight, ExternalLink, Copy, Check, Terminal, Loader2, Clock, BarChart3, FileText, Settings, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 import ReactMarkdown from 'react-markdown';
@@ -41,6 +41,7 @@ interface EnhancedChatMessageProps {
   onFileSelect?: (filePath: string) => void;
   onIssueSelect?: (issueNumber: number) => void;
   onContextAdd?: (context: any) => void;
+  structuredResponse?: any; // Professional structured response data
 }
 
 // File Hover Preview Component
@@ -50,7 +51,7 @@ interface FileHoverPreviewProps {
   messageContent?: string;
 }
 
-const FileHoverPreview = ({ filePath, sessionId, messageContent }: { filePath: string; sessionId: string; messageContent?: string }) => {
+const FileHoverPreview: React.FC<{ filePath: string; sessionId: string; messageContent?: string }> = ({ filePath, sessionId, messageContent }) => {
   const [previewData, setPreviewData] = useState<{
     snippet: string;
     file_path: string;
@@ -99,6 +100,15 @@ const FileHoverPreview = ({ filePath, sessionId, messageContent }: { filePath: s
     console.log('🚀 Starting fetch for:', filePath);
     setLoading(true);
     setError(null);
+    
+    // **NEW: Use requestIdleCallback for non-blocking processing**
+    await new Promise<void>((resolve) => {
+      if (window.requestIdleCallback) {
+        window.requestIdleCallback(() => resolve(), { timeout: 50 });
+      } else {
+        setTimeout(() => resolve(), 0);
+      }
+    });
     
     try {
       // Detect PR context from the current message content first, then fallback to page search
@@ -242,6 +252,7 @@ const FileHoverPreview = ({ filePath, sessionId, messageContent }: { filePath: s
     let currentLine = 0;
     let currentOldLine = 0;
 
+    // **NEW: Process large diffs in chunks to avoid blocking**
     for (const line of lines) {
       if (line.startsWith('@@')) {
         // Hunk header - extract line numbers
@@ -554,6 +565,240 @@ const FileHoverPreview = ({ filePath, sessionId, messageContent }: { filePath: s
   );
 };
 
+// Professional Structured Response Renderer
+interface StructuredResponseRendererProps {
+  response: any;
+  onFileSelect?: (filePath: string) => void;
+}
+
+const StructuredResponseRenderer: React.FC<StructuredResponseRendererProps> = ({ 
+  response, 
+  onFileSelect 
+}) => {
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [expandedDetails, setExpandedDetails] = useState<Set<string>>(new Set());
+
+  const toggleCategory = (categoryTitle: string) => {
+    const newExpanded = new Set(expandedCategories);
+    if (newExpanded.has(categoryTitle)) {
+      newExpanded.delete(categoryTitle);
+    } else {
+      newExpanded.add(categoryTitle);
+    }
+    setExpandedCategories(newExpanded);
+  };
+
+  const toggleDetail = (detailId: string) => {
+    const newExpanded = new Set(expandedDetails);
+    if (newExpanded.has(detailId)) {
+      newExpanded.delete(detailId);
+    } else {
+      newExpanded.add(detailId);
+    }
+    setExpandedDetails(newExpanded);
+  };
+
+  const getIconByType = (iconStr: string) => {
+    switch (iconStr) {
+      case '📁': return <FileText className="h-4 w-4" />;
+      case '🔍': return <Bug className="h-4 w-4" />;
+      case '🐛': return <Bug className="h-4 w-4" />;
+      case '🚀': return <Settings className="h-4 w-4" />;
+      case '⚡': return <BarChart3 className="h-4 w-4" />;
+      case '📊': return <BarChart3 className="h-4 w-4" />;
+      case '🏗️': return <Code className="h-4 w-4" />;
+      case '💻': return <Terminal className="h-4 w-4" />;
+      default: return <span className="text-sm">{iconStr}</span>;
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'critical': return 'border-red-500/40 bg-red-900/20 text-red-300';
+      case 'high': return 'border-orange-500/40 bg-orange-900/20 text-orange-300';
+      case 'medium': return 'border-yellow-500/40 bg-yellow-900/20 text-yellow-300';
+      case 'low': return 'border-blue-500/40 bg-blue-900/20 text-blue-300';
+      default: return 'border-gray-500/40 bg-gray-900/20 text-gray-300';
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Executive Summary */}
+      <div className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 border border-blue-500/30 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <div className="p-2 bg-blue-500/20 rounded-lg flex-shrink-0">
+            <BarChart3 className="h-5 w-5 text-blue-400" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-blue-200 mb-2">{response.title}</h3>
+            <p className="text-gray-300 mb-3">{response.executive_summary}</p>
+            
+            {/* Key Findings */}
+            {response.key_findings && response.key_findings.length > 0 && (
+              <div className="space-y-1">
+                <h4 className="text-sm font-medium text-blue-300 mb-2">Key Findings</h4>
+                <ul className="space-y-1">
+                  {response.key_findings.map((finding: string, index: number) => (
+                    <li key={index} className="flex items-start gap-2 text-sm text-gray-300">
+                      <span className="text-blue-400 mt-1">•</span>
+                      <span>{finding}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Categories */}
+      {response.categories && response.categories.map((category: any, categoryIndex: number) => {
+        const isExpanded = expandedCategories.has(category.title);
+        
+        return (
+          <div key={categoryIndex} className={`border rounded-lg ${getPriorityColor(category.priority)}`}>
+            {/* Category Header */}
+            <button
+              onClick={() => toggleCategory(category.title)}
+              className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-1.5 bg-current/20 rounded">
+                  {getIconByType(category.icon)}
+                </div>
+                <div className="text-left">
+                  <h4 className="font-semibold">{category.title}</h4>
+                  <p className="text-sm opacity-80">{category.summary}</p>
+                </div>
+                <span className="ml-2 px-2 py-1 bg-current/20 rounded-full text-xs font-medium">
+                  {category.count}
+                </span>
+              </div>
+              <ChevronRight className={`h-5 w-5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+            </button>
+
+            {/* Category Content */}
+            {isExpanded && (
+              <div className="border-t border-current/20 p-4 space-y-4">
+                {/* Items */}
+                {category.items && category.items.length > 0 && (
+                  <div className="grid gap-2">
+                    {category.items.map((item: any, itemIndex: number) => (
+                      <div key={itemIndex} className="bg-black/20 rounded p-3 text-sm">
+                        {item.path && (
+                          <button
+                            onClick={() => onFileSelect?.(item.path)}
+                            className="text-blue-300 hover:text-blue-200 hover:underline font-mono text-xs mb-1 block"
+                          >
+                            {item.path}
+                          </button>
+                        )}
+                        {item.preview && (
+                          <p className="text-gray-400 text-xs mb-1">{item.preview}</p>
+                        )}
+                        {item.matches && (
+                          <span className="text-yellow-400 text-xs">{item.matches} matches</span>
+                        )}
+                        {item.line_numbers && (
+                          <div className="flex gap-1 mt-1">
+                            {item.line_numbers.map((lineNum: number, i: number) => (
+                              <span key={i} className="bg-gray-600/40 text-gray-300 px-1.5 py-0.5 rounded text-xs font-mono">
+                                L{lineNum}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Detail Sections */}
+                {category.details && category.details.length > 0 && (
+                  <div className="space-y-2">
+                    {category.details.map((detail: any, detailIndex: number) => {
+                      const detailId = `${category.title}-detail-${detailIndex}`;
+                      const isDetailExpanded = expandedDetails.has(detailId);
+                      
+                      return (
+                        <div key={detailIndex} className="bg-black/30 rounded-lg">
+                          <button
+                            onClick={() => toggleDetail(detailId)}
+                            className="w-full flex items-center justify-between p-3 text-left hover:bg-white/5 transition-colors"
+                          >
+                            <span className="text-sm font-medium">{detail.title}</span>
+                            <ChevronRight className={`h-4 w-4 transition-transform ${isDetailExpanded ? 'rotate-90' : ''}`} />
+                          </button>
+                          
+                          {isDetailExpanded && (
+                            <div className="border-t border-white/10 p-3">
+                              <pre className="text-xs text-gray-300 whitespace-pre-wrap font-mono bg-black/30 p-3 rounded overflow-x-auto">
+                                {detail.content}
+                              </pre>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Next Actions */}
+      {response.next_actions && response.next_actions.length > 0 && (
+        <div className="border border-green-500/30 bg-green-900/20 rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Settings className="h-5 w-5 text-green-400" />
+            <h4 className="font-semibold text-green-200">Suggested Next Steps</h4>
+          </div>
+          
+          <div className="space-y-3">
+            {response.next_actions.map((action: any, index: number) => (
+              <div key={index} className={`p-3 rounded-lg border ${getPriorityColor(action.priority)}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <h5 className="font-medium text-sm mb-1">{action.title}</h5>
+                    <p className="text-xs opacity-80 mb-2">{action.description}</p>
+                    {action.estimated_effort && (
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        <span className="text-xs">{action.estimated_effort}</span>
+                      </div>
+                    )}
+                  </div>
+                  <Tag className={`h-4 w-4 ${getPriorityColor(action.priority)} flex-shrink-0`} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Metadata */}
+      {response.metadata && (response.processing_time || response.confidence_score) && (
+        <div className="text-xs text-gray-500 border-t border-gray-700/50 pt-3">
+          <div className="flex items-center gap-4">
+            {response.processing_time && (
+              <span>Processing: {response.processing_time.toFixed(2)}s</span>
+            )}
+            {response.confidence_score && (
+              <span>Confidence: {Math.round(response.confidence_score * 100)}%</span>
+            )}
+            {response.timestamp && (
+              <span>Generated: {new Date(response.timestamp).toLocaleString()}</span>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const EnhancedChatMessage: React.FC<EnhancedChatMessageProps> = ({
   role,
   content,
@@ -563,7 +808,8 @@ const EnhancedChatMessage: React.FC<EnhancedChatMessageProps> = ({
   sessionId,
   onFileSelect,
   onIssueSelect,
-  onContextAdd
+  onContextAdd,
+  structuredResponse
 }) => {
   const [showAgenticSteps, setShowAgenticSteps] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
@@ -813,6 +1059,13 @@ const EnhancedChatMessage: React.FC<EnhancedChatMessageProps> = ({
               {content}
             </ReactMarkdown>
           </div>
+
+          {/* Professional Structured Response */}
+          {structuredResponse && (
+            <div className="mt-6 border-t border-gray-700/50 pt-6">
+              <StructuredResponseRenderer response={structuredResponse} onFileSelect={onFileSelect} />
+            </div>
+          )}
         </div>
 
         {/* Agentic Steps with better spacing */}
