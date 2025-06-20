@@ -73,6 +73,9 @@ const Navbar = () => {
           <Link to="/blog" className="text-sm font-medium text-muted-foreground hover:text-blue-400 transition-colors relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-blue-500 after:scale-x-0 hover:after:scale-x-100 after:origin-bottom-left after:transition-transform">
             Blog
           </Link>
+          <Link to="/onboarding" className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-blue-400 after:scale-x-0 hover:after:scale-x-100 after:origin-bottom-left after:transition-transform">
+            OnboardAI
+          </Link>
           {isHomePage ? (
             <a href="#docs" className="text-sm font-medium text-muted-foreground hover:text-blue-400 transition-colors relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-blue-500 after:scale-x-0 hover:after:scale-x-100 after:origin-bottom-left after:transition-transform">
               Docs
@@ -163,6 +166,13 @@ const Navbar = () => {
               onClick={() => setIsMenuOpen(false)}
             >
               Blog
+            </Link>
+            <Link 
+              to="/onboarding" 
+              className="px-4 py-3 text-sm font-medium text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 rounded-md transition-colors"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              OnboardAI
             </Link>
             {isHomePage ? (
               <a 

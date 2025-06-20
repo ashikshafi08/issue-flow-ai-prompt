@@ -113,6 +113,33 @@ export default {
 				'fade-in': {
 					from: { opacity: '0' },
 					to: { opacity: '1' }
+				},
+				'marquee': {
+					from: { transform: 'translateX(0%)' },
+					to: { transform: 'translateX(-100%)' }
+				},
+				'marquee-vertical': {
+					from: { transform: 'translateY(0%)' },
+					to: { transform: 'translateY(-100%)' }
+				},
+				'gradient': {
+					'0%, 16.667%, 100%': {
+						opacity: '1'
+					},
+					'33.333%, 83.333%': {
+						opacity: '0'
+					}
+				},
+				'shine': {
+					'0%': {
+						'background-position': '0% 0%'
+					},
+					'50%': {
+						'background-position': '100% 100%'
+					},
+					to: {
+						'background-position': '0% 0%'
+					}
 				}
 			},
 			animation: {
@@ -122,7 +149,11 @@ export default {
 				'typing': 'typing 3s steps(30, end)',
 				'blink': 'blink 1s step-end infinite',
 				'slide-in': 'slide-in 0.5s ease-out',
-				'fade-in': 'fade-in 0.5s ease-out'
+				'fade-in': 'fade-in 0.5s ease-out',
+				'marquee': 'marquee var(--duration) linear infinite',
+				'marquee-vertical': 'marquee-vertical var(--duration) linear infinite',
+				'gradient': 'gradient 8s linear infinite',
+				'shine': 'shine var(--duration) infinite linear'
 			},
 			fontFamily: {
 				'code': ['Consolas', 'Monaco', 'Lucida Console', 'monospace'],
