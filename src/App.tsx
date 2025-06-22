@@ -12,7 +12,8 @@ import ChatSession from "./pages/ChatSession";
 import Assistant from "./pages/Assistant";
 import IssueContextSpike from "./pages/IssueContextSpike"; // Import the new page
 import TimelineDemo from "./pages/TimelineDemo";
-import OnboardingDashboard from "./pages/OnboardingDashboard"; // Import OnboardAI dashboard
+// Note: OnboardingDashboard removed as onboarding functionality has been removed
+// import OnboardingDashboard from "./pages/OnboardingDashboard";
 
 const queryClient = new QueryClient();
 
@@ -32,8 +33,9 @@ const App = () => (
           <Route path="/assistant/:sessionId" element={<Assistant />} />
           <Route path="/spike/issue-context" element={<IssueContextSpike />} /> {/* Add route for the spike page */}
           <Route path="/demo/timeline" element={<TimelineDemo />} /> {/* Timeline demo page */}
-          <Route path="/onboarding" element={<OnboardingDashboard />} /> {/* OnboardAI dashboard */}
-          <Route path="/onboarding/:repoUrl" element={<OnboardingDashboard />} /> {/* OnboardAI with repo URL */}
+                  {/* Note: Onboarding routes removed as onboarding functionality has been removed */}
+        {/* <Route path="/onboarding" element={<OnboardingDashboard />} /> */}
+        {/* <Route path="/onboarding/:repoUrl" element={<OnboardingDashboard />} /> */}
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
