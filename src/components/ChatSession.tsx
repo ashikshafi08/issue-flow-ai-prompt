@@ -429,12 +429,25 @@ const AgenticTracePanel: React.FC<{ steps: AgenticStep[], isStreaming?: boolean 
 
   const formatStepContent = (content: string, type: string) => {
     if (type === 'observation' || type === 'action') {
-      try {
-        const parsed = JSON.parse(content);
-        return `\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\``;
-      } catch (e) {
-        return content;
+      // Only format as JSON if it's clearly structured data, not readable text
+      if (typeof content === 'string' && content.trim().length > 0) {
+        // Check if it's a JSON-like structure that would benefit from formatting
+        const trimmed = content.trim();
+        if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || 
+            (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+          try {
+            const parsed = JSON.parse(trimmed);
+            // Only format as JSON if it's complex structured data
+            if (typeof parsed === 'object' && parsed !== null && 
+                (Array.isArray(parsed) || Object.keys(parsed).length > 3)) {
+              return `\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\``;
+            }
+          } catch (e) {
+            // Not valid JSON, treat as regular text
+          }
+        }
       }
+      return content;
     }
     return content;
   };
@@ -555,10 +568,26 @@ const AgenticStepDisplay: React.FC<{ step: AgenticStep }> = ({ step }) => {
 
   let displayContent = step.content;
   if (step.type === 'observation' || step.type === 'action') {
-    try {
-      const parsedJson = JSON.parse(step.content);
-      displayContent = `\`\`\`json\n${JSON.stringify(parsedJson, null, 2)}\n\`\`\``;
-    } catch (e) {
+    // Only format as JSON if it's clearly structured data, not readable text
+    if (typeof step.content === 'string' && step.content.trim().length > 0) {
+      const trimmed = step.content.trim();
+      if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || 
+          (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+        try {
+          const parsedJson = JSON.parse(trimmed);
+          // Only format as JSON if it's complex structured data
+          if (typeof parsedJson === 'object' && parsedJson !== null && 
+              (Array.isArray(parsedJson) || Object.keys(parsedJson).length > 3)) {
+            displayContent = `\`\`\`json\n${JSON.stringify(parsedJson, null, 2)}\n\`\`\``;
+          }
+        } catch (e) {
+          // Not valid JSON, continue with file processing
+        }
+      }
+    }
+    
+    // If we didn't format as JSON, do file processing
+    if (displayContent === step.content) {
       // Special handling for content that might contain file names
       const content = step.content;
       
@@ -633,7 +662,12 @@ const AgenticStepDisplay: React.FC<{ step: AgenticStep }> = ({ step }) => {
             const isShortCommand = !isDiff && content.length < 50 && !content.includes('\n') && /^(npm|yarn|git|sudo|apt|brew|pip|docker)\s/.test(content.trim());
             const isSimpleValue = !isDiff && content.length < 30 && !content.includes('\n') && !/[{}[\]();]/.test(content);
             
-            if (inline || isFilePath || isFolderPath || isShortCommand || isSimpleValue) {
+            // Check if this looks like JSON that should be displayed as a code block
+            const isComplexJSON = language === 'json' && 
+                                 (content.includes('\n') || content.length > 100 || 
+                                  (content.trim().startsWith('{') && content.includes('":')));
+            
+            if (inline || (isFilePath || isFolderPath || isShortCommand || isSimpleValue) && !isComplexJSON) {
               // Simplified inline code styling
               if (isFilePath) {
                 return (
@@ -650,12 +684,12 @@ const AgenticStepDisplay: React.FC<{ step: AgenticStep }> = ({ step }) => {
               );
             }
             
-            // Only create full code blocks for substantial content
+            // Only create full code blocks for substantial content or complex JSON
             const hasMultipleLines = content.includes('\n');
             const isSubstantialCode = content.length > 60;
             const hasCodePatterns = /[{}[\]();]/.test(content) || /^(import|from|def|class|if __name__|const|let|var|function|export)\s/m.test(content);
             
-            if (!hasMultipleLines && !isSubstantialCode && !hasCodePatterns) {
+            if (!hasMultipleLines && !isSubstantialCode && !hasCodePatterns && !isComplexJSON) {
               return (
                 <code className="font-mono text-orange-300 bg-gray-700/40 px-1.5 py-0.5 rounded-sm text-[0.95em]" {...props}>
                   {content}
@@ -833,7 +867,12 @@ const MarkdownComponents = {
     const isShortCommand = !isDiff && content.length < 50 && !content.includes('\n') && /^(npm|yarn|git|sudo|apt|brew|pip|docker)\s/.test(content.trim());
     const isSimpleValue = !isDiff && content.length < 30 && !content.includes('\n') && !/[{}[\]();]/.test(content);
     
-    if (inline || isFilePath || isFolderPath || isShortCommand || isSimpleValue) {
+    // Check if this looks like JSON that should be displayed as a code block
+    const isComplexJSON = language === 'json' && 
+                         (content.includes('\n') || content.length > 100 || 
+                          (content.trim().startsWith('{') && content.includes('":')));
+    
+    if (inline || (isFilePath || isFolderPath || isShortCommand || isSimpleValue) && !isComplexJSON) {
       // Simplified inline code styling
       if (isFilePath) {
         return (
@@ -850,12 +889,12 @@ const MarkdownComponents = {
       );
     }
     
-    // Only create full code blocks for substantial content
+    // Only create full code blocks for substantial content or complex JSON
     const hasMultipleLines = content.includes('\n');
     const isSubstantialCode = content.length > 60;
     const hasCodePatterns = /[{}[\]();]/.test(content) || /^(import|from|def|class|if __name__|const|let|var|function|export)\s/m.test(content);
     
-    if (!hasMultipleLines && !isSubstantialCode && !hasCodePatterns) {
+    if (!hasMultipleLines && !isSubstantialCode && !hasCodePatterns && !isComplexJSON) {
       return (
         <code className="font-mono text-orange-300 bg-gray-700/40 px-1.5 py-0.5 rounded-sm text-[0.95em]" {...props}>
           {content}

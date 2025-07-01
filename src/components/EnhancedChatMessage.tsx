@@ -947,11 +947,17 @@ const EnhancedChatMessage: React.FC<EnhancedChatMessageProps> = ({
       console.log('🛠️ customMarkdownComponents.code called:', { inline, children: String(children), className });
       
       const match = /language-(\w+)/.exec(className || '');
+      const language = match ? match[1] : 'plaintext';
       const text = String(children).trim();
       const codeId = `code-${Math.random().toString(36).substr(2, 9)}`;
       
+      // Check if this looks like JSON that should be displayed as a code block
+      const isComplexJSON = language === 'json' && 
+                           (text.includes('\n') || text.length > 100 || 
+                            (text.trim().startsWith('{') && text.includes('":')));
+      
       // Handle inline code that might be file paths
-      if (inline) {
+      if (inline && !isComplexJSON) {
         console.log('📝 Processing inline code:', text);
         if (isFilePath(text)) {
           console.log('✅ File path detected, rendering FileHoverPreview');
@@ -966,7 +972,7 @@ const EnhancedChatMessage: React.FC<EnhancedChatMessageProps> = ({
       }
       
       // ALSO handle when inline is undefined but content looks like a file path (common with certain markdown parsers)
-      if ((inline === undefined || inline === false) && isFilePath(text) && !text.includes('\n') && text.length < 100) {
+      if ((inline === undefined || inline === false) && isFilePath(text) && !text.includes('\n') && text.length < 100 && !isComplexJSON) {
         console.log('✅ File path detected in non-inline code, rendering FileHoverPreview');
         return <FileHoverPreview filePath={text} sessionId={sessionId} messageContent={content} />;
       }

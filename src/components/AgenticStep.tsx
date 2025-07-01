@@ -21,15 +21,22 @@ interface AgenticStepProps {
 const AgenticStep: React.FC<AgenticStepProps> = ({ step }) => {
   const renderContent = (content: string | any) => {
     if (typeof content === 'string') {
-      // Basic check for JSON string that might not have been pre-parsed
-      if ((content.startsWith('{') && content.endsWith('}')) || (content.startsWith('[') && content.endsWith(']'))) {
+      // Only format as JSON if it's clearly complex structured data
+      const trimmed = content.trim();
+      if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || 
+          (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
         try {
-          const parsedJson = JSON.parse(content);
-          return (
-            <SyntaxHighlighter language="json" style={oneDark} PreTag="div" className="rounded-md text-xs max-h-60 overflow-auto">
-              {JSON.stringify(parsedJson, null, 2)}
-            </SyntaxHighlighter>
-          );
+          const parsedJson = JSON.parse(trimmed);
+          // Only format as JSON if it's complex structured data (more than 3 keys or array with objects)
+          if (typeof parsedJson === 'object' && parsedJson !== null && 
+              (Array.isArray(parsedJson) && parsedJson.length > 0 && typeof parsedJson[0] === 'object') ||
+              (!Array.isArray(parsedJson) && Object.keys(parsedJson).length > 3)) {
+            return (
+              <SyntaxHighlighter language="json" style={oneDark} PreTag="div" className="rounded-md text-xs max-h-60 overflow-auto">
+                {JSON.stringify(parsedJson, null, 2)}
+              </SyntaxHighlighter>
+            );
+          }
         } catch (e) {
           // Not valid JSON, render as string
         }
@@ -37,11 +44,21 @@ const AgenticStep: React.FC<AgenticStepProps> = ({ step }) => {
       return <p className="whitespace-pre-wrap">{content}</p>;
     }
     if (typeof content === 'object' && content !== null) {
-      return (
-        <SyntaxHighlighter language="json" style={oneDark} PreTag="div" className="rounded-md text-xs max-h-60 overflow-auto">
-          {JSON.stringify(content, null, 2)}
-        </SyntaxHighlighter>
-      );
+      // Only show JSON formatting for complex objects
+      const isComplexObject = Array.isArray(content) ? 
+        content.length > 0 && typeof content[0] === 'object' :
+        Object.keys(content).length > 3;
+        
+      if (isComplexObject) {
+        return (
+          <SyntaxHighlighter language="json" style={oneDark} PreTag="div" className="rounded-md text-xs max-h-60 overflow-auto">
+            {JSON.stringify(content, null, 2)}
+          </SyntaxHighlighter>
+        );
+      } else {
+        // For simple objects, just show as text
+        return <p className="whitespace-pre-wrap">{JSON.stringify(content)}</p>;
+      }
     }
     return <p className="whitespace-pre-wrap">{String(content)}</p>;
   };

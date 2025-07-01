@@ -1,12 +1,10 @@
-
 import React from "react";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
-import DemoVideoSection from "@/components/DemoVideoSection";
 import FeaturesSection from "@/components/FeaturesSection";
-import WorkflowSection from "@/components/WorkflowSection";
-import ExampleOutputSection from "@/components/ExampleOutputSection";
 import VisionSection from "@/components/VisionSection";
+import PremiumShowcase from "@/components/PremiumShowcase";
+import WorkflowSection from "@/components/WorkflowSection";
 import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
 
@@ -16,21 +14,10 @@ const Index = () => {
       <Navbar />
       <main className="flex-grow relative">
         <HeroSection />
-        <div className="relative z-10">
-          <DemoVideoSection />
-        </div>
-        <div className="relative z-10">
-          <FeaturesSection />
-        </div>
-        <div className="relative z-10">
-          <WorkflowSection />
-        </div>
-        <div className="relative z-5">
-          <ExampleOutputSection />
-        </div>
-        <div className="relative z-10">
-          <VisionSection />
-        </div>
+        <FeaturesSection />
+        <PremiumShowcase />
+        <VisionSection />
+        <WorkflowSection />
         <CTASection />
       </main>
       <Footer />
