@@ -707,7 +707,7 @@ const AgenticStepDisplay: React.FC<{ step: AgenticStep }> = ({ step }) => {
               </div>
             );
           },
-           p: ({node, ...props}) => <p className={`my-0.5 ${contentColor}`} {...props} />
+          p: ({node, ...props}) => <p className={`my-0.5 ${contentColor}`} {...props} />
         }}
         remarkPlugins={[remarkGfm]}
       >

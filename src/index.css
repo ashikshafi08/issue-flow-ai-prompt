@@ -88,6 +88,16 @@
   }
 }
 
+/* Essential spin animation for loading spinners */
+@keyframes spin {
+  from { 
+    transform: rotate(0deg); 
+  }
+  to { 
+    transform: rotate(360deg); 
+  }
+}
+
 /* Core animation classes - reduced complexity */
 .animate-fade-in {
   animation: fadeIn 0.2s ease-out forwards;
@@ -95,6 +105,11 @@
 
 .animate-slide-up {
   animation: slideUp 0.3s ease-out forwards;
+}
+
+/* Ensure spin animation works globally */
+.animate-spin {
+  animation: spin 1s linear infinite;
 }
 
 /* Focus states for accessibility */
@@ -232,5 +247,14 @@ select:focus-visible {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+  
+  /* Exception: Allow essential loading spinners for UX */
+  .animate-spin,
+  .spinner,
+  [class*="spin"],
+  [class*="loading"] {
+    animation-duration: 1s !important;
+    animation-iteration-count: infinite !important;
   }
 }

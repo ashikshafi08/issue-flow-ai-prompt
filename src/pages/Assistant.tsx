@@ -454,7 +454,7 @@ const Assistant = () => {
 
   useKeyboardShortcuts({ shortcuts: chatShortcuts, enabled: true });
 
-  if (isLoading && sessions.length === 0) { 
+  if (isLoading) { 
     return (
       <div className="flex h-screen bg-[hsl(var(--background))] items-center justify-center">
         <div className="text-center">

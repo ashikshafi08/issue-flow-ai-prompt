@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 import typographyPlugin from "@tailwindcss/typography";
 import animatePlugin from "tailwindcss-animate";
@@ -94,6 +93,14 @@ export default {
 						height: '0'
 					}
 				},
+				'spin': {
+					from: {
+						transform: 'rotate(0deg)'
+					},
+					to: {
+						transform: 'rotate(360deg)'
+					}
+				},
 				'flow': {
 					'0%, 100%': { transform: 'translateY(0)' },
 					'50%': { transform: 'translateY(-10px)' }
@@ -145,6 +152,7 @@ export default {
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
+				'spin': 'spin 1s linear infinite',
 				'flow': 'flow 3s ease-in-out infinite',
 				'typing': 'typing 3s steps(30, end)',
 				'blink': 'blink 1s step-end infinite',
