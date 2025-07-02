@@ -53,9 +53,9 @@ export const AgenticStatus: React.FC<AgenticStatusProps> = ({ sessionId, onReady
 
   if (loading) {
     return (
-      <div className="flex items-center space-x-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-        <span className="text-sm text-blue-700">Checking AgenticRAG status...</span>
+      <div className="flex items-center space-x-2 p-3 bg-blue-900/30 border border-blue-600 rounded-lg">
+        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
+        <span className="text-sm text-blue-300">Checking AgenticRAG status...</span>
       </div>
     );
   }
@@ -67,13 +67,13 @@ export const AgenticStatus: React.FC<AgenticStatusProps> = ({ sessionId, onReady
   const getStatusColor = () => {
     switch (status.status) {
       case 'ready':
-        return 'bg-green-50 border-green-200 text-green-700';
+        return 'bg-green-900/30 border-green-600 text-green-300';
       case 'initializing':
-        return 'bg-yellow-50 border-yellow-200 text-yellow-700';
+        return 'bg-yellow-900/30 border-yellow-600 text-yellow-300';
       case 'error':
-        return 'bg-red-50 border-red-200 text-red-700';
+        return 'bg-red-900/30 border-red-600 text-red-300';
       default:
-        return 'bg-gray-50 border-gray-200 text-gray-700';
+        return 'bg-slate-800/30 border-slate-600 text-slate-300';
     }
   };
 

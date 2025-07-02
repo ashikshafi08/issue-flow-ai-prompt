@@ -298,6 +298,131 @@ export interface SyncRepositoryOptions {
   max_new_prs?: number;
 }
 
+// Workflow API functions
+export interface CreateWorkflowRequest {
+  workflow_type: 'linear_swarm' | 'orchestrator' | 'custom_planner';
+  name?: string;
+  agents?: any[];
+  entry_agent?: string;
+  config?: any;
+}
+
+export interface ExecuteWorkflowRequest {
+  query: string;
+  context?: any;
+}
+
+export interface WorkflowResponse {
+  workflow_id: string;
+  status: string;
+  type: string;
+  config: any;
+  created_at: string;
+}
+
+export interface WorkflowStatusResponse {
+  workflow_id: string;
+  status: string;
+  current_agent?: string;
+  progress?: any;
+  last_update: string;
+}
+
+export const createWorkflow = async (sessionId: string, request: CreateWorkflowRequest): Promise<WorkflowResponse> => {
+  const response = await fetch(`${API_BASE_URL}/assistant/sessions/${sessionId}/workflows/create`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to create workflow');
+  }
+
+  return response.json();
+};
+
+export const executeWorkflow = async (sessionId: string, workflowId: string, request: ExecuteWorkflowRequest): Promise<any> => {
+  const response = await fetch(`${API_BASE_URL}/assistant/sessions/${sessionId}/workflows/${workflowId}/execute`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to execute workflow');
+  }
+
+  return response.json();
+};
+
+export const getWorkflowStatus = async (sessionId: string, workflowId: string): Promise<WorkflowStatusResponse> => {
+  const response = await fetch(`${API_BASE_URL}/assistant/sessions/${sessionId}/workflows/${workflowId}/status`);
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to get workflow status');
+  }
+
+  return response.json();
+};
+
+export const listWorkflows = async (sessionId: string, status?: string): Promise<any[]> => {
+  const url = new URL(`${API_BASE_URL}/assistant/sessions/${sessionId}/workflows`);
+  if (status) {
+    url.searchParams.append('status', status);
+  }
+
+  const response = await fetch(url.toString());
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to list workflows');
+  }
+
+  return response.json();
+};
+
+export const getWorkflowDetails = async (sessionId: string, workflowId: string, includeHistory: boolean = true): Promise<any> => {
+  const url = new URL(`${API_BASE_URL}/assistant/sessions/${sessionId}/workflows/${workflowId}`);
+  url.searchParams.append('include_history', includeHistory.toString());
+
+  const response = await fetch(url.toString());
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to get workflow details');
+  }
+
+  return response.json();
+};
+
+// WebSocket connection for real-time workflow updates
+export const connectWorkflowWebSocket = (sessionId: string, workflowId: string, onMessage: (data: any) => void): WebSocket => {
+  const ws = new WebSocket(`ws://127.0.0.1:8000/assistant/sessions/${sessionId}/workflows/${workflowId}/ws`);
+  
+  ws.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      onMessage(data);
+    } catch (e) {
+      console.error('Failed to parse WebSocket message:', e);
+    }
+  };
+
+  ws.onerror = (error) => {
+    console.error('WebSocket error:', error);
+  };
+
+  return ws;
+};
+
 export interface SyncRepositoryResponse {
   message: string;
   sync_type: string;
@@ -631,4 +756,217 @@ export const getAgenticInitializationStatus = async (sessionId: string) => {
   }
 
   return response.json();
+};
+
+// LlamaIndex Workflow API Functions
+
+export interface Tool {
+  name: string;
+  description: string;
+}
+
+export interface LlamaIndexWorkflow {
+  workflow_id: string;
+  status: string;
+  type: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+  current_agent?: string;
+  progress?: {
+    progress: number;
+    current_step: string;
+    executed_agents: number;
+    total_agents: number;
+  };
+}
+
+export interface CreateWorkflowRequest {
+  workflow_type: 'linear_swarm' | 'orchestrator' | 'custom_planner';
+  name?: string;
+  agents?: any[];
+  entry_agent?: string;
+  config?: any;
+}
+
+export interface ExecuteWorkflowRequest {
+  query: string;
+  context?: any;
+}
+
+export interface AgentTaskResponse {
+  status: string;
+  agent_type: string;
+  response: string;
+}
+
+export interface WorkflowResponse {
+  status: string;
+  results: {
+    repository_overview?: string;
+    issue_analysis?: string;
+    testing_strategy?: string;
+    final_summary?: string;
+    quality_analysis?: string;
+    testing_analysis?: string;
+  };
+  agents_used?: string[];
+  focus_areas?: string[];
+}
+
+export const getAvailableTools = async (sessionId: string): Promise<Tool[]> => {
+  const response = await fetch(`${API_BASE_URL}/sessions/${sessionId}/available-tools`);
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Failed to fetch tools' }));
+    throw new Error(error.detail || 'Failed to fetch available tools');
+  }
+  
+  const data = await response.json();
+  return data.tools || [];
+};
+
+export const getLlamaWorkflows = async (sessionId: string): Promise<LlamaIndexWorkflow[]> => {
+  const response = await fetch(`${API_BASE_URL}/assistant/sessions/${sessionId}/workflows`);
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Failed to fetch workflows' }));
+    throw new Error(error.detail || 'Failed to fetch workflows');
+  }
+  
+  return response.json();
+};
+
+export const createAndExecuteWorkflow = async (
+  sessionId: string, 
+  workflowType: 'linear_swarm' | 'orchestrator' | 'custom_planner',
+  query: string,
+  workflowName?: string
+): Promise<{workflow: LlamaIndexWorkflow, executionResult: any}> => {
+  // Create workflow
+  const createResponse = await fetch(`${API_BASE_URL}/assistant/sessions/${sessionId}/workflows/create`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      workflow_type: workflowType,
+      name: workflowName || `${workflowType.replace('_', ' ')} Analysis`
+    } as CreateWorkflowRequest)
+  });
+
+  if (!createResponse.ok) {
+    const error = await createResponse.json().catch(() => ({ detail: 'Failed to create workflow' }));
+    throw new Error(error.detail || 'Failed to create workflow');
+  }
+
+  const workflow = await createResponse.json();
+  
+  // Execute workflow
+  const executeResponse = await fetch(`${API_BASE_URL}/assistant/sessions/${sessionId}/workflows/${workflow.workflow_id}/execute`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      query,
+      context: {}
+    } as ExecuteWorkflowRequest)
+  });
+
+  if (!executeResponse.ok) {
+    const error = await executeResponse.json().catch(() => ({ detail: 'Failed to execute workflow' }));
+    throw new Error(error.detail || 'Failed to execute workflow');
+  }
+
+  const executionResult = await executeResponse.json();
+  
+  return { workflow, executionResult };
+};
+
+export const pauseWorkflow = async (sessionId: string, workflowId: string): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/assistant/sessions/${sessionId}/workflows/${workflowId}/pause`, {
+    method: 'POST'
+  });
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Failed to pause workflow' }));
+    throw new Error(error.detail || 'Failed to pause workflow');
+  }
+};
+
+export const resumeWorkflow = async (sessionId: string, workflowId: string): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/assistant/sessions/${sessionId}/workflows/${workflowId}/resume`, {
+    method: 'POST'
+  });
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Failed to resume workflow' }));
+    throw new Error(error.detail || 'Failed to resume workflow');
+  }
+};
+
+export const runAgentTask = async (
+  sessionId: string, 
+  agentType: string, 
+  query: string, 
+  modelName?: string
+): Promise<AgentTaskResponse> => {
+  const response = await fetch(`${API_BASE_URL}/sessions/${sessionId}/agent-task`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      agent_type: agentType,
+      query,
+      model_name: modelName || undefined
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Failed to run agent task' }));
+    throw new Error(error.detail || `Failed to run agent task: ${response.status}`);
+  }
+
+  return response.json();
+};
+
+export const runAgentWorkflow = async (
+  sessionId: string, 
+  workflowType: string, 
+  modelName?: string,
+  focusAreas?: string[]
+): Promise<WorkflowResponse> => {
+  const body: any = {
+    workflow_type: workflowType,
+    model_name: modelName || undefined
+  };
+
+  if (workflowType === 'quality_audit') {
+    body.focus_areas = focusAreas;
+  }
+
+  const response = await fetch(`${API_BASE_URL}/sessions/${sessionId}/agent-workflow`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Failed to run workflow' }));
+    throw new Error(error.detail || `Failed to run workflow: ${response.status}`);
+  }
+
+  return response.json();
+};
+
+export const createWorkflowWebSocket = (
+  sessionId: string, 
+  workflowId: string
+): WebSocket => {
+  // Extract backend host from API_BASE_URL
+  const backendUrl = new URL(API_BASE_URL);
+  const protocol = backendUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${protocol}//${backendUrl.host}/assistant/sessions/${sessionId}/workflows/${workflowId}/ws`;
+  
+  return new WebSocket(wsUrl);
 };

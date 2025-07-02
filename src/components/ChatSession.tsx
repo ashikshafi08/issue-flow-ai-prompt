@@ -19,6 +19,7 @@ interface ChatSessionProps {
   selectedFile?: string | null;
   onCloseFileViewer?: () => void;
   onFileSelect?: (filePath: string) => void;
+  compact?: boolean; // New prop for canvas mode
 }
 
 // **NEW: Message-level loading state instead of component-level**

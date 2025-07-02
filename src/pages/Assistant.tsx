@@ -9,9 +9,10 @@ import FileViewer from '@/components/FileViewer';
 import UnifiedContextPanel from '@/components/UnifiedContextPanel';
 import IssueAnalysisHub from '@/components/IssueAnalysisHub';
 import AnalysisToolbar from '@/components/AnalysisToolbar';
+import { RepositoryCanvas } from '@/components/RepositoryCanvas';
 import { listAssistantSessions, SessionInfo, getSessionMessages, getSessionMetadata, resetAgenticMemory, syncRepository, SyncRepositoryOptions } from '@/lib/api'; // Added syncRepository
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2, PanelLeft, FolderTree, RefreshCw, GitBranch, Zap as SyncIcon } from 'lucide-react'; // Removed Clock
+import { Loader2, PanelLeft, FolderTree, RefreshCw, GitBranch, Zap as SyncIcon, LayoutGrid, MessageSquare } from 'lucide-react'; // Removed Clock
 import { Button } from '@/components/ui/button';
 import { useKeyboardShortcuts, createChatShortcuts } from '@/hooks/useKeyboardShortcuts';
 import KeyboardShortcutsIndicator from '@/components/KeyboardShortcutsIndicator';
@@ -70,6 +71,7 @@ const Assistant = () => {
   const [showUnifiedContext, setShowUnifiedContext] = useState(true);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false); // New state for sync status
+  const [canvasMode, setCanvasMode] = useState(true); // New state for canvas mode
   const [currentContext, setCurrentContext] = useState<{
     discussingFiles?: string[];
     relatedIssues?: number[];
@@ -510,6 +512,13 @@ const Assistant = () => {
                   </div>
                   <div className="flex items-center gap-1">
                     <button
+                      onClick={() => setCanvasMode(!canvasMode)}
+                      className="text-muted-foreground hover:text-foreground p-1.5 rounded-md hover:bg-[hsl(var(--accent))] text-xs transition-colors"
+                      title={canvasMode ? "Switch to Classic Chat" : "Switch to Canvas Mode"}
+                    >
+                      {canvasMode ? <MessageSquare className="h-3.5 w-3.5" /> : <LayoutGrid className="h-3.5 w-3.5" />}
+                    </button>
+                    <button
                       onClick={handleResetMemory}
                       className="text-muted-foreground hover:text-foreground p-1.5 rounded-md hover:bg-[hsl(var(--accent))] text-xs transition-colors"
                       title="Reset Memory"
@@ -567,13 +576,23 @@ const Assistant = () => {
 
               {/* Chat Content */}
               <div className="flex-1 overflow-hidden">
-                <ChatSession
-                  session={detailedActiveSession}
-                  onUpdateSessionMessages={updateActiveSessionMessages}
-                  selectedFile={selectedFile}
-                  onCloseFileViewer={() => setSelectedFile(null)}
-                  onFileSelect={(filePath) => setSelectedFile(filePath)}
-                />
+                {canvasMode ? (
+                  <RepositoryCanvas
+                    session={detailedActiveSession}
+                    onUpdateSessionMessages={updateActiveSessionMessages}
+                    selectedFile={selectedFile}
+                    onFileSelect={(filePath) => setSelectedFile(filePath)}
+                    onCloseFileViewer={() => setSelectedFile(null)}
+                  />
+                ) : (
+                  <ChatSession
+                    session={detailedActiveSession}
+                    onUpdateSessionMessages={updateActiveSessionMessages}
+                    selectedFile={selectedFile}
+                    onCloseFileViewer={() => setSelectedFile(null)}
+                    onFileSelect={(filePath) => setSelectedFile(filePath)}
+                  />
+                )}
               </div>
             </>
           ) : activeSessionId ? (

@@ -175,7 +175,7 @@ This investigation was triggered by timeline analysis showing significant change
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border"
+            className="bg-slate-800/50 dark:bg-slate-900/50 rounded-lg p-4 border border-slate-600"
           >
             <h3 className="font-semibold mb-3 flex items-center space-x-2">
               <GitCommit className="w-4 h-4" />
